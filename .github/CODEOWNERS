@@ -1,0 +1,35 @@
+# CODEOWNERS — workspace self-adoption (per ADR-0016 mitigation B)
+#
+# Until the workspace runs AI gates on its own PRs, the safety story is
+# explicit human approval on platform-internal changes. Anything touching
+# the plugin's agents/hooks/commands or the workspace's workflows requires
+# Jason's approval before merge.
+#
+# Matches use the same glob syntax as .gitignore.
+
+# Plugin internals: agent definitions, hooks, commands, skill content
+/plugins/ai-team/agents/                      @jaetill
+/plugins/ai-team/hooks/                       @jaetill
+/plugins/ai-team/commands/                    @jaetill
+/plugins/ai-team/skills/                      @jaetill
+/plugins/ai-team/.claude-plugin/              @jaetill
+
+# Marketplace + plugin manifest
+/.claude-plugin/                              @jaetill
+
+# Workspace CI + composite actions
+/.github/                                     @jaetill
+/actions/                                     @jaetill
+
+# Architectural decisions and standards
+/docs/adr/                                    @jaetill
+/docs/standards/                              @jaetill
+
+# Validation scripts and templates the platform exposes to consumers
+/scripts/                                     @jaetill
+/templates/                                   @jaetill
+
+# Top-level governance docs
+/README.md                                    @jaetill
+/CLAUDE.md                                    @jaetill
+/LICENSE                                      @jaetill
