@@ -11,28 +11,15 @@ The Agentic Dev Environment platform packaged as a Claude Code plugin per ADR-00
 
 ## Install
 
-From the workspace root (which is also the local marketplace):
-
-```shell
-/plugin marketplace add /absolute/path/to/Agentic-Dev-Environment
-/plugin install ai-team@agentic-dev-environment
-```
-
-Or for project-scoped install that ships in version control:
-
-```shell
-claude plugin marketplace add /absolute/path/to/Agentic-Dev-Environment --scope project
-```
-
-Then add to the project's `.claude/settings.json`:
+Add this to the consuming project's `.claude/settings.json`:
 
 ```json
 {
   "extraKnownMarketplaces": {
     "agentic-dev-environment": {
       "source": {
-        "source": "url",
-        "url": "file:///absolute/path/to/Agentic-Dev-Environment"
+        "source": "github",
+        "repo": "jaetill/agentic-dev-environment"
       }
     }
   },
@@ -42,7 +29,13 @@ Then add to the project's `.claude/settings.json`:
 }
 ```
 
-(Once the workspace itself is published to GitHub, swap the `url` source for a `github` source like `{"source": "github", "repo": "jaetill/agentic-dev-environment"}`.)
+The repo is private, so the consumer needs read access to `jaetill/agentic-dev-environment` (via their authenticated `gh` token).
+
+For development against an un-pushed local checkout, use the `directory` source instead:
+
+```json
+"source": { "source": "directory", "path": "/absolute/path/to/Agentic-Dev-Environment" }
+```
 
 ## Permissions
 

@@ -1,12 +1,12 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
-  "_comment": "The workspace IS the marketplace AND the consumer - dogfooding per ADR-0015. Subscribes to its own ai-team plugin via the directory source for now; after the workspace is published to GitHub, swap for {\"source\": \"github\", \"repo\": \"jaetill/agentic-dev-environment\"}. The permissions block carries the canonical deny rules (plugin manifests cannot ship permissions per the Claude Code plugin spec).",
+  "_comment": "The workspace IS the marketplace AND a consumer of its own ai-team plugin - dogfooding per ADR-0015. Resolved via the GitHub source after the workspace was published to jaetill/agentic-dev-environment. For local development against an un-pushed local checkout, swap the source for {\"source\": \"directory\", \"path\": \"<absolute>\"}. The permissions block carries the canonical deny rules (plugin manifests cannot ship permissions per the Claude Code plugin spec).",
 
   "extraKnownMarketplaces": {
     "agentic-dev-environment": {
       "source": {
-        "source": "directory",
-        "path": "E:\\Users\\tille\\Documents\\Claude\\Projects\\Agentic Dev Environment"
+        "source": "github",
+        "repo": "jaetill/agentic-dev-environment"
       }
     }
   },

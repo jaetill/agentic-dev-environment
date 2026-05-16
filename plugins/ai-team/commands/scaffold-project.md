@@ -27,7 +27,19 @@ Expected arguments: `--stack=<python-service|typescript-app|aws-iac>` `--name=<p
    - Create three CloudWatch Log Groups with retention per ADR-0009.
 
 3. **Bootstrap the AI configuration:**
-   - Create `.claude/settings.json` in the new project that subscribes to the `ai-team` plugin in the `agentic-dev-environment` marketplace (per ADR-0015). The plugin ships the agents, slash commands, and hooks — they are NOT copied locally.
+   - Create `.claude/settings.json` in the new project subscribing to the `ai-team` plugin in the `agentic-dev-environment` marketplace (per ADR-0015). The plugin ships the agents, slash commands, hooks, and skills — they are NOT copied locally. The canonical subscription block:
+
+     ```json
+     {
+       "extraKnownMarketplaces": {
+         "agentic-dev-environment": {
+           "source": { "source": "github", "repo": "jaetill/agentic-dev-environment" }
+         }
+       },
+       "enabledPlugins": { "ai-team@agentic-dev-environment": true }
+     }
+     ```
+
    - Include the canonical `permissions.deny` block (plugin manifests can't ship permissions per the Claude Code spec; each project carries its own).
    - Generate project-specific `CLAUDE.md` (≤200 lines per ADR-0008).
 
