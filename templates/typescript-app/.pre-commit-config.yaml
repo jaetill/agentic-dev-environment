@@ -1,0 +1,35 @@
+# Pre-commit hooks per Standard 04 (Quality Gates) — ≤10s budget total.
+# Full lint/type/test battery runs in CI; pre-commit is the fast local check.
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-added-large-files
+        args: ['--maxkb=500']
+      - id: check-merge-conflict
+
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.2
+    hooks:
+      - id: gitleaks
+
+  - repo: https://github.com/alessandrojcm/commitlint-pre-commit-hook
+    rev: v9.16.0
+    hooks:
+      - id: commitlint
+        stages: [commit-msg]
+        additional_dependencies: ['@commitlint/config-conventional']
+
+  - repo: local
+    hooks:
+      - id: lint-staged
+        name: lint-staged (eslint + prettier on changed files)
+        entry: pnpm exec lint-staged
+        language: system
+        types: [text]
+        pass_filenames: false

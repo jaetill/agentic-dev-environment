@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(git *)",
+      "PowerShell(Get-ChildItem \"E:\\\\Users\\\\tille\\\\Documents\\\\Claude\\\\Projects\\\\Agentic Dev Environment\\\\.git\" | Select-Object Name -First 25; \"---\"; Get-Item \"E:\\\\Users\\\\tille\\\\Documents\\\\Claude\\\\Projects\\\\Agentic Dev Environment\\\\.git\\\\HEAD\" | Select-Object -Property Length)",
+      "Bash(npx playwright *)",
+      "Bash(claude plugin *)",
+      "WebFetch(domain:docs.claude.com)"
+    ]
+  }
+}

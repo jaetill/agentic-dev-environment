@@ -1,0 +1,150 @@
+name: claude-pr-review (reusable)
+# Per ADR-0011 §9 — invokes the code-reviewer + security-reviewer + destructive-change-detector
+# subagents in parallel against the PR diff. Each posts findings as a PR comment.
+
+on:
+  workflow_call:
+    secrets:
+      ANTHROPIC_API_KEY:
+        required: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  code-review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # need full history to compute PR diff
+      - name: Run code-reviewer agent
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            Act as the code-reviewer subagent defined in .claude/agents/code-reviewer.md.
+            Review the diff between origin/${{ github.base_ref }} and HEAD.
+            Post findings as a PR review comment per the agent's output format.
+          claude_args: |
+            --model claude-sonnet-4-6
+            --append-system-prompt "Follow the platform standards in docs/standards/."
+
+  security-review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Run security-reviewer agent
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            Act as the security-reviewer subagent defined in .claude/agents/security-reviewer.md.
+            Run a security review on the diff between origin/${{ github.base_ref }} and HEAD.
+            Post findings as a PR review comment grouped by severity.
+          claude_args: |
+            --model claude-sonnet-4-6
+            --append-system-prompt "Follow the platform standards in docs/standards/."
+
+  destructive-change-check:
+    runs-on: ubuntu-latest
+    outputs:
+      requires-adr: ${{ steps.detect.outputs.requires-adr }}
+      categories: ${{ steps.detect.outputs.categories }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: detect
+        name: Detect ADR-gated changes
+        run: |
+          # Static detection rules per ADR-0003. Rule set evolves; checked into the platform.
+          # Categories: destructive-migration, new-external-dep, security-relevant, api-contract, schema.
+          requires_adr=false
+          categories=""
+
+          diff=$(git diff origin/${{ github.base_ref }}...HEAD)
+
+          # destructive migration
+          if echo "$diff" | grep -E '\bDROP TABLE\b|\bALTER TABLE.*DROP COLUMN\b|\bTRUNCATE\b' >/dev/null; then
+            requires_adr=true
+            categories="$categories destructive-migration"
+          fi
+
+          # New external dep (added to pyproject.toml or package.json)
+          changed_manifest=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -E 'pyproject\.toml|package\.json|Cargo\.toml|go\.mod' || true)
+          if [[ -n "$changed_manifest" ]]; then
+            # Check whether ANY new top-level dep is added (heuristic; refined in agent prompt)
+            if git diff origin/${{ github.base_ref }}...HEAD -- $changed_manifest | grep -E '^\+.*"[^"]+":\s*"\^?[0-9]' >/dev/null; then
+              requires_adr=true
+              categories="$categories new-external-dep"
+            fi
+          fi
+
+          # Security-relevant paths
+          security_paths=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -E 'auth/|authn/|authz/|session/|secret/|crypto/|permission/' || true)
+          if [[ -n "$security_paths" ]]; then
+            requires_adr=true
+            categories="$categories security-relevant"
+          fi
+
+          # Schema changes
+          schema_changes=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -E 'schema\.|migrations/|models/' || true)
+          if [[ -n "$schema_changes" ]]; then
+            requires_adr=true
+            categories="$categories schema"
+          fi
+
+          # API contract changes (OpenAPI changes)
+          api_changes=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -E 'openapi\.(yml|yaml|json)|api/' || true)
+          if [[ -n "$api_changes" ]]; then
+            requires_adr=true
+            categories="$categories api-contract"
+          fi
+
+          echo "requires-adr=$requires_adr" >> "$GITHUB_OUTPUT"
+          echo "categories=$categories" >> "$GITHUB_OUTPUT"
+
+      - name: Label PR if ADR-gated
+        if: steps.detect.outputs.requires-adr == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const categories = "${{ steps.detect.outputs.categories }}".trim().split(/\s+/);
+            const labels = categories.map(c => `requires-adr:${c}`);
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              labels: labels,
+            });
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `🛑 This PR contains changes in ADR-gated categories: \`${categories.join(", ")}\`.\n\nMerge is blocked until a paired ADR is Accepted. The architect agent will draft one.`
+            });
+
+  invoke-architect-if-gated:
+    needs: destructive-change-check
+    if: needs.destructive-change-check.outputs.requires-adr == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Run architect agent for ADR drafting
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            Act as the architect subagent defined in .claude/agents/architect.md (headless mode).
+            This PR contains changes in ADR-gated categories: ${{ needs.destructive-change-check.outputs.categories }}.
+            Draft a paired ADR in MADR 4.x format addressing the categories.
+            Submit as a PR commit adding `docs/adr/NNNN-*.md` with `Status: Proposed`.
+          claude_args: |
+            --model claude-opus-4-6
+            --append-system-prompt "Follow MADR 4.x format with the platform's three documented extensions."

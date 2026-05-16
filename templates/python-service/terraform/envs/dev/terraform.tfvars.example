@@ -1,0 +1,7 @@
+# Copy this file to terraform.tfvars and fill in real values.
+# terraform.tfvars itself is gitignored (real values).
+
+# project_name = "{{project_name}}"
+# aws_region   = "us-east-1"
+# grafana_url  = "https://your-org.grafana.net"
+# # grafana_api_key — DO NOT put here. Source from 1Password via op run.

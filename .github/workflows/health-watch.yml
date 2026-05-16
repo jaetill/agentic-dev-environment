@@ -1,0 +1,101 @@
+name: health-watch (reusable)
+# Per ADR-0009 §7 — 15-min post-deploy monitoring window.
+# Triggers auto-rollback on metric breach.
+
+on:
+  workflow_call:
+    inputs:
+      env:
+        type: string
+        required: true   # dev | staging | prod
+      project-name:
+        type: string
+        required: true
+      window-minutes:
+        type: number
+        default: 15
+    secrets:
+      aws-role-arn:
+        required: false
+      ANTHROPIC_API_KEY:
+        required: false   # for incident-responder agent
+
+permissions:
+  contents: read
+  id-token: write
+  issues: write
+
+jobs:
+  health-check:
+    runs-on: ubuntu-latest
+    outputs:
+      healthy: ${{ steps.check.outputs.healthy }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.aws-role-arn }}
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+
+      - id: check
+        name: Watch health metrics for ${{ inputs.window-minutes }} min
+        run: |
+          deadline=$(( $(date +%s) + ${{ inputs.window-minutes }} * 60 ))
+          while [[ $(date +%s) -lt $deadline ]]; do
+            # Check 5xx error rate
+            error_rate=$(aws cloudwatch get-metric-statistics \
+              --namespace AWS/ApiGateway \
+              --metric-name 5XXError \
+              --start-time "$(date -u -d '5 min ago' +%Y-%m-%dT%H:%M:%SZ)" \
+              --end-time "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+              --period 60 --statistics Sum \
+              --query 'Datapoints[0].Sum' --output text 2>/dev/null || echo "0")
+
+            # Check p99 latency
+            latency=$(aws cloudwatch get-metric-statistics \
+              --namespace AWS/ApiGateway \
+              --metric-name Latency \
+              --start-time "$(date -u -d '5 min ago' +%Y-%m-%dT%H:%M:%SZ)" \
+              --end-time "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+              --period 60 --extended-statistics p99 \
+              --query 'Datapoints[0].ExtendedStatistics.p99' --output text 2>/dev/null || echo "0")
+
+            # Thresholds per ADR-0009 §7
+            if (( $(echo "$error_rate > 5" | bc -l) )); then
+              echo "healthy=false" >> $GITHUB_OUTPUT
+              echo "Health check FAILED: 5xx rate $error_rate" >&2
+              exit 1
+            fi
+
+            sleep 60
+          done
+          echo "healthy=true" >> $GITHUB_OUTPUT
+          echo "Health window complete. Service stable."
+
+  trigger-rollback:
+    needs: health-check
+    if: needs.health-check.outputs.healthy != 'true'
+    uses: ./.github/workflows/auto-rollback.yml
+    with:
+      env: ${{ inputs.env }}
+      project-name: ${{ inputs.project-name }}
+    secrets: inherit
+
+  notify-incident-responder:
+    needs: health-check
+    if: needs.health-check.outputs.healthy != 'true' && inputs.env == 'prod'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Invoke incident-responder agent
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            Act as the incident-responder subagent defined in .claude/agents/incident-responder.md.
+            P0 incident: ${{ inputs.project-name }} ${{ inputs.env }} health check failed.
+            Auto-rollback has been triggered. Triage; if rollback succeeds, draft postmortem.
+            If rollback fails, page the human.
+          claude_args: |
+            --model claude-sonnet-4-6

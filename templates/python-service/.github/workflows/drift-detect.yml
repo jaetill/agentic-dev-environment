@@ -1,0 +1,17 @@
+name: drift-detect
+on:
+  schedule:
+    - cron: '0 9 * * 1'   # Mondays at 09:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+  id-token: write
+
+jobs:
+  drift-detect:
+    uses: {{github_username}}/agentic-dev-environment/.github/workflows/iac-drift-detect.yml@main
+    with:
+      project-name: "{{project_name}}"
+    secrets: inherit

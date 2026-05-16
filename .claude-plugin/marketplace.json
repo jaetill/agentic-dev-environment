@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-marketplace.json",
+  "name": "agentic-dev-environment",
+  "description": "Jason Tilley's solo-dev platform plugins. Mature-team engineering practices distributed as Claude Code plugins so projects subscribe instead of carrying embedded copies.",
+  "owner": {
+    "name": "Jason Tilley",
+    "email": "jaetill@gmail.com"
+  },
+  "plugins": [
+    {
+      "name": "ai-team",
+      "source": "./plugins/ai-team",
+      "description": "Solo-dev engineering platform: 14 subagents, 10 slash commands, lifecycle hooks, and standards skills.",
+      "version": "0.1.0",
+      "category": "platform",
+      "keywords": ["platform", "subagents", "standards", "solo-dev"]
+    }
+  ]
+}

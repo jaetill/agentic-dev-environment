@@ -1,0 +1,16 @@
+name: release
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write
+
+jobs:
+  release:
+    uses: {{github_username}}/agentic-dev-environment/.github/workflows/release.yml@main
+    with:
+      release-type: "node"
+    secrets: inherit

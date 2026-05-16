@@ -1,0 +1,55 @@
+{
+  "name": "@platform/test-inbox",
+  "version": "0.1.0",
+  "description": "Platform component for testing email-bearing workflows (Cognito invites, magic links, password resets, notifications).",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./playwright": {
+      "types": "./dist/playwright-fixture.d.ts",
+      "import": "./dist/playwright-fixture.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:integration": "cross-env TEST_INBOX_INTEGRATION=1 vitest run tests/integration.test.ts",
+    "prepare": "tsc"
+  },
+  "dependencies": {
+    "@aws-sdk/client-cognito-identity-provider": "^3.705.0",
+    "google-auth-library": "^9.14.0",
+    "googleapis": "^144.0.0"
+  },
+  "peerDependencies": {
+    "@playwright/test": "^1.48.0"
+  },
+  "peerDependenciesMeta": {
+    "@playwright/test": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.48.0",
+    "@types/node": "^22.0.0",
+    "cross-env": "^7.0.3",
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0"
+  }
+}

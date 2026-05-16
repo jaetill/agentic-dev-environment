@@ -1,0 +1,53 @@
+name: infracost (reusable)
+# Per ADR-0007 — cost preview on PRs that touch terraform/.
+
+on:
+  workflow_call:
+    secrets:
+      infracost-api-key:
+        required: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  infracost:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: opentofu/setup-opentofu@v1
+      - uses: infracost/actions/setup@v3
+        with:
+          api-key: ${{ secrets.infracost-api-key }}
+
+      - name: Generate Infracost diff
+        run: |
+          for env_dir in terraform/envs/*/; do
+            env_name=$(basename "$env_dir")
+            cd "$env_dir"
+            tofu init -backend=false
+            infracost breakdown \
+              --path . \
+              --format json \
+              --out-file "/tmp/infracost-${env_name}.json"
+            cd - >/dev/null
+          done
+
+          # Combine into a single diff
+          infracost output --path '/tmp/infracost-*.json' \
+            --format github-comment \
+            --out-file /tmp/infracost-comment.md
+
+      - name: Post comment to PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const body = fs.readFileSync('/tmp/infracost-comment.md', 'utf8');
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: body,
+            });

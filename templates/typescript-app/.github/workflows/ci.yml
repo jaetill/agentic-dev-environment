@@ -1,0 +1,33 @@
+name: ci
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+  id-token: write
+
+jobs:
+  ci:
+    uses: {{github_username}}/agentic-dev-environment/.github/workflows/ci-typescript.yml@main
+    with:
+      node-version: "20"
+      pnpm-version: "9"
+      coverage-fail-under: 80
+    secrets: inherit
+
+  ai-review:
+    if: github.event_name == 'pull_request'
+    uses: {{github_username}}/agentic-dev-environment/.github/workflows/claude-pr-review.yml@main
+    secrets: inherit
+
+  security-scan:
+    uses: {{github_username}}/agentic-dev-environment/.github/workflows/security-scan.yml@main
+    secrets: inherit

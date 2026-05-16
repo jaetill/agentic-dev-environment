@@ -1,0 +1,47 @@
+name: test-modules-integration
+# Per ADR-0004 §8 — Terratest integration tests run on module release tags.
+# Tag format: modules/v*.*.*
+
+on:
+  push:
+    tags:
+      - 'modules/v*.*.*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write   # for AWS OIDC to test account
+
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment: test  # GitHub environment with TEST account secrets
+    env:
+      AWS_TEST_ACCOUNT_CONFIRMED: "true"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - uses: opentofu/setup-opentofu@v1
+
+      - name: Configure AWS credentials (OIDC to test account)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_TEST_ACCOUNT_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+
+      - name: Build test fixtures
+        run: |
+          cd templates/_shared/terraform-modules/tests/fixtures/hello-lambda
+          chmod +x build.sh
+          ./build.sh
+
+      - name: Run Terratest
+        working-directory: templates/_shared/terraform-modules/tests
+        run: |
+          go mod download
+          go test -v -timeout 30m ./integration/...

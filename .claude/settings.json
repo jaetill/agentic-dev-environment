@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "_comment": "The workspace IS the marketplace AND the consumer - dogfooding per ADR-0015. Subscribes to its own ai-team plugin via the directory source for now; after the workspace is published to GitHub, swap for {\"source\": \"github\", \"repo\": \"jaetill/agentic-dev-environment\"}. The permissions block carries the canonical deny rules (plugin manifests cannot ship permissions per the Claude Code plugin spec).",
+
+  "extraKnownMarketplaces": {
+    "agentic-dev-environment": {
+      "source": {
+        "source": "directory",
+        "path": "E:\\Users\\tille\\Documents\\Claude\\Projects\\Agentic Dev Environment"
+      }
+    }
+  },
+
+  "enabledPlugins": {
+    "ai-team@agentic-dev-environment": true
+  },
+
+  "permissions": {
+    "allow": [],
+    "deny": [
+      "Bash(rm -rf /*)",
+      "Bash(sudo rm*)",
+      "Bash(git push --force*)",
+      "Bash(git push -f*)",
+      "Bash(*DROP TABLE*)",
+      "Bash(*TRUNCATE*)",
+      "Edit(*.tfstate*)",
+      "Edit(.env)",
+      "Write(*.tfstate*)",
+      "Write(.env)"
+    ]
+  }
+}

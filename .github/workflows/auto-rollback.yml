@@ -1,0 +1,64 @@
+name: auto-rollback (reusable)
+# Per ADR-0003 — automatic rollback on health-watch failure.
+
+on:
+  workflow_call:
+    inputs:
+      env:
+        type: string
+        required: true
+      project-name:
+        type: string
+        required: true
+    secrets:
+      aws-role-arn:
+        required: false
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.env }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Find previous healthy version
+        id: previous
+        run: |
+          # Read the deploy history; pick the version before the most recent
+          if [[ -f .deploy-history ]]; then
+            previous=$(tail -2 .deploy-history | head -1 | awk '{print $2}')
+            echo "version=$previous" >> $GITHUB_OUTPUT
+          else
+            echo "ERROR: no deploy history available; cannot auto-rollback" >&2
+            exit 1
+          fi
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.aws-role-arn }}
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+
+      - name: Rollback Lambda alias to previous version
+        run: |
+          aws lambda update-alias \
+            --function-name ${{ inputs.project-name }}-${{ inputs.env }} \
+            --name live \
+            --function-version ${{ steps.previous.outputs.version }}
+          echo "Rolled back to ${{ steps.previous.outputs.version }}"
+
+      - name: Verify rollback health
+        run: |
+          # Wait 2 min then check
+          sleep 120
+          health_url="https://${{ inputs.project-name }}-${{ inputs.env }}.example.com/health"
+          status=$(curl -s -o /dev/null -w "%{http_code}" "$health_url" || echo "000")
+          if [[ "$status" != "200" ]]; then
+            echo "ROLLBACK FAILED — health endpoint returned $status" >&2
+            exit 1
+          fi
+          echo "Rollback verified; service healthy."

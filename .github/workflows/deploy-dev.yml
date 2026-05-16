@@ -1,0 +1,48 @@
+name: deploy-dev (reusable)
+# Per ADR-0003 — auto-deploy to dev on merge to main.
+
+on:
+  workflow_call:
+    inputs:
+      project-name:
+        type: string
+        required: true
+      stack:
+        type: string
+        required: true   # python-lambda | typescript-vercel | aws-iac | etc.
+    secrets:
+      aws-role-arn:
+        required: false   # If AWS-deployed via OIDC
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        if: contains(inputs.stack, 'aws') || contains(inputs.stack, 'lambda')
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.aws-role-arn || vars.AWS_ROLE_ARN_DEV }}
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+
+      - name: Setup OpenTofu
+        uses: opentofu/setup-opentofu@v1
+
+      - name: Terraform plan + apply
+        working-directory: terraform/envs/dev
+        run: |
+          tofu init
+          tofu plan -out=plan.tfplan
+          tofu apply -auto-approve plan.tfplan
+
+      - name: Tag deploy
+        run: |
+          echo "Deployed commit ${{ github.sha }} to dev at $(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            | tee -a .deploy-history

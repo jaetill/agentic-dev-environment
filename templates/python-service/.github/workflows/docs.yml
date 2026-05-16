@@ -1,0 +1,20 @@
+name: docs
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - 'mkdocs.yml'
+      - '.github/workflows/docs.yml'
+      - 'src/**'   # for API doc auto-gen
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  docs:
+    uses: {{github_username}}/agentic-dev-environment/.github/workflows/docs.yml@main
+    with:
+      python-version: "3.12"

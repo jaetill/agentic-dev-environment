@@ -1,0 +1,64 @@
+name: deploy
+on:
+  push:
+    branches: [main]
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  id-token: write     # for AWS OIDC
+
+jobs:
+  deploy-dev:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    uses: {{github_username}}/agentic-dev-environment/.github/workflows/deploy-dev.yml@main
+    with:
+      project-name: "{{project_name}}"
+      stack: "python-lambda"
+    secrets: inherit
+
+  e2e-on-dev:
+    needs: deploy-dev
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run e2e tests on dev
+        run: |
+          # The e2e-tester agent is invoked here via the platform's reusable workflow
+          # placeholder: actual implementation calls the e2e workflow
+          echo "TODO: invoke e2e-tester via platform reusable workflow"
+
+  deploy-staging:
+    if: github.event_name == 'release'
+    uses: {{github_username}}/agentic-dev-environment/.github/workflows/deploy-staging.yml@main
+    with:
+      project-name: "{{project_name}}"
+      stack: "python-lambda"
+      tag: ${{ github.event.release.tag_name }}
+    secrets: inherit
+
+  staging-verification:
+    needs: deploy-staging
+    uses: {{github_username}}/agentic-dev-environment/.github/workflows/health-watch.yml@main
+    with:
+      env: "staging"
+      project-name: "{{project_name}}"
+    secrets: inherit
+
+  deploy-prod:
+    needs: staging-verification
+    uses: {{github_username}}/agentic-dev-environment/.github/workflows/deploy-prod.yml@main
+    with:
+      project-name: "{{project_name}}"
+      stack: "python-lambda"
+      tag: ${{ github.event.release.tag_name }}
+    secrets: inherit
+
+  prod-verification:
+    needs: deploy-prod
+    uses: {{github_username}}/agentic-dev-environment/.github/workflows/health-watch.yml@main
+    with:
+      env: "prod"
+      project-name: "{{project_name}}"
+    secrets: inherit

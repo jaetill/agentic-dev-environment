@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "ai-team",
+  "version": "0.1.0",
+  "description": "Solo-dev engineering platform: 14 subagents, 10 slash commands, lifecycle hooks, and standards skills. Bundles the platform's mature-team conventions per ADR-0001 so each project subscribes once instead of carrying embedded copies.",
+  "author": {
+    "name": "Jason Tilley",
+    "url": "https://github.com/jaetill"
+  },
+  "homepage": "https://github.com/jaetill/agentic-dev-environment",
+  "repository": "https://github.com/jaetill/agentic-dev-environment",
+  "license": "MIT",
+  "keywords": ["platform", "subagents", "standards", "solo-dev", "claude-code"]
+}

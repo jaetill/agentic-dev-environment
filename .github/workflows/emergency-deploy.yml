@@ -1,0 +1,77 @@
+name: emergency-deploy (reusable)
+# Per ADR-0010 §6 — manual break-glass workflow. Bypasses staging.
+# Use only in genuine emergencies. Triggers a postmortem ADR within 48 hours.
+
+on:
+  workflow_call:
+    inputs:
+      commit_sha:
+        type: string
+        required: true
+      reason:
+        type: string
+        required: true
+    secrets:
+      aws-role-arn:
+        required: false
+      ANTHROPIC_API_KEY:
+        required: false
+
+permissions:
+  contents: read
+  id-token: write
+  issues: write
+
+jobs:
+  emergency-deploy:
+    runs-on: ubuntu-latest
+    environment: prod
+    steps:
+      - name: Validate reason
+        run: |
+          if [[ -z "${{ inputs.reason }}" ]]; then
+            echo "ERROR: reason is required for emergency deploy" >&2
+            exit 1
+          fi
+          echo "Emergency deploy reason: ${{ inputs.reason }}"
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.commit_sha }}
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.aws-role-arn }}
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+
+      - uses: opentofu/setup-opentofu@v1
+
+      - name: Apply directly to prod
+        working-directory: terraform/envs/prod
+        run: |
+          tofu init
+          tofu apply -auto-approve
+
+      - name: Open postmortem-required issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Postmortem: emergency deploy of ${context.payload.inputs.commit_sha}`,
+              body: `An emergency deploy was used to bypass standard flow.\n\n**Reason given:** ${context.payload.inputs.reason}\n\nPer ADR-0010 §6, a postmortem ADR is required within 48 hours. Use \`/postmortem\` to draft it.`,
+              labels: ['postmortem-required', 'emergency-deploy'],
+            });
+
+      - name: Invoke incident-responder for postmortem
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            Act as the incident-responder subagent defined in .claude/agents/incident-responder.md.
+            Emergency deploy was used. Reason: ${{ inputs.reason }}.
+            Draft a postmortem within 48 hours per ADR-0010 §6.
+          claude_args: |
+            --model claude-sonnet-4-6

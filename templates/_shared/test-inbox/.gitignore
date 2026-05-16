@@ -1,0 +1,9 @@
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+.env
+.env.local
+
+# OAuth refresh-token mint helper — touches OAuth secrets; per-developer
+mint-refresh-token.mjs

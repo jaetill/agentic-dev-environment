@@ -1,0 +1,78 @@
+name: security-scan (reusable)
+# Per ADR-0005 §3 — Semgrep + gitleaks + Trivy + SBOM (Syft).
+
+on:
+  workflow_call:
+    secrets:
+      semgrep-token:
+        required: false   # If using Semgrep Cloud; not required for OSS
+
+permissions:
+  contents: read
+  security-events: write   # Upload SARIF to GitHub code scanning
+
+jobs:
+  semgrep:
+    runs-on: ubuntu-latest
+    container:
+      image: returntocorp/semgrep
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Semgrep
+        run: |
+          semgrep ci \
+            --config=p/security-audit \
+            --config=p/secrets \
+            --config=p/python \
+            --config=p/typescript \
+            --sarif --output=semgrep.sarif || true
+        env:
+          SEMGREP_APP_TOKEN: ${{ secrets.semgrep-token }}
+      - name: Upload SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: semgrep.sarif
+
+  gitleaks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+  trivy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Trivy filesystem scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: fs
+          format: sarif
+          output: trivy.sarif
+          severity: CRITICAL,HIGH
+      - name: Upload SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy.sarif
+
+  sbom:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate SBOM (Syft)
+        uses: anchore/sbom-action@v0
+        with:
+          output-file: sbom.spdx.json
+          format: spdx-json
+      - name: Upload SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: sbom.spdx.json
+          retention-days: 90

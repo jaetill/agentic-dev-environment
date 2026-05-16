@@ -1,0 +1,76 @@
+name: iac-drift-detect (reusable)
+# Per ADR-0007 — weekly scheduled drift detection. Triggers drift-detector agent on drift.
+
+on:
+  workflow_call:
+    inputs:
+      project-name:
+        type: string
+        required: true
+    secrets:
+      aws-role-arn:
+        required: false
+      ANTHROPIC_API_KEY:
+        required: false
+
+permissions:
+  contents: read
+  issues: write
+  id-token: write
+
+jobs:
+  detect:
+    strategy:
+      matrix:
+        env: [dev, staging, prod]
+    runs-on: ubuntu-latest
+    environment: ${{ matrix.env }}
+    outputs:
+      drift-detected: ${{ steps.plan.outputs.drift }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.aws-role-arn }}
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+
+      - uses: opentofu/setup-opentofu@v1
+
+      - id: plan
+        name: tofu plan -refresh-only
+        working-directory: terraform/envs/${{ matrix.env }}
+        run: |
+          tofu init
+          set +e
+          tofu plan -refresh-only -detailed-exitcode -out=drift.tfplan
+          exit_code=$?
+          set -e
+          if [[ $exit_code -eq 2 ]]; then
+            echo "drift=true" >> $GITHUB_OUTPUT
+            tofu show -no-color drift.tfplan > drift.txt
+          else
+            echo "drift=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Upload drift artifact
+        if: steps.plan.outputs.drift == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: drift-${{ matrix.env }}-${{ github.run_id }}
+          path: terraform/envs/${{ matrix.env }}/drift.txt
+
+      - name: Invoke drift-detector agent
+        if: steps.plan.outputs.drift == 'true'
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            Act as the drift-detector subagent defined in .claude/agents/drift-detector.md.
+            Drift detected in ${{ inputs.project-name }} ${{ matrix.env }}.
+            Plan output is in terraform/envs/${{ matrix.env }}/drift.txt.
+            Classify each item; propose fix PR (Tier 2) or close as no-op (Tier 1).
+          claude_args: |
+            --model claude-haiku-4-5
+            --append-system-prompt "Tier 1 classification; escalate to Sonnet for fix-PR drafting per agent definition."

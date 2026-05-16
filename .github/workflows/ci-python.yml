@@ -1,0 +1,109 @@
+name: ci-python (reusable)
+# Reusable Python CI per Standard 02 / ADR-0003.
+# Runs: format-check, lint, type-check, security audit, tests with tiered coverage.
+# Path-filtered upstream by the calling workflow per ADR-0007 performance discipline.
+
+on:
+  workflow_call:
+    inputs:
+      python-version:
+        type: string
+        default: "3.12"
+      coverage-fail-under:
+        type: number
+        default: 80
+    secrets:
+      sentry-dsn:
+        required: false
+      codecov-token:
+        required: false
+
+jobs:
+  lint-and-type:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python-version }}
+      - name: Install deps
+        run: uv sync --all-extras --dev
+      - name: Ruff format check
+        run: uv run ruff format --check .
+      - name: Ruff lint
+        run: uv run ruff check .
+      - name: mypy strict
+        run: uv run mypy src
+
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: test
+          POSTGRES_USER: test
+          POSTGRES_DB: test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports: ['5432:5432']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python-version }}
+      - name: Install deps
+        run: uv sync --all-extras --dev
+      - name: Run tests with coverage
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/test
+        run: |
+          uv run pytest \
+            --cov=src \
+            --cov-branch \
+            --cov-report=xml \
+            --cov-report=term-missing \
+            --cov-fail-under=${{ inputs.coverage-fail-under }}
+      - name: Upload coverage
+        if: env.CODECOV_TOKEN != ''
+        env:
+          CODECOV_TOKEN: ${{ secrets.codecov-token }}
+        uses: codecov/codecov-action@v4
+        with:
+          files: coverage.xml
+
+  security-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python-version }}
+      - name: pip-audit
+        run: |
+          python -m pip install pip-audit
+          pip-audit --requirement <(uv export --no-hashes 2>/dev/null || pip freeze)
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python-version }}
+      - name: Build distributions
+        run: |
+          python -m pip install build
+          python -m build
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          retention-days: 7

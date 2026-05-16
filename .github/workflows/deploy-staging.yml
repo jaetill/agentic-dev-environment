@@ -1,0 +1,48 @@
+name: deploy-staging (reusable)
+# Per ADR-0003 — auto-deploy to staging on release tag; runs functional + e2e tests after.
+
+on:
+  workflow_call:
+    inputs:
+      project-name:
+        type: string
+        required: true
+      stack:
+        type: string
+        required: true
+      tag:
+        type: string
+        required: true
+    secrets:
+      aws-role-arn:
+        required: false
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+
+      - name: Configure AWS credentials (OIDC)
+        if: contains(inputs.stack, 'aws') || contains(inputs.stack, 'lambda')
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.aws-role-arn || vars.AWS_ROLE_ARN_STAGING }}
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+
+      - name: Setup OpenTofu
+        uses: opentofu/setup-opentofu@v1
+
+      - name: Terraform plan + apply
+        working-directory: terraform/envs/staging
+        run: |
+          tofu init
+          tofu plan -out=plan.tfplan
+          tofu apply -auto-approve plan.tfplan

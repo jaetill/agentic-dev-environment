@@ -1,0 +1,102 @@
+name: validate-platform
+# The platform's own CI — runs validate-platform.sh on every PR to catch
+# internal-consistency regressions before merge.
+#
+# Per the same logic that has every project running validate-platform.sh:
+# the platform must dogfood its own discipline. Eat what you cook.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: validate-platform-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Make scripts executable
+        run: chmod +x scripts/*.sh plugins/ai-team/hooks/*.sh
+
+      - name: Run validate-platform.sh
+        run: bash scripts/validate-platform.sh
+
+  module-plan-tests:
+    # Plan-only tests for shared Terraform modules per ADR-0004 §8.
+    # Path-filtered so non-IaC PRs skip this entirely (per ADR-0007 perf budgets).
+    if: |
+      github.event_name == 'pull_request' &&
+      contains(github.event.pull_request.labels.*.name, 'iac') ||
+      github.event_name == 'push'
+    uses: ./.github/workflows/test-modules-plan.yml
+
+  link-check:
+    # Catch broken cross-references in standards docs / ADRs / READMEs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: lycheeverse/lychee-action@v2
+        with:
+          args: --offline --no-progress 'docs/**/*.md' 'README.md' 'CLAUDE.md' 'templates/**/*.md'
+          fail: true
+
+  agent-frontmatter-check:
+    # Verify every agent file has the required frontmatter fields
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check agent frontmatter
+        run: |
+          set -e
+          missing=0
+          for agent in plugins/ai-team/agents/*.md; do
+            for field in "name:" "description:" "model:" "primary_context:"; do
+              if ! head -20 "$agent" | grep -q "^$field"; then
+                echo "::error file=$agent::missing frontmatter field: $field"
+                missing=$((missing + 1))
+              fi
+            done
+          done
+          if [[ $missing -gt 0 ]]; then
+            echo "::error::$missing agent files have missing frontmatter fields"
+            exit 1
+          fi
+          echo "✅ All agent frontmatter fields present"
+
+  adr-format-check:
+    # Verify every ADR has the required MADR 4.x sections
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check ADR format
+        run: |
+          set -e
+          missing=0
+          for adr in docs/adr/[0-9]*.md; do
+            for section in \
+              "## Context and Problem Statement" \
+              "## Decision Drivers" \
+              "## Considered Options" \
+              "## Decision Outcome" \
+              "## Consequences" \
+              "## Pros and Cons of the Options"; do
+              if ! grep -qF "$section" "$adr"; then
+                echo "::error file=$adr::missing MADR 4.x section: $section"
+                missing=$((missing + 1))
+              fi
+            done
+          done
+          if [[ $missing -gt 0 ]]; then
+            echo "::error::$missing ADR files have missing required sections"
+            exit 1
+          fi
+          echo "✅ All ADRs have required MADR 4.x sections"

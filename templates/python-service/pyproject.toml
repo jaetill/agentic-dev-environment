@@ -1,0 +1,167 @@
+[project]
+name = "{{project_slug}}"
+version = "0.1.0"
+description = "{{project_description}}"
+readme = "README.md"
+requires-python = ">=3.12"
+license = {text = "{{license}}"}
+authors = [{name = "{{author_name}}", email = "{{author_email}}"}]
+dependencies = [
+  "fastapi>=0.110",
+  "uvicorn[standard]>=0.27",
+  "pydantic>=2.6",
+  "structlog>=24.1",
+  "opentelemetry-api>=1.24",
+  "opentelemetry-sdk>=1.24",
+  "opentelemetry-instrumentation-fastapi>=0.45b0",
+  "opentelemetry-exporter-otlp-proto-http>=1.24",
+  "sentry-sdk[fastapi]>=2.0",
+  "boto3>=1.34",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0",
+  "pytest-cov>=4.1",
+  "pytest-asyncio>=0.23",
+  "pytest-postgresql>=6.0",
+  "httpx>=0.27",
+  "factory-boy>=3.3",
+  "hypothesis>=6.99",
+  "ruff>=0.4",
+  "mypy>=1.10",
+  "mutmut>=2.5",
+  "schemathesis>=3.27",
+  "pre-commit>=3.7",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/{{project_slug}}"]
+
+# ============================================================
+# Ruff — pragmatic-strict ruleset per ADR-0005
+# ============================================================
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src"]
+
+[tool.ruff.lint]
+select = [
+  "E",    # pycodestyle errors
+  "W",    # pycodestyle warnings
+  "F",    # pyflakes
+  "I",    # isort
+  "N",    # pep8-naming
+  "UP",   # pyupgrade
+  "B",    # flake8-bugbear
+  "A",    # flake8-builtins
+  "S",    # flake8-bandit (security)
+  "C4",   # flake8-comprehensions
+  "T20",  # flake8-print (no print() in production)
+  "RET",  # flake8-return
+  "SIM",  # flake8-simplify
+  "ARG",  # flake8-unused-arguments
+  "PT",   # flake8-pytest-style
+  "RSE",  # flake8-raise
+  "ERA",  # eradicate (commented-out code)
+  "PL",   # pylint subset
+  "TRY",  # tryceratops
+  "FBT",  # flake8-boolean-trap
+  "D",    # pydocstyle
+]
+ignore = [
+  "D203",     # blank-line-before-class (conflicts with D211)
+  "D213",     # multi-line-summary-second-line (conflicts with D212)
+  "S101",     # assert allowed
+  "PLR0913",  # too-many-arguments (handled qualitatively by code-reviewer)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["S", "D", "ARG", "PLR2004", "FBT"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+# ============================================================
+# mypy — strict per ADR-0005
+# ============================================================
+[tool.mypy]
+strict = true
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+
+# ============================================================
+# pytest — per ADR-0004
+# ============================================================
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+addopts = [
+  "--strict-config",
+  "--strict-markers",
+  "-ra",
+  "--cov=src",
+  "--cov-branch",
+  "--cov-report=term-missing",
+  "--cov-report=xml",
+  "--cov-fail-under=80",
+]
+markers = [
+  "unit: unit tests (fast, no I/O)",
+  "integration: integration tests (real DB, real services)",
+  "e2e: end-to-end tests (deployed application)",
+  "smoke: post-deploy smoke tests",
+  "contract: API contract tests",
+  "slow: tests that take >1s to run",
+]
+
+# ============================================================
+# Coverage — tiered per ADR-0004
+# ============================================================
+[tool.coverage.run]
+branch = true
+source = ["src"]
+omit = [
+  "src/{{project_slug}}/__main__.py",
+  "src/{{project_slug}}/migrations/*",
+  "tests/*",
+]
+
+[tool.coverage.report]
+fail_under = 80          # default tier baseline
+show_missing = true
+skip_covered = false
+precision = 1
+exclude_lines = [
+  "pragma: no cover",
+  "raise NotImplementedError",
+  "if TYPE_CHECKING:",
+  "@overload",
+]
+
+# Per-path tier thresholds enforced by a custom plugin (or via separate cov runs in CI).
+# Critical paths (90% line / 80% branch + mutation testing required):
+#   - src/{{project_slug}}/auth/**
+#   - src/{{project_slug}}/payments/**
+#   - src/{{project_slug}}/migrations/**
+# Default tier (80% line / 70% branch):
+#   - everything else
+# Utility tier (60% line / 50% branch):
+#   - src/{{project_slug}}/utils/**
+#   - src/{{project_slug}}/lib/helpers/**

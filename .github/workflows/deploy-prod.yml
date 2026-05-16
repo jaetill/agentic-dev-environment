@@ -1,0 +1,58 @@
+name: deploy-prod (reusable)
+# Per ADR-0003 — auto-promote to prod after staging-verification passes.
+# No human-in-the-loop in normal flow; emergency override exists in emergency-deploy.yml.
+
+on:
+  workflow_call:
+    inputs:
+      project-name:
+        type: string
+        required: true
+      stack:
+        type: string
+        required: true
+      tag:
+        type: string
+        required: true
+    secrets:
+      aws-role-arn:
+        required: false
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: prod
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+
+      - name: Configure AWS credentials (OIDC)
+        if: contains(inputs.stack, 'aws') || contains(inputs.stack, 'lambda')
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.aws-role-arn || vars.AWS_ROLE_ARN_PROD }}
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+
+      - name: Setup OpenTofu
+        uses: opentofu/setup-opentofu@v1
+
+      - name: Terraform plan
+        id: plan
+        working-directory: terraform/envs/prod
+        run: |
+          tofu init
+          tofu plan -out=plan.tfplan -detailed-exitcode || echo "plan-exit=$?" >> $GITHUB_OUTPUT
+
+      - name: Apply (prod)
+        if: steps.plan.outputs.plan-exit != '0'
+        working-directory: terraform/envs/prod
+        run: tofu apply -auto-approve plan.tfplan
+
+      - name: Record deploy version
+        run: |
+          echo "${{ inputs.tag }}" > .last-prod-deploy

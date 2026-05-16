@@ -1,0 +1,36 @@
+name: test-modules-plan
+# Per ADR-0004 §8 — fast plan-only HCL tests for shared Terraform modules.
+# Runs on every PR that touches templates/_shared/terraform-modules/**
+
+on:
+  pull_request:
+    paths:
+      - 'templates/_shared/terraform-modules/**'
+
+permissions:
+  contents: read
+
+jobs:
+  plan-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        module: [iam-github-oidc, lambda-base, observability-baseline]
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: opentofu/setup-opentofu@v1
+
+      # Build test fixture for lambda-base (others don't need it)
+      - name: Build hello-lambda fixture (lambda-base only)
+        if: matrix.module == 'lambda-base'
+        run: |
+          cd templates/_shared/terraform-modules/tests/fixtures/hello-lambda
+          chmod +x build.sh
+          ./build.sh
+
+      - name: Run tofu test
+        working-directory: templates/_shared/terraform-modules/${{ matrix.module }}
+        run: |
+          tofu init
+          tofu test

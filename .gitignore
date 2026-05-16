@@ -1,0 +1,31 @@
+# Editor / OS noise
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.vscode/
+.idea/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Node
+node_modules/
+.pnpm-store/
+dist/
+.turbo/
+
+# Claude / AI
+.claude/audit.log
+.claude/sessions/
+
+# Local secrets — never commit
+.env
+.env.local
+*.local
