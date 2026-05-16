@@ -48,6 +48,8 @@ Solo development tends to skip the practices that make team development reliable
 
 The platform's AI configuration (subagents, slash commands, hooks, skills) ships as a Claude Code plugin named `ai-team`, defined under `plugins/ai-team/`. The workspace itself is a marketplace (`.claude-plugin/marketplace.json` at the root). Each consuming project subscribes via its `.claude/settings.json` rather than copying files locally — see ADR-0015 for the migration rationale and the canonical subscription block.
 
+**Note on permissions:** the plugin ships agents, commands, hooks, and skills — it does NOT and cannot ship `permissions` rules. The `Read`, `Edit`, `Write`, `Glob`, and `Bash` patterns that govern what tools can actually touch are controlled by your user-level `~/.claude/settings.json` and each project's `.claude/settings.json`, never by the plugin. The plugin's [README](plugins/ai-team/README.md#permissions--important-to-understand) carries the canonical project-level deny block as a recommended baseline.
+
 ## Status
 
 **All 11 standards decided** (see [`docs/standards/index.md`](docs/standards/index.md) and [`docs/adr/`](docs/adr/)). Implementation substantially complete:

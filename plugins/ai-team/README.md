@@ -37,9 +37,22 @@ For development against an un-pushed local checkout, use the `directory` source 
 "source": { "source": "directory", "path": "/absolute/path/to/Agentic-Dev-Environment" }
 ```
 
-## Permissions
+## Permissions — important to understand
 
-The plugin ships hooks but cannot ship `permissions.deny` rules (plugin `settings.json` only supports `agent` and `subagentStatusLine`). Each subscribing project should include this block in its `.claude/settings.json`:
+**The plugin does NOT and CANNOT control tool permissions.**
+
+Anthropic's plugin manifest spec only supports `agent` and `subagentStatusLine` keys in `settings.json` — not the `permissions` block. That means:
+
+- The plugin ships **what gets done**: agents, commands, hooks, skills.
+- The plugin does NOT ship **what tools are allowed**: the `Read`, `Edit`, `Write`, `Glob`, `Bash` patterns governing what each agent (and your interactive session) can actually touch.
+
+`permissions.allow` and `permissions.deny` are controlled by **you** — your user-level `~/.claude/settings.json` and the project's own `.claude/settings.json`. Effective permissions for any tool call are the combination of those two sources. The plugin sees them; it does not set them.
+
+Installing this plugin therefore doesn't widen your security posture: the plugin's agents can only do what your own permission rules already allow.
+
+### Recommended project-level deny block
+
+Each subscribing project should include this block in its `.claude/settings.json` as a baseline (this is a starting point — adjust to your taste, but don't skip it):
 
 ```json
 {
@@ -49,6 +62,7 @@ The plugin ships hooks but cannot ship `permissions.deny` rules (plugin `setting
       "Bash(rm -rf /*)",
       "Bash(sudo rm*)",
       "Bash(git push --force*)",
+      "Bash(git push -f*)",
       "Bash(*DROP TABLE*)",
       "Bash(*TRUNCATE*)",
       "Edit(*.tfstate*)",
