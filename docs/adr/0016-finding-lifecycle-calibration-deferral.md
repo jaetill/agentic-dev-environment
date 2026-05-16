@@ -52,7 +52,7 @@ Medium findings default to non-deferred (they imply real risk), but security-rev
 
 ### Rule 3: Sentry-bug auto-pickup
 
-Issues with the `sentry` label (Sentry's GitHub integration auto-creates these) OR `severity:critical` get implementer attention immediately, regardless of whether `ready-for-implementer` is set. Production errors that fired in real user sessions are pre-validated work - they don't need a triage gate.
+Issues with the `source:sentry` label (Sentry's GitHub integration auto-applies this when its alert rules create an issue) OR `severity:critical` get implementer attention immediately, regardless of whether `ready-for-implementer` is set. Production errors that fired in real user sessions are pre-validated work - they don't need a triage gate.
 
 Sentry-bug pickup is ALSO a trigger for the deferral-bundling scan. Fixing a real bug usually involves loading a file into context that has nits filed against it; bundle them.
 
@@ -80,7 +80,7 @@ Sentry-bug pickup is ALSO a trigger for the deferral-bundling scan. Fixing a rea
 
 ### Neutral
 
-- The platform's `claude-implementer.yml` workflow needs updating to trigger on `sentry` and `severity:critical` labels in addition to `ready-for-implementer`. Not part of this ADR; tracked as a follow-up workflow change.
+- The platform's `claude-implementer.yml` workflow needs updating to trigger on `source:sentry` and `severity:critical` labels in addition to `ready-for-implementer`. Not part of this ADR; tracked as a follow-up workflow change.
 - The release-captain's release notes get a new optional "Cleaned up while here" section. Cosmetic but visibility-positive.
 
 ## Implementation notes

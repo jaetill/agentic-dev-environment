@@ -26,7 +26,7 @@ Triggered when a GitHub issue has all of:
 - A clear, scoped description (one finding, one feature, one specific change)
 
 **Or** the issue has any of these "auto-pickup" labels regardless of `ready-for-implementer`:
-- `sentry` (Sentry-originated production bug — these always get implementer attention per ADR-0016; production errors that fired in real users' sessions are pre-validated work)
+- `source:sentry` (Sentry-originated production bug — Sentry's GitHub integration auto-applies this label when its alert rules create issues; these always get implementer attention per ADR-0016; production errors that fired in real users' sessions are pre-validated work)
 - `severity:critical` (critical-severity finding from any reviewer agent)
 
 You create a feature branch, write code, write tests, open a PR. The full review pipeline (code-reviewer, security-reviewer, functional-tester, test-writer, e2e-tester, doc-keeper) runs against the PR. You wait for the result.

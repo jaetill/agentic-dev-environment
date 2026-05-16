@@ -300,7 +300,7 @@ Medium findings default to non-deferred; defense-in-depth Mediums and prose-qual
 
 ### Sentry-bug auto-pickup
 
-Issues labeled `sentry` (Sentry GitHub integration) or `severity:critical` trigger the implementer **immediately**, regardless of whether `ready-for-implementer` is set. Sentry-reported bugs are pre-validated production work; they don't need a triage gate. Fixing a Sentry bug also triggers the deferral-bundling scan in the same directory.
+Issues labeled `source:sentry` (auto-applied by Sentry's GitHub integration when its alert rules create an issue) or `severity:critical` trigger the implementer **immediately**, regardless of whether `ready-for-implementer` is set. Sentry-reported bugs are pre-validated production work; they don't need a triage gate. Fixing a Sentry bug also triggers the deferral-bundling scan in the same directory.
 
 ### Backlog finalization
 
@@ -310,7 +310,7 @@ Issues labeled `sentry` (Sentry GitHub integration) or `severity:critical` trigg
 
 ### Consumer-side workflow update needed
 
-To make Sentry-bug auto-pickup actually fire, each consuming project's `claude-implementer.yml` must trigger on `sentry` and `severity:critical` labels in addition to `ready-for-implementer`. This is a one-line workflow-trigger change; tracked in the platform-port-quirks runbook.
+To make Sentry-bug auto-pickup actually fire, each consuming project's `claude-implementer.yml` must trigger on `source:sentry` and `severity:critical` labels in addition to `ready-for-implementer`. This is a one-line workflow-trigger change; tracked in the platform-port-quirks runbook. The `source:sentry` label itself is applied by Sentry's GitHub integration's alert-rule config — no separate auto-labeler workflow is needed.
 
 ## 10. Setup checklist
 

@@ -289,7 +289,7 @@ Fires when any of the `claude-pr-review.yml` job steps fail in jobs like `code-r
 - Reviewer-style agents (`code-reviewer`, `security-reviewer`, `triage-bot`, `doc-keeper`) will surface fewer Critical findings and more Low / Nit findings. The Criticals you DO see should be more reliable signal.
 - Reviewer agents will file low-severity findings as GitHub issues with the **`deferred-until-adjacent`** label. These accumulate in your issue backlog but **do not trigger the implementer**.
 - Implementer will scan adjacent deferred issues and bundle up to **2 per feature PR** into a "While here" section. Expect feature PRs to occasionally touch additional small files - this is intentional.
-- Issues labeled `sentry` or `severity:critical` will trigger the implementer immediately, even without `ready-for-implementer`. Sentry-reported bugs no longer need manual triage to start being fixed.
+- Issues labeled `source:sentry` (auto-applied by Sentry's GitHub integration when its alert rules create issues) or `severity:critical` will trigger the implementer immediately, even without `ready-for-implementer`. Sentry-reported bugs no longer need manual triage to start being fixed.
 
 **Consumer-side workflow change required:**
 
@@ -316,8 +316,9 @@ gh label create severity:high --description "High-severity finding" --color "d93
 gh label create severity:medium --description "Medium-severity finding" --color "fbca04" --force
 gh label create severity:low --description "Low-severity finding; deferred-until-adjacent" --color "0e8a16" --force
 gh label create severity:nit --description "Nit-severity finding; deferred-until-adjacent" --color "0e8a16" --force
-gh label create sentry --description "Sentry-originated bug; auto-trigger implementer" --color "9c1cdf" --force
 ```
+
+**Note:** the `source:sentry` label is applied by Sentry's own GitHub integration (configured in Sentry's alert rules) — no separate platform-side label create or auto-labeler workflow is needed. If a consuming project's Sentry integration isn't applying `source:sentry` automatically, configure it in Sentry's UI: Settings → Integrations → GitHub → alert rule → "Add labels to created issue: `source:sentry`".
 
 **Expected backlog growth.** With low/nit findings now being filed instead of inlined into PR comments, the open issue count will rise. This is expected. The quarterly sweep is the escape valve; the 180-day re-triage limit is the hard floor.
 
