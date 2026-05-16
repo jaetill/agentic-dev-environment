@@ -29,7 +29,7 @@ Add this to the consuming project's `.claude/settings.json`:
 }
 ```
 
-The repo is private, so the consumer needs read access to `jaetill/agentic-dev-environment` (via their authenticated `gh` token).
+The workspace repo is public — anyone can subscribe; no GitHub authentication required to resolve the plugin.
 
 For development against an un-pushed local checkout, use the `directory` source instead:
 

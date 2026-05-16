@@ -66,7 +66,7 @@ The platform's AI configuration (subagents, slash commands, hooks, skills) ships
 ```bash
 bash scripts/initial-commit.sh                  # init git, first commit, tag modules/v0.1.0
 bash scripts/validate-platform.sh               # verify internal consistency
-gh repo create <user>/agentic-dev-environment --private --source=. --push
+gh repo create <user>/agentic-dev-environment --public --source=. --push
 git push --tags
 ```
 

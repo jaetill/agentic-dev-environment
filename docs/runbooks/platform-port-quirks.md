@@ -20,6 +20,26 @@ A living catalog of project-specific adaptations that came up while applying the
 
 ---
 
+## 0. First graduation: the `install-node-deps` composite action
+
+Quirks #1 and #2 below have been folded into a workspace composite action so projects subscribing to the platform don't have to know about them.
+
+**Action location:** `actions/install-node-deps/` in the workspace, referenced as:
+
+```yaml
+- uses: jaetill/agentic-dev-environment/actions/install-node-deps@main
+```
+
+**What it does:** sets up Node.js, runs `npm ci --legacy-peer-deps` for root, and conditionally runs the same for `lambda/` IF `lambda/package.json` exists. Replaces a 4-step inlined block per use site.
+
+**Important: requires the workspace to be public** (or you to use a PAT for auth). The first attempt at this action with a private workspace failed with "Unable to resolve action `jaetill/agentic-dev-environment`" because GitHub Actions' built-in `GITHUB_TOKEN` can't read other private repos owned by the same user, even with `actions/permissions/access` set to `user`. Documented behavior; not a bug. Same-org-and-Team-plan unlocks this for private cross-repo but $48/yr per seat. Public workspace was the cheaper path.
+
+**When to use it.** Any new platform-port project. The previous inlined pattern (a 4-step install-with-conditional-lambda block) is now redundant; reference the composite action instead.
+
+**First seen.** Workspace `a6ac53f` (action authored) + portal PR #5 (first consumer), 2026-05-16.
+
+---
+
 ## 1. `npm ci` fails with peer-dep mismatch on Vite 8 projects
 
 **Symptom.**
@@ -237,6 +257,29 @@ $content = "Sentence" + $emDash + "with em-dash."
 
 ---
 
+## 8. `anthropics/claude-code-action` refuses to validate workflow changes in a PR
+
+**Symptom.**
+
+```
+##[error]Action failed with error: Workflow validation failed. The workflow file
+must exist and have identical content to the version on the repository's default
+branch. If you're seeing this on a PR when you first add a code review workflow
+file to your repository, this is normal and you should ignore this error.
+```
+
+Fires when any of the `claude-pr-review.yml` job steps fail in jobs like `code-review`, `security-review`, `doc-keeper`, `test-writer`, `functional-test`, `e2e-test`.
+
+**Cause.** Security feature of the `anthropics/claude-code-action`. It refuses to run when the workflow file in the PR's HEAD differs from the version on the default branch. Prevents a PR from rewriting the action to do malicious things and self-approving.
+
+**Fix.** Admin-merge the workflow change to `main` once, then any subsequent PRs work cleanly. This is the documented bypass — the error message itself says "this is normal" for first-add scenarios.
+
+**When it bites.** Any PR that modifies a workflow file consumed by `anthropics/claude-code-action`.
+
+**First seen.** Portal PR #5 (composite action introduction) and earlier on PR #2 (the initial Phase 1+2 install), 2026-05-16.
+
+---
+
 ## Scrubbing personal allowlist entries from git history
 
 If `.claude/settings.local.json` made it into git history (see entry #4), and you want the contents removed from `refs/heads/main`:
@@ -297,8 +340,10 @@ git gc --prune=now --aggressive
 
 ## Future graduation path
 
-When 3+ projects hit the same fix-up consistently, extract that pattern into a workspace composite action at `.github/actions/<name>/action.yml` and reference it from the inlined per-project workflows. This converts entries here into infrastructure code.
+When a pattern shows up across multiple projects, extract it into a workspace composite action at `actions/<name>/action.yml` and reference it from per-project workflows. This converts entries here into infrastructure code.
 
-When a whole workflow stabilizes across projects, consider converting it to `workflow_call` so projects reference the workspace's version instead of inlining. See option D in the discussion at the top of this doc's source PR.
+**First graduation:** `install-node-deps` (entries #1 and #2 above). The workspace had to go public for cross-repo composite action consumption to work from same-user private projects. If you'd kept it private, the alternative was a Team-plan org transfer ($48/yr/seat).
+
+When a whole workflow stabilizes across projects, consider converting it to `workflow_call` so projects reference the workspace's version instead of inlining. Same cross-repo auth caveat applies.
 
 This catalog should shrink over time as patterns graduate.
