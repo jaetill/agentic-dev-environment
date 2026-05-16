@@ -1,0 +1,62 @@
+name: 'Install Node deps (platform-standard)'
+description: |
+  Sets up Node.js (with npm cache), runs `npm ci --legacy-peer-deps` for the
+  root package, and conditionally runs the same for a lambda/ subdir IF
+  lambda/package.json exists. Encapsulates the platform's "smart install"
+  pattern so per-project workflows don't have to know about the Vite 8 peer
+  workaround or the optional-lambda-deps quirk.
+
+inputs:
+  node-version:
+    description: 'Node.js version to install'
+    required: false
+    default: '22'
+  cache:
+    description: 'Package manager cache key for actions/setup-node (set to empty string to disable cache)'
+    required: false
+    default: 'npm'
+  lambda-dir:
+    description: 'Path to optional lambda directory (set to empty string to skip the lambda install entirely)'
+    required: false
+    default: 'lambda'
+  skip-root-install:
+    description: 'Set to "true" to skip the root npm ci (useful for jobs that only need Node, not deps)'
+    required: false
+    default: 'false'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: ${{ inputs.cache }}
+
+    - name: Install root dependencies
+      if: inputs.skip-root-install != 'true'
+      shell: bash
+      run: |
+        # --legacy-peer-deps: platform default to tolerate Vite 8 +
+        # @tailwindcss/vite peer mismatch and similar peer drift across
+        # the sibling-project stack. See platform-port-quirks #1.
+        npm ci --legacy-peer-deps
+
+    - name: Install lambda dependencies (if package.json present)
+      shell: bash
+      run: |
+        # Lambda deps are optional: projects whose Lambdas use only the
+        # AWS SDK at runtime have no lambda/package.json. Guarding the
+        # install lets one composite action serve both shapes. See
+        # platform-port-quirks #2.
+        LAMBDA_DIR="${{ inputs.lambda-dir }}"
+        if [ -z "$LAMBDA_DIR" ]; then
+          echo "lambda-dir is empty - skipping lambda install"
+          exit 0
+        fi
+        if [ -f "$LAMBDA_DIR/package.json" ]; then
+          echo "Installing lambda deps from $LAMBDA_DIR/"
+          npm ci --legacy-peer-deps --prefix "$LAMBDA_DIR"
+        else
+          echo "No $LAMBDA_DIR/package.json - skipping lambda install"
+        fi
