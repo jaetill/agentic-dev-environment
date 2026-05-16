@@ -279,6 +279,39 @@ This pattern eliminates a head-agent round trip for fully-automated work.
 | Hook fires (destructive bash detected, etc.) | Block + require human confirm | Hook-only, no agent |
 | Slash command invoked | (per §4 table) | Direct |
 
+## 9a. Finding lifecycle — calibration, deferral, Sentry-driven cleanup
+
+Per **[ADR-0016](../adr/0016-finding-lifecycle-calibration-deferral.md)**, three rules govern how findings flow from creation through resolution:
+
+### Severity calibration
+
+Reviewer-style agents (`code-reviewer`, `security-reviewer`, `triage-bot`, `doc-keeper`) explicitly avoid manufacturing severity to justify their reviews. Calibration is built into each agent's prompt:
+
+- **Critical / High** — Actual production breakage, exploitable security path, data loss. Predictions of CI failure must be verified against actual run output before being filed at this level.
+- **Medium** — Real bug or risk, bounded impact, clear fix.
+- **Low / Nit** — Code smell, style, theoretical edge case. Reasonable authors could disagree.
+- When in doubt, **downgrade**.
+
+### Deferral policy
+
+Low and nit findings get filed as GitHub issues with the **`deferred-until-adjacent`** label. The implementer does NOT pick them up in isolation. Instead, when working on a feature, Sentry bug, or higher-severity fix, the implementer scans for deferred issues citing files in the same directory and **bundles up to 2 of them into the in-flight PR** under a "While here" section.
+
+Medium findings default to non-deferred; defense-in-depth Mediums and prose-quality Mediums may carry the deferral label sparingly.
+
+### Sentry-bug auto-pickup
+
+Issues labeled `sentry` (Sentry GitHub integration) or `severity:critical` trigger the implementer **immediately**, regardless of whether `ready-for-implementer` is set. Sentry-reported bugs are pre-validated production work; they don't need a triage gate. Fixing a Sentry bug also triggers the deferral-bundling scan in the same directory.
+
+### Backlog finalization
+
+- **Quarterly sweep:** `/ai-team:sweep-deferred` (slash command, future implementation) re-triages deferred issues older than 90 days.
+- **Hard age limit:** any deferred issue open >180 days gets re-triaged (close, upgrade severity, or sweep).
+- **Release visibility:** `release-captain` adds a "Cleaned up while here" section to release notes listing closed `deferred-until-adjacent` issues since the last release.
+
+### Consumer-side workflow update needed
+
+To make Sentry-bug auto-pickup actually fire, each consuming project's `claude-implementer.yml` must trigger on `sentry` and `severity:critical` labels in addition to `ready-for-implementer`. This is a one-line workflow-trigger change; tracked in the platform-port-quirks runbook.
+
 ## 10. Setup checklist
 
 When bootstrapping a new project, the `new-project.sh` script will:

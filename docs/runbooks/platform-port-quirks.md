@@ -280,6 +280,51 @@ Fires when any of the `claude-pr-review.yml` job steps fail in jobs like `code-r
 
 ---
 
+## 9. Finding-lifecycle policy is now in effect (calibration + deferral + Sentry pickup)
+
+**Effective:** workspace commit landing ADR-0016 (2026-05-16 and later).
+
+**What changes for consumers:**
+
+- Reviewer-style agents (`code-reviewer`, `security-reviewer`, `triage-bot`, `doc-keeper`) will surface fewer Critical findings and more Low / Nit findings. The Criticals you DO see should be more reliable signal.
+- Reviewer agents will file low-severity findings as GitHub issues with the **`deferred-until-adjacent`** label. These accumulate in your issue backlog but **do not trigger the implementer**.
+- Implementer will scan adjacent deferred issues and bundle up to **2 per feature PR** into a "While here" section. Expect feature PRs to occasionally touch additional small files - this is intentional.
+- Issues labeled `sentry` or `severity:critical` will trigger the implementer immediately, even without `ready-for-implementer`. Sentry-reported bugs no longer need manual triage to start being fixed.
+
+**Consumer-side workflow change required:**
+
+Each consuming project's `.github/workflows/claude-implementer.yml` needs its trigger updated to fire on the additional labels. Look for the `on: issues:` block and adjust:
+
+```yaml
+on:
+  issues:
+    types: [labeled]
+# Existing pattern triggers on `ready-for-implementer` label.
+# Add Sentry + critical-severity labels as alternative triggers.
+```
+
+The implementer's prompt already understands these labels (per the updated `implementer.md`); only the workflow trigger needs to be widened. A follow-up commit on each consuming project will handle this; the implementer will be Sentry-aware after that ships.
+
+**Issue label setup required (per project):**
+
+Each consuming project should have these labels available (creates idempotently — no-op if already present):
+
+```sh
+gh label create deferred-until-adjacent --description "Low/nit finding; bundle into next adjacent PR per ADR-0016" --color "fbca04" --force
+gh label create severity:critical --description "Critical-severity finding; triggers immediate implementer pickup" --color "b60205" --force
+gh label create severity:high --description "High-severity finding" --color "d93f0b" --force
+gh label create severity:medium --description "Medium-severity finding" --color "fbca04" --force
+gh label create severity:low --description "Low-severity finding; deferred-until-adjacent" --color "0e8a16" --force
+gh label create severity:nit --description "Nit-severity finding; deferred-until-adjacent" --color "0e8a16" --force
+gh label create sentry --description "Sentry-originated bug; auto-trigger implementer" --color "9c1cdf" --force
+```
+
+**Expected backlog growth.** With low/nit findings now being filed instead of inlined into PR comments, the open issue count will rise. This is expected. The quarterly sweep is the escape valve; the 180-day re-triage limit is the hard floor.
+
+**First seen.** Platform workspace, post-ADR-0016 ship (2026-05-16).
+
+---
+
 ## Scrubbing personal allowlist entries from git history
 
 If `.claude/settings.local.json` made it into git history (see entry #4), and you want the contents removed from `refs/heads/main`:

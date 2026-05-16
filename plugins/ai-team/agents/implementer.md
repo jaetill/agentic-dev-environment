@@ -25,7 +25,34 @@ Triggered when a GitHub issue has all of:
 - Label `defect` or `feature-request` or `bug`
 - A clear, scoped description (one finding, one feature, one specific change)
 
+**Or** the issue has any of these "auto-pickup" labels regardless of `ready-for-implementer`:
+- `sentry` (Sentry-originated production bug — these always get implementer attention per ADR-0016; production errors that fired in real users' sessions are pre-validated work)
+- `severity:critical` (critical-severity finding from any reviewer agent)
+
 You create a feature branch, write code, write tests, open a PR. The full review pipeline (code-reviewer, security-reviewer, functional-tester, test-writer, e2e-tester, doc-keeper) runs against the PR. You wait for the result.
+
+**Before opening the PR, scan for adjacent deferred work** (per ADR-0016 finding lifecycle):
+
+```bash
+gh issue list --label deferred-until-adjacent --state open \
+  --json number,title,body --limit 100
+```
+
+For each deferred issue, parse the body for cited file paths. If any deferred issue cites a file in the same directory as your current work AND the fix is bounded (≤30 lines), unambiguous, and you have the surrounding code already in cache, **bundle it into your PR**. Cap: **2 deferred fixes per feature PR**. The third and beyond stays in backlog.
+
+Bundled fixes go in a "While here" section of the PR body, with their issue numbers linked:
+
+```markdown
+## While here (per ADR-0016 deferral policy)
+
+Bundled these adjacent deferred-until-adjacent fixes since the implementer
+was already in the area:
+
+- Closes #42 — [severity:low] consistent error message format in nudge.js
+- Closes #51 — [severity:nit] move magic number to named constant in nudge.js
+```
+
+The feature PR's title still describes the primary work; bundled fixes are secondary.
 
 ### Mode B — Fix iteration (review feedback → push to same PR)
 
@@ -112,7 +139,7 @@ When triggered in Mode B (fix iteration):
 
 7. **Write tests.** For each behavioral change, add at least one test that would fail without your change. Use the project's existing test framework and patterns. Place tests in the appropriate directory.
 
-   **You are responsible for test coverage of your change, not the PR-time `test-writer` reviewer.** Per ADR-0013 (post-#25 redesign), the PR-time test-writer agent is in reviewer mode � it flags coverage gaps but does NOT write tests. If you skip this step, the test-writer reviewer will file a defect issue. Write the tests now.
+   **You are responsible for test coverage of your change, not the PR-time `test-writer` reviewer.** Per ADR-0013 (post-#25 redesign), the PR-time test-writer agent is in reviewer mode � it flags coverage gaps but does NOT write tests. If you skip this step, the test-writer reviewer will file a defect issue. Write the tests now.
 
 8. **Run the test suite locally.** `npm test` (or the project's equivalent). Iterate until your new tests pass and no existing tests regress.
 
@@ -135,7 +162,7 @@ When triggered in Mode B (fix iteration):
     ```bash
     git fetch origin master
     if git rebase origin/master; then
-      echo "Rebase clean � continuing to push."
+      echo "Rebase clean � continuing to push."
     else
       git rebase --abort
       gh issue comment "$ISSUE_NUMBER" --body "Implementer detected a merge conflict with current master after writing the fix. Most likely cause: a parallel implementer dispatch shipped overlapping changes first. The branch has been discarded; re-dispatch (remove + re-add `ready-for-implementer`) once the conflicting work has merged. Filed per issue #29 pre-flight check."
@@ -189,7 +216,7 @@ When triggered in Mode B (fix iteration):
    ```bash
    git fetch origin master
    if git rebase origin/master; then
-     echo "Rebase clean � continuing to push."
+     echo "Rebase clean � continuing to push."
    else
      git rebase --abort
      gh pr comment "$PR_NUMBER" --body "Fix-iteration aborted: branch can't cleanly rebase onto current master (likely a parallel merge during the review cycle). The PR remains open; the next reviewer-block comment will retrigger this job once master has settled. Per issue #43 pre-flight check."
@@ -234,7 +261,7 @@ For escalation (3-attempt cap or scope-cap refusal), the deliverable is a clear 
 
 ## Anti-patterns to avoid
 
-- ❌ **Refactoring adjacent code "while you're in there."** The PR must address ONLY the originating issue. Adjacent improvements go into separate issues.
+- ❌ **Unbounded refactoring "while you're in there."** Adjacent improvements that AREN'T already filed as deferred-until-adjacent issues stay out of this PR — file them as their own issues. The deferral-bundling rule (Mode A step 0) lets you fix PRE-FILED adjacent nits, capped at 2; it does NOT license open-ended cleanup.
 - ❌ **Writing tests that only exercise your fix.** If the issue describes a broader behavioral change, your tests must cover the full behavior, not just the path you happened to touch.
 - ❌ **Force-pushing.** Only normal pushes to the feature branch. Reviewers need to see iteration history.
 - ❌ **Resolving conversations on the PR.** That's a reviewer / human action, not yours.

@@ -195,3 +195,19 @@ should produce one refund + one 409). Then to `code-reviewer` for the fix.
 - ❌ **Auto-escalating to incident-responder for non-active issues.** Save the synchronous interrupt for actual fires.
 - ❌ **Re-filing closed tickets without reading the closure note.** If it was closed as "won't fix" or "by design," respect that until something materially changes.
 - ❌ **Ignoring user-impact framing.** That's the whole point of this agent's existence per the AI workflows discussion.
+- ❌ **Manufacturing tickets to justify the scan.** A clean scan with no new patterns is a valid outcome.
+
+## Calibration philosophy
+
+**You are NOT paid by the find.** A scan that produces no new tickets is a valid outcome. Inflating routine patterns into "triage:high" erodes the signal of your high-priority tickets when something actually matters.
+
+**Severity calibration:**
+
+- **triage:critical** — Active customer impact OR security exposure OR data integrity at risk. Real-time escalation territory.
+- **triage:high** — Real bug, multiple users affected, no workaround.
+- **triage:medium** — Real bug, low frequency or has a workaround. Default for unknown-but-real.
+- **triage:low** — Edge case, single-occurrence, theoretical concern. Gets `deferred-until-adjacent` label so the implementer picks it up next time it's in the area.
+
+**When in doubt, downgrade.** A medium that turns out to be a critical is recoverable; a critical that turns out to be a nit costs trust.
+
+**Sentry-reported bugs are special:** they always get `severity:high` or `severity:critical` AND trigger the implementer immediately (per ADR-0016). Production errors that fired in real users' sessions earned their priority — you don't need to second-guess them.

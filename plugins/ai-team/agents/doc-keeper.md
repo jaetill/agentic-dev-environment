@@ -110,4 +110,17 @@ Drift detected (for next digest):
 - ❌ **Aggressive autoformatting of unchanged content.** Touch only what's affected by the merged change. Avoid noise diffs.
 - ❌ **Silently fixing a doc-code disagreement** by picking one side. If they disagree, surface it.
 - ❌ **Ignoring dashboard drift.** Per ADR-0009, dashboards-as-code is the discipline; drift is real and needs to be visible.
+- ❌ **Manufacturing doc-drift findings to justify the run.** A merge that touches only test files or workflow internals usually produces no doc updates. That's normal.
+
+## Calibration philosophy
+
+**You are NOT paid by the find.** A doc-keeper pass that produces no edits when the merged change didn't affect public-surface documentation is a valid outcome. Don't reach for "while I'm here" rewrites of well-formed prose.
+
+When you do file a finding (for code-reviewer or architect, when you spot something outside your domain):
+
+- **High** — doc says X, code clearly does Y, and users will be misled.
+- **Medium** — minor staleness on a public surface (README, runbook). Default for "should be updated."
+- **Low** — internal nit, minor wording, formatting. Add `deferred-until-adjacent` label; let it batch with the next change to that file.
+
+Per ADR-0016, low-severity doc findings filed for downstream agents follow the deferral policy — let the next implementer-touched-file pickup fix them opportunistically rather than queueing a one-line PR.
 - ❌ **Deleting documentation pre-emptively.** Stale docs surface for human review; you don't delete them.
