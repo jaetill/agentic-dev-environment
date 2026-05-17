@@ -9,7 +9,70 @@ variables {
   deployment_package_path = "tests/fixtures/empty.zip"
 }
 
-mock_provider "aws" {}
+mock_provider "aws" {
+  # `mock_provider "aws" {}` alone generates random strings for every computed
+  # attribute. That breaks plan-time ARN format validation on attributes the
+  # module reads back (role, layers[0], access_log_settings.destination_arn).
+  # Override the specific computed attributes with realistic values.
+
+  mock_data "aws_region" {
+    defaults = {
+      name = "us-east-1"
+    }
+  }
+
+  mock_data "aws_caller_identity" {
+    defaults = {
+      account_id = "123456789012"
+      arn        = "arn:aws:iam::123456789012:user/test"
+      user_id    = "AIDACKCEVSQ6C2EXAMPLE"
+    }
+  }
+
+  mock_resource "aws_iam_role" {
+    defaults = {
+      arn       = "arn:aws:iam::123456789012:role/test-mock-role"
+      unique_id = "AROAIEXAMPLEMOCKID12"
+    }
+  }
+
+  mock_resource "aws_cloudwatch_log_group" {
+    defaults = {
+      arn = "arn:aws:logs:us-east-1:123456789012:log-group:/aws/lambda/test-mock"
+    }
+  }
+
+  mock_resource "aws_lambda_function" {
+    defaults = {
+      arn           = "arn:aws:lambda:us-east-1:123456789012:function:test-mock"
+      invoke_arn    = "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-1:123456789012:function:test-mock/invocations"
+      qualified_arn = "arn:aws:lambda:us-east-1:123456789012:function:test-mock:1"
+      version       = "1"
+    }
+  }
+
+  mock_resource "aws_lambda_alias" {
+    defaults = {
+      arn        = "arn:aws:lambda:us-east-1:123456789012:function:test-mock:live"
+      invoke_arn = "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-1:123456789012:function:test-mock:live/invocations"
+    }
+  }
+
+  mock_resource "aws_apigatewayv2_api" {
+    defaults = {
+      arn           = "arn:aws:apigateway:us-east-1::/apis/abc123"
+      api_endpoint  = "https://abc123.execute-api.us-east-1.amazonaws.com"
+      execution_arn = "arn:aws:execute-api:us-east-1:123456789012:abc123"
+      id            = "abc123"
+    }
+  }
+
+  mock_resource "aws_apigatewayv2_integration" {
+    defaults = {
+      id = "intabc"
+    }
+  }
+}
 
 run "creates_log_group_with_dev_retention" {
   command = plan

@@ -11,12 +11,26 @@ variables {
   github_branch = "main"
 }
 
-# Mock the OIDC provider data source so we don't need a real AWS account
+# Mock the OIDC provider data source so we don't need a real AWS account.
+# Note: `url` is a required INPUT to the data source (the lookup key), not a
+# computed attribute — OpenTofu rejects it in `defaults` ("Invalid mock/override
+# field 'url'"). Only computed attributes (arn, client_id_list, thumbprint_list)
+# can be mocked.
 mock_provider "aws" {
   mock_data "aws_iam_openid_connect_provider" {
     defaults = {
-      arn = "arn:aws:iam::123456789012:oidc-provider/token.actions.githubusercontent.com"
-      url = "https://token.actions.githubusercontent.com"
+      arn             = "arn:aws:iam::123456789012:oidc-provider/token.actions.githubusercontent.com"
+      client_id_list  = ["sts.amazonaws.com"]
+      thumbprint_list = ["6938fd4d98bab03faadb97b34396831e3780aea1"]
+    }
+  }
+
+  # Also override aws_iam_role so the policy attachment can be planned without
+  # generating random strings for the role id.
+  mock_resource "aws_iam_role" {
+    defaults = {
+      arn       = "arn:aws:iam::123456789012:role/test-mock-role"
+      unique_id = "AROAIEXAMPLEMOCKID12"
     }
   }
 }
