@@ -109,7 +109,7 @@ Chosen option: **Option C** (Claude Code Plugin + local marketplace), because it
 - [Anthropic plugins docs](https://code.claude.com/docs/en/plugins) — the canonical reference.
 - [Plugin marketplaces docs](https://code.claude.com/docs/en/plugin-marketplaces) — local marketplace and source-type reference.
 - [Plugins reference (schemas)](https://code.claude.com/docs/en/plugins-reference) — manifest, hooks.json, agent frontmatter.
-- [TODO_platform_architecture_review.md](../../TODO_platform_architecture_review.md) — the question this ADR answers.
-- [PLAN_hybrid_agent_refactor.md](../../PLAN_hybrid_agent_refactor.md) — the earlier draft that proposed global subagents (Option B).
+- `TODO_platform_architecture_review.md` (consumed and removed) — the question this ADR answers.
+- `PLAN_hybrid_agent_refactor.md` (consumed and removed) — the earlier draft that proposed global subagents (Option B).
 - [TODO_apply_platform_to_itself.md](../../TODO_apply_platform_to_itself.md) — the related dogfooding decision that becomes easier after this ADR.
 - ADR-0011 — original AI workflows decision; this ADR extends the distribution mechanism without changing the agent roster or hook policy.
