@@ -9,7 +9,7 @@
 
 The platform's agents, hooks, commands, and standards have to date been distributed by **embedding copies** in each consuming project's `.claude/` directory. Each new project incurs a ~3-hour port; updates to the canonical `templates/_shared/claude/` require manually fan-out to every project. The model assumes a templating tool we don't have, and in practice produces silent divergence (game-night-pwa, meal-planner, ai-teacher already drift in small ways from each other and from canonical).
 
-[TODO_platform_architecture_review.md](../../TODO_platform_architecture_review.md) (captured 2026-05-15) and [PLAN_hybrid_agent_refactor.md](../../PLAN_hybrid_agent_refactor.md) (captured 2026-05-16 after web research) document the question: should this stay embedded, move to `~/.claude/` global subagents, or adopt Anthropic's plugin system?
+`TODO_platform_architecture_review.md` (captured 2026-05-15) and `PLAN_hybrid_agent_refactor.md` (captured 2026-05-16 after web research) — both consumed and removed after ratification — documented the question: should this stay embedded, move to `~/.claude/` global subagents, or adopt Anthropic's plugin system?
 
 How should the platform be distributed across multiple projects, given that Anthropic now ships a first-class plugin + marketplace system?
 
