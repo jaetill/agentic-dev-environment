@@ -9,7 +9,7 @@
 
 The platform's agents, hooks, commands, and standards have to date been distributed by **embedding copies** in each consuming project's `.claude/` directory. Each new project incurs a ~3-hour port; updates to the canonical `templates/_shared/claude/` require manually fan-out to every project. The model assumes a templating tool we don't have, and in practice produces silent divergence (game-night-pwa, meal-planner, ai-teacher already drift in small ways from each other and from canonical).
 
-[TODO_platform_architecture_review.md](../../TODO_platform_architecture_review.md) (captured 2026-05-15) and [PLAN_hybrid_agent_refactor.md](../../PLAN_hybrid_agent_refactor.md) (captured 2026-05-16 after web research) document the question: should this stay embedded, move to `~/.claude/` global subagents, or adopt Anthropic's plugin system?
+`TODO_platform_architecture_review.md` (captured 2026-05-15) and `PLAN_hybrid_agent_refactor.md` (captured 2026-05-16 after web research) — both consumed and removed after ratification — documented the question: should this stay embedded, move to `~/.claude/` global subagents, or adopt Anthropic's plugin system?
 
 How should the platform be distributed across multiple projects, given that Anthropic now ships a first-class plugin + marketplace system?
 
@@ -109,7 +109,7 @@ Chosen option: **Option C** (Claude Code Plugin + local marketplace), because it
 - [Anthropic plugins docs](https://code.claude.com/docs/en/plugins) — the canonical reference.
 - [Plugin marketplaces docs](https://code.claude.com/docs/en/plugin-marketplaces) — local marketplace and source-type reference.
 - [Plugins reference (schemas)](https://code.claude.com/docs/en/plugins-reference) — manifest, hooks.json, agent frontmatter.
-- [TODO_platform_architecture_review.md](../../TODO_platform_architecture_review.md) — the question this ADR answers.
-- [PLAN_hybrid_agent_refactor.md](../../PLAN_hybrid_agent_refactor.md) — the earlier draft that proposed global subagents (Option B).
+- `TODO_platform_architecture_review.md` (consumed and removed) — the question this ADR answers.
+- `PLAN_hybrid_agent_refactor.md` (consumed and removed) — the earlier draft that proposed global subagents (Option B).
 - [TODO_apply_platform_to_itself.md](../../TODO_apply_platform_to_itself.md) — the related dogfooding decision that becomes easier after this ADR.
 - ADR-0011 — original AI workflows decision; this ADR extends the distribution mechanism without changing the agent roster or hook policy.

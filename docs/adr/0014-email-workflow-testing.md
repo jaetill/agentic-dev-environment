@@ -205,7 +205,7 @@ to keep the tests safe rather than building isolation infrastructure.
 
 ## Links
 
-- [Plan document](../../PLAN_email_testing_platform.md) — the spec this ADR ratifies.
+- Plan document `PLAN_email_testing_platform.md` (consumed and removed after ratification) — the spec this ADR ratifies.
 - [Gmail API — Users.messages](https://developers.google.com/gmail/api/reference/rest/v1/users.messages) — list/get/batchModify reference.
 - [Cognito — ListUsers filter syntax](https://docs.aws.amazon.com/cognito-user-identity-pools/latest/APIReference/API_ListUsers.html#API_ListUsers_RequestSyntax) — the `^=` operator the cleanup helper depends on.
 - [Standard 03 §14](../standards/03-testing.md) — operational usage and the refresh-token rotation runbook.
