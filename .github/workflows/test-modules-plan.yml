@@ -1,11 +1,13 @@
 name: test-modules-plan
 # Per ADR-0004 §8 — fast plan-only HCL tests for shared Terraform modules.
-# Runs on every PR that touches templates/_shared/terraform-modules/**
+# Runs on every PR that touches templates/_shared/terraform-modules/**,
+# OR when called as a reusable workflow from validate-platform.yml.
 
 on:
   pull_request:
     paths:
       - 'templates/_shared/terraform-modules/**'
+  workflow_call: {}
 
 permissions:
   contents: read
