@@ -51,10 +51,10 @@ jobs:
         with:
           # Templates contain `{{ placeholder }}` paths and scaffolded-on-init
           # references (api/index.md, runbooks/index.md) — they're skeletons,
-          # not real docs, so we don't lint their links. The ADR template
-          # itself is excluded for the same reason (it contains literal
-          # placeholders like `(url)` and `NN-name.md`).
-          args: --offline --no-progress --exclude-path docs/adr/template.md 'docs/**/*.md' 'README.md' 'CLAUDE.md'
+          # not real docs, so we don't lint their links. (The ADR template
+          # used to need the same treatment, but its placeholders are now
+          # code-formatted plain text, not markdown links.)
+          args: --offline --no-progress 'docs/**/*.md' 'README.md' 'CLAUDE.md'
           fail: true
 
   agent-frontmatter-check:
