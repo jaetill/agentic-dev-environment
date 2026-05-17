@@ -103,12 +103,12 @@ The bundle is internally consistent because {the coupling that makes the choices
 
 (MADR extension — pointers to operational artifacts that make this decision real.)
 
-- Standards doc: [`docs/standards/NN-name.md`](../standards/NN-name.md)
+- Standards doc: `docs/standards/NN-name.md` (replace `NN-name` with the actual file)
 - Affected workflows: ...
 - Affected templates: ...
 
 ## Links
 
-- [Authoritative source 1](url) — what it adds.
-- [Authoritative source 2](url) — what it adds.
+- Authoritative source 1: `<url>` — what it adds.
+- Authoritative source 2: `<url>` — what it adds.
 - ADR-NNNN — related decision.
