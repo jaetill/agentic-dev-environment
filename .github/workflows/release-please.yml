@@ -1,0 +1,26 @@
+name: release-please
+# Cuts versioned platform releases. Conventional-commit titles drive the
+# changelog and version bump per .release-please-config.json. Merging the
+# auto-opened release PR creates a GitHub release + tag, which downstream
+# projects (per ADR-0015) can pin against in their .claude/settings.json.
+#
+# Also bumps plugins/ai-team/.claude-plugin/plugin.json's `version` field
+# in sync (extra-files in the config).
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: googleapis/release-please-action@v4
+        with:
+          release-type: simple
+          config-file: .release-please-config.json
+          manifest-file: .release-please-manifest.json
