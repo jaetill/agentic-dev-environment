@@ -2,6 +2,20 @@
 
 Bootstrap and maintenance utilities for the platform.
 
+## Existing scripts
+
+| Script | Purpose |
+|---|---|
+| `bootstrap-tfstate.sh` | One-time-per-account setup for S3 + DynamoDB tofu state backend |
+| `bootstrap-grafana.sh` | Cross-account IAM role for Grafana Cloud CloudWatch pull |
+| `generate-apigw-rest-tf.ps1` | Introspect a deployed REST API and emit Terraform HCL + import blocks (used during Phase 6 retrofits — saves hours per API vs. hand-writing 50+ resources) |
+| `initial-commit.sh` | First-commit bootstrap for a new project |
+| `new-project.sh` | Scaffold a new project from template, initialize git, wire gates |
+| `sentry-create-alert.ps1` | Idempotent Sentry issue alert rule creator |
+| `sentry-create-project.ps1` | Idempotent Sentry project creator |
+| `test-inbox-push-secrets.ps1` / `test-inbox-run.ps1` | Email-test fixture helpers per ADR-0014 |
+| `validate-platform.sh` | CI helper — validates platform internal consistency |
+
 ## Planned scripts
 
 | Script | Purpose | Status |

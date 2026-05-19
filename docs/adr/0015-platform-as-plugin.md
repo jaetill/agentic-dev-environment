@@ -1,7 +1,7 @@
 # ADR-0015: Package the Agentic Dev Environment platform as a Claude Code plugin
 
-- **Status:** Proposed
-- **Date:** 2026-05-16
+- **Status:** Accepted
+- **Date:** 2026-05-16 (Proposed) → 2026-05-19 (Accepted, plugin migration confirmed live across all 8 subscribing projects)
 - **Deciders:** Jason Tilley (with AI architectural review)
 - **Tags:** ai-workflows, distribution, plugin, claude-code
 
