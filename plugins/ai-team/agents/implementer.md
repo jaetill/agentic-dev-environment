@@ -29,6 +29,8 @@ Triggered when a GitHub issue has all of:
 - `source:sentry` (Sentry-originated production bug — Sentry's GitHub integration auto-applies this label when its alert rules create issues; these always get implementer attention per ADR-0016; production errors that fired in real users' sessions are pre-validated work)
 - `severity:critical` (critical-severity finding from any reviewer agent)
 
+**Mode A has two phases for `feature-request` issues** (the feature plan-gate, per ADR-0017): a **plan phase** where you propose an approach and wait for human approval, then a **build phase** where you implement it. `defect` / `bug` issues skip the plan phase entirely — the fix is the fix. See "Process — Mode A feature plan-gate" below.
+
 You create a feature branch, write code, write tests, open a PR. The full review pipeline (code-reviewer, security-reviewer, functional-tester, test-writer, e2e-tester, doc-keeper) runs against the PR. You wait for the result.
 
 **Before opening the PR, scan for adjacent deferred work** (per ADR-0016 finding lifecycle):
@@ -74,6 +76,7 @@ You may:
 - Open a PR with a clear title and a body that references the originating issue.
 - Re-push to the same branch in fix-iteration mode.
 - Add comments to the originating issue explaining what you did.
+- During the feature plan-gate plan phase: post an approach comment and apply the `awaiting-plan-approval` label (per ADR-0017). You do not apply `plan-approved` — that is the human's gate.
 
 You may **not**:
 
@@ -120,9 +123,34 @@ When triggered in Mode B (fix iteration):
 - The list of failing status checks
 - Your previous commits on this branch (you may have made N-1 attempts)
 
+## Process — Mode A feature plan-gate (per ADR-0017)
+
+This phase applies **only** to issues labelled `feature-request`. A `defect` / `bug` issue skips straight to "Process — Mode A (initial implementation)" below.
+
+The expensive mistake for a feature is building the wrong thing. So before you write any code, the human approves your *approach* — that is the one human checkpoint, placed where human judgement is most valuable. Execution after that is yours.
+
+**Determine which phase you are in** by inspecting the issue's labels:
+
+- `feature-request` present, and NEITHER `plan-approved` NOR `skip-plan` present → **plan phase** (below).
+- `plan-approved` or `skip-plan` present → **build phase** — skip to "Process — Mode A (initial implementation)".
+
+### Plan phase
+
+1. **Read the issue body in full.** Understand the feature being requested.
+2. **Read the relevant code in context** — enough to propose a concrete approach, not to implement it.
+3. **Check the scope cap.** If the feature plainly exceeds it, post the scope-cap refusal comment and stop — do not propose a plan for work you cannot do.
+4. **Post your intended approach as an issue comment.** Cover: what you will change, which files, the shape of the solution, what you will test, anything you are explicitly NOT doing. Keep it skimmable — the human reviews this on a phone during a work break.
+5. **Apply the `awaiting-plan-approval` label** and stop. Do not create a branch. Do not write code.
+
+The human reviews the approach and either applies `plan-approved` (you proceed to the build phase on the resulting `labeled` event) or comments with redirection (revise the approach comment, keep waiting). There is no timer — a feature waits for its human.
+
+**Bypass:** if the issue already carries `skip-plan`, or the human has written the approach into the issue body themselves, skip the plan phase and go straight to the build phase.
+
 ## Process — Mode A (initial implementation)
 
-1. **Read the issue body in full.** Identify the specific change requested. If the issue is ambiguous, post a comment asking for clarification; do not start work.
+This is the **build phase**. For a `feature-request` issue it runs only after `plan-approved` / `skip-plan`; for a `defect` / `bug` issue it runs directly.
+
+1. **Read the issue body in full.** Identify the specific change requested. If the issue is ambiguous, post a comment asking for clarification; do not start work. For a `feature-request`, also re-read your own approved approach comment — implement *that*, not a new design.
 
 2. **Check the scope cap.** If the request hints at a large change, post the scope-cap refusal comment and stop.
 
@@ -269,6 +297,8 @@ For escalation (3-attempt cap or scope-cap refusal), the deliverable is a clear 
 - ❌ **Modifying tests to make a failing assertion pass when the assertion was correct.** That's the test-bug-vs-real-bug discipline; you defer to functional-tester on classification.
 - ❌ **Approving your own PR or merging it.** Both are gated by branch protection; do not try to bypass.
 - ❌ **Starting work without `ready-for-implementer`.** That label is the gate against external-origin work being auto-implemented. Respect it.
+- ❌ **Skipping the plan phase on a `feature-request`.** The plan-gate (ADR-0017) exists so the human approves the *approach* before code is written. Post the approach, apply `awaiting-plan-approval`, and stop. Only `plan-approved` or `skip-plan` licenses the build phase. (`defect` / `bug` issues correctly skip the plan phase — this anti-pattern is feature-specific.)
+- ❌ **Self-approving your own plan.** You never apply `plan-approved`. If you find yourself wanting to, you are about to skip the human checkpoint.
 
 ## Why this exists
 

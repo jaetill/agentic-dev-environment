@@ -1,9 +1,13 @@
 name: claude-implementer
 # Phase B of ADR-0013 — invokes the implementer agent in one of two modes:
 #
-# Mode A (initial implementation): triggered when an issue gains the
-#   `ready-for-implementer` label. Agent creates a feature branch, writes
-#   code + tests, opens a PR.
+# Mode A (initial implementation): triggered when an issue gains a
+#   pickup label (`ready-for-implementer`, `source:sentry`,
+#   `severity:critical`, `plan-approved`, `skip-plan`). For `feature-request`
+#   issues this runs a two-phase plan-gate (ADR-0017): a PLAN PHASE that
+#   posts an approach and waits for the human's `plan-approved`, then a
+#   BUILD PHASE that writes code + tests and opens a PR. `defect`/`bug`
+#   issues skip the plan phase and go straight to build.
 #
 # Mode B (fix iteration): triggered when a PR authored by claude[bot]
 #   receives a review with state REQUEST_CHANGES from code-reviewer or
@@ -52,7 +56,7 @@ jobs:
     if: |
       github.event_name == 'issues'
       && github.event.action == 'labeled'
-      && contains(fromJSON('["ready-for-implementer", "source:sentry", "severity:critical"]'), github.event.label.name)
+      && contains(fromJSON('["ready-for-implementer", "source:sentry", "severity:critical", "plan-approved", "skip-plan"]'), github.event.label.name)
       && !contains(github.event.issue.labels.*.name, 'scope:iac')
     runs-on: ubuntu-latest
     timeout-minutes: 25
@@ -85,16 +89,40 @@ jobs:
           show_full_output: true
           prompt: |
             Act as the `implementer` subagent (see .claude/agents/implementer.md).
-            You are operating in **Mode A — initial implementation**.
+            You are operating in **Mode A**.
 
-            The work item is issue #${{ github.event.issue.number }} which
-            just received the `ready-for-implementer` label.
+            The work item is issue #${{ github.event.issue.number }}.
 
-            Read the issue:
-              gh issue view ${{ github.event.issue.number }} --json title,body,labels
+            Read the issue FIRST, including its labels:
+              gh issue view ${{ github.event.issue.number }} --json title,body,labels,comments
 
-            Follow your spec's Mode A process exactly:
-              1. Read the issue body in full.
+            ## Step 0 — Determine the phase (feature plan-gate, ADR-0017)
+
+            Inspect the labels:
+
+            - If the issue has `feature-request` AND has NEITHER `plan-approved`
+              NOR `skip-plan` → you are in the **PLAN PHASE**.
+            - Otherwise (it is a `defect`/`bug`, OR it already has
+              `plan-approved` / `skip-plan`) → you are in the **BUILD PHASE**.
+
+            ### PLAN PHASE — do this and nothing else:
+              1. Read the issue body in full; read enough surrounding code to
+                 propose a concrete approach.
+              2. Check the scope cap (>50 LOC, >3 files, cross-component). If
+                 the feature plainly exceeds it, post the scope-cap refusal
+                 comment and stop.
+              3. Post your intended approach as an issue comment
+                 (`gh issue comment`): what you will change, which files, the
+                 solution shape, what you will test, what you are explicitly
+                 NOT doing. Keep it skimmable.
+              4. `gh issue edit ${{ github.event.issue.number }} --add-label awaiting-plan-approval`
+              5. STOP. Do not create a branch. Do not write code. The human
+                 applies `plan-approved` when satisfied, which re-triggers
+                 this workflow into the build phase.
+
+            ### BUILD PHASE — follow your spec's Mode A process exactly:
+              1. Read the issue body in full. For a feature, also re-read your
+                 own approved approach comment and implement THAT.
               2. Check the scope cap (>50 LOC, >3 files, cross-component).
                  If exceeded, post the refusal comment and stop.
               3. Read the relevant code in context.
@@ -125,6 +153,7 @@ jobs:
               - Never commit to master.
               - Never modify terraform/ (that's iac-implementer).
               - Never modify .github/workflows/ unless the issue has `scope:ci`.
+              - Never apply `plan-approved` yourself — that is the human's gate.
               - If at any point you cannot proceed safely, post a comment
                 on the issue explaining and stop. Do not push broken code.
           claude_args: |

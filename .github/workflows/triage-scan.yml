@@ -1,0 +1,137 @@
+name: triage-scan
+# Phase B of ADR-0017 — scheduled triage-bot scan.
+#
+# Two jobs run from one scheduled invocation:
+#   1. scan    — triage-bot scans Sentry/logs/feedback for new patterns and
+#                files issues (no-op on the platform repo, which has no
+#                production telemetry; real work on subscribing app repos).
+#   2. promote — triage-bot's PROMOTER pass: applies `ready-for-implementer`
+#                to eligible agent-discovered `severity:medium` issues.
+#
+# WINDOW ENFORCEMENT: this workflow is the *only* path by which
+# agent-discovered Medium work gets promoted. Because it runs on a cron
+# restricted to the work-hours + overnight windows (and a window-check
+# step trims the DST-drift edges precisely), promotion can only happen
+# in-window. That is how ADR-0017's "agent-discovered work is
+# window-gated" is enforced — at the promoter, not at the implementer.
+# claude-implementer.yml therefore needs no window gate of its own.
+
+on:
+  schedule:
+    # Cron is UTC. America/Chicago is UTC-5 (CDT) or UTC-6 (CST).
+    # work-hours window = 09:00-12:00 Chicago = 14:00-17:00 UTC (CDT) /
+    # 15:00-18:00 UTC (CST). Fire every 30 min across 14:00-18:00 UTC
+    # Mon-Fri; the window-check step below trims to the precise window.
+    - cron: '0,30 14-18 * * 1-5'
+    # overnight window = 22:00 Chicago = 03:00 UTC (CDT) / 04:00 UTC (CST).
+    - cron: '0 3,4 * * *'
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Why this manual triage scan is being run'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  issues: write   # file new issues + apply the ready-for-implementer label
+
+concurrency:
+  group: triage-scan-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  # ── Window check — skip scheduled runs that fall outside the window ──────
+  window:
+    runs-on: ubuntu-latest
+    outputs:
+      in_window: ${{ steps.check.outputs.in_window }}
+      window: ${{ steps.check.outputs.window }}
+    steps:
+      - id: check
+        name: Determine current window (America/Chicago)
+        run: |
+          # workflow_dispatch is human-requested — always proceed.
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "in_window=true"  >> "$GITHUB_OUTPUT"
+            echo "window=manual"   >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          hour=$((10#$(TZ=America/Chicago date +%H)))
+          dow=$(TZ=America/Chicago date +%u)   # 1=Mon .. 7=Sun
+          if [[ $hour -ge 22 || $hour -lt 6 ]]; then
+            echo "in_window=true"     >> "$GITHUB_OUTPUT"
+            echo "window=overnight"   >> "$GITHUB_OUTPUT"
+          elif [[ $dow -le 5 && $hour -ge 9 && $hour -lt 12 ]]; then
+            echo "in_window=true"     >> "$GITHUB_OUTPUT"
+            echo "window=work-hours"  >> "$GITHUB_OUTPUT"
+          else
+            echo "in_window=false"    >> "$GITHUB_OUTPUT"
+            echo "window=quiet"       >> "$GITHUB_OUTPUT"
+            echo "::notice::Outside work-hours/overnight window (Chicago hour=$hour, dow=$dow); skipping scan."
+          fi
+
+  # ── triage-bot scan + promoter pass ─────────────────────────────────────
+  triage:
+    needs: window
+    if: needs.window.outputs.in_window == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run triage-bot (scan + promoter pass)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          WINDOW: ${{ needs.window.outputs.window }}
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          show_full_output: true
+          prompt: |
+            Act as the `triage-bot` subagent (see plugins/ai-team/agents/triage-bot.md).
+            This is a scheduled scan in the **${{ needs.window.outputs.window }}** window.
+
+            Run TWO passes, in order:
+
+            ## Pass 1 — Scan
+            Run your Tier 1 scan process. On a repo with production telemetry
+            (Sentry / CloudWatch), surface and file new issue patterns per your
+            spec. On the platform repo (no production telemetry) this pass is
+            expected to be a no-op — that is a valid outcome; do not manufacture
+            findings.
+
+            ## Pass 2 — Promoter (per ADR-0017)
+            Apply `ready-for-implementer` to eligible agent-discovered issues:
+
+              gh issue list --state open --json number,title,labels,createdAt,author,comments --limit 100
+
+            An issue is eligible for promotion when ALL hold:
+              - It is AGENT-discovered: author is a bot, OR it carries a
+                `source:*` or `triage:*` label. (Human-authored issues are
+                NEVER promoted here — filing is their triage.)
+              - It carries `severity:medium` or `triage:medium`.
+              - It does NOT already carry `ready-for-implementer`.
+              - It has survived at least one full triage-scan cycle since
+                filing — do NOT promote an issue created since the previous
+                scan (compare `createdAt` against ~35 min ago for work-hours,
+                or "before today" for the overnight run). This gives the human
+                a triage window.
+              - It is well-specified enough to hand to the implementer: a
+                clear repro or acceptance criteria, a single bounded change.
+                This is a judgement call — apply it conservatively. When the
+                issue is vague, leave it unpromoted and add a comment naming
+                what's missing.
+
+            For each eligible issue: `gh issue edit <n> --add-label ready-for-implementer`
+            and post a one-line comment noting it was auto-promoted per ADR-0017.
+
+            Critical/High issues need no promotion (they auto-pickup). Low/Nit
+            issues are never promoted (they are `deferred-until-adjacent`).
+
+            Report a short summary: issues scanned, new issues filed, issues promoted.
+          claude_args: |
+            --model claude-sonnet-4-6
+            --permission-mode bypassPermissions
+            --allowed-tools Bash,Read,Grep,Glob
+            --append-system-prompt "Follow the platform standards in docs/standards/. Promotion is a Tier 2 (Sonnet) judgement per ADR-0017 — be conservative; an unpromoted issue is recoverable, a wrongly-promoted vague issue wastes an implementer run."
