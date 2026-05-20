@@ -1,0 +1,27 @@
+# CODEOWNERS — reviewer routing for the Agentic Dev Environment platform
+#
+# Per ADR-0017 (async orchestration). This file routes review requests; it
+# does NOT by itself gate merges. Merge gating requires the "Require review
+# from Code Owners" branch-protection setting, which is a repo-settings
+# change applied separately by the repo owner.
+#
+# Today the platform is solo-authored, so every path resolves to @jaetill.
+# The per-area lines are intentional: they document the high-blast-radius
+# areas explicitly and give a ready structure for when an external
+# contributor is granted ownership of a subspace (e.g. plugins/friend-experiments/).
+
+# Default owner — everything not matched below
+*                       @jaetill
+
+# Plugin source — the canonical platform definition; highest blast radius
+/plugins/ai-team/       @jaetill
+
+# Shared components — consumed by downstream projects via file: paths
+/templates/_shared/     @jaetill
+
+# CI / workflows — changes here affect every PR
+/.github/               @jaetill
+
+# Architecture decisions and standards
+/docs/adr/              @jaetill
+/docs/standards/        @jaetill
