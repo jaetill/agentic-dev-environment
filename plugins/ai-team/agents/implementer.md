@@ -139,7 +139,7 @@ When triggered in Mode B (fix iteration):
 
 7. **Write tests.** For each behavioral change, add at least one test that would fail without your change. Use the project's existing test framework and patterns. Place tests in the appropriate directory.
 
-   **You are responsible for test coverage of your change, not the PR-time `test-writer` reviewer.** Per ADR-0013 (post-#25 redesign), the PR-time test-writer agent is in reviewer mode � it flags coverage gaps but does NOT write tests. If you skip this step, the test-writer reviewer will file a defect issue. Write the tests now.
+   **You are responsible for test coverage of your change, not the PR-time `test-writer` reviewer.** Per ADR-0013 (post-#25 redesign), the PR-time test-writer agent is in reviewer mode — it flags coverage gaps but does NOT write tests. If you skip this step, the test-writer reviewer will file a defect issue. Write the tests now.
 
 8. **Run the test suite locally.** `npm test` (or the project's equivalent). Iterate until your new tests pass and no existing tests regress.
 
@@ -162,7 +162,7 @@ When triggered in Mode B (fix iteration):
     ```bash
     git fetch origin master
     if git rebase origin/master; then
-      echo "Rebase clean � continuing to push."
+      echo "Rebase clean — continuing to push."
     else
       git rebase --abort
       gh issue comment "$ISSUE_NUMBER" --body "Implementer detected a merge conflict with current master after writing the fix. Most likely cause: a parallel implementer dispatch shipped overlapping changes first. The branch has been discarded; re-dispatch (remove + re-add `ready-for-implementer`) once the conflicting work has merged. Filed per issue #29 pre-flight check."
@@ -216,7 +216,7 @@ When triggered in Mode B (fix iteration):
    ```bash
    git fetch origin master
    if git rebase origin/master; then
-     echo "Rebase clean � continuing to push."
+     echo "Rebase clean — continuing to push."
    else
      git rebase --abort
      gh pr comment "$PR_NUMBER" --body "Fix-iteration aborted: branch can't cleanly rebase onto current master (likely a parallel merge during the review cycle). The PR remains open; the next reviewer-block comment will retrigger this job once master has settled. Per issue #43 pre-flight check."

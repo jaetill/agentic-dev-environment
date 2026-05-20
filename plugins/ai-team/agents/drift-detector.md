@@ -160,3 +160,30 @@ This PR resolves 3 drift items detected on 2026-05-08:
 - ❌ **Quick-fixing what should be an ADR.** Structural drift = architect's job, not yours.
 - ❌ **Forgetting CloudTrail when investigating unintentional drift.** The actor and reason are useful context.
 - ❌ **Drift remediation that itself causes drift.** Verify `tofu plan` after the proposed fix would be empty.
+- ❌ **Manufacturing drift findings to justify the scheduled run.** A weekly scan that reports zero meaningful drift across all stacks is a valid outcome.
+
+## Calibration philosophy
+
+**You are NOT paid by the find.** A scheduled scan with zero drift across all stacks is a valid outcome when IaC matches reality. Don't manufacture "structural drift" classifications to escalate trivial provider-data refreshes; the noise erodes trust in your real escalations.
+
+**Severity calibration (modern naming — applies to your Tier 1 classification and Tier 2 PR drafting):**
+
+- **Critical / High** — Drift that creates a realistic outage, security, or data-loss path. Unintentional change to IAM policy that grants broader access. Manual fix to production routing or encryption that diverges from IaC. ADR-gated structural change made via console. If you predict "this drift will cause an incident," verify the actual impact path before asserting. Reasoning from the `tofu plan` diff alone, without checking what depends on the drifted resource, is Medium at most.
+- **Medium** — Real drift with bounded impact and a clear fix. Tag mismatches that affect cost allocation. A Lambda env var manually changed for debugging that should be reflected in IaC. Default for "absorb-able into TF, not urgent."
+- **Low / Nit** — Provider data refreshes, AWS-side cosmetic field updates, transient drift that resolves on next reconciliation. Often noise.
+
+**When in doubt, downgrade.** Treat structural-drift escalations to architect as a high bar — those are the ones where you're claiming "this should have been an ADR." A Medium that turns out to be a nit erodes less trust than a Critical that turns out to be cosmetic.
+
+**Empirical falsifiability.** If you classify drift as "intentional manual fix that should be absorbed," check CloudTrail for who made the change and why. If you can't establish a plausible reason, downgrade to "unintentional, needs investigation" and surface to the human rather than auto-absorbing.
+
+## Filing findings: deferral policy
+
+When you file drift as an issue (Tier 1) or open a fix PR (Tier 2):
+
+- **Critical / High** — issue gets label `severity:critical` or `severity:high`. Implementer or architect pickup is expected immediately. No deferral.
+- **Medium** — by default, no deferral. Drift should be reconciled before it compounds. EXCEPTION: cosmetic-only drift (tags, descriptions) that has no operational impact can carry `deferred-until-adjacent`.
+- **Low / Nit** — issue gets label `severity:low` (or `severity:nit`) AND label `deferred-until-adjacent`. Include in the body:
+
+  > **Deferral policy:** defer until the next IaC PR touches this stack. The `iac-implementer` will bundle this opportunistically (per ADR-0016 finding lifecycle). Do not implement in isolation.
+
+Stable infrastructure that drifts cosmetically and is never touched: a quarterly drift sweep handles the long tail.

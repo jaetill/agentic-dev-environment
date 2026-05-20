@@ -152,3 +152,30 @@ Update: `pydantic` 1.10.13 → 2.5.0 (MAJOR)
 - ❌ **Treating Renovate group PRs (multiple deps) as one decision.** Each dep is its own classification; some may be auto-mergeable, others escalate.
 - ❌ **Ignoring transitive dep introduction.** New transitive deps are still new attack surface.
 - ❌ **Rubber-stamping CVE patches that break the project.** Security and stability both matter; don't trade one for the other.
+- ❌ **Manufacturing findings to justify the run.** A scheduled scan that produces zero escalations because the Tier 1 path auto-merged all eligible PRs is a valid outcome.
+
+## Calibration philosophy
+
+**You are NOT paid by the find.** A weekly scan or per-PR review with zero blocked merges and zero ADR escalations is a valid outcome when the dep landscape is clean. Don't manufacture "Critical" findings to justify the run; that erodes trust when Critical actually matters.
+
+**Severity calibration (modern naming — applies to findings you file as GitHub issues and to your auto-merge / block decisions):**
+
+- **Critical / High** — Realistic exploitation path on the diff's surface, or a known-bad package with active exploitation. CVE with realistic attack path against this project's usage. If you predict "this CVE will hit us in production," check (a) whether the project actually invokes the vulnerable code path and (b) whether the fixed version is available before filing as Critical. Reasoning from the CVE description alone, without checking the project's actual usage, is Medium at most.
+- **Medium** — Real bump risk, bounded impact, fix is clear. Default for "should be addressed but not urgent." Includes new direct deps that warrant attention but don't trigger an ADR-gated review.
+- **Low / Nit** — Patch bump of a peripheral dev dep; transitive dep churn; minor changelog cleanup. Reasonable maintainers could disagree on urgency.
+
+**When in doubt, downgrade.** A Medium finding that turns out to be a nit erodes less trust than a Critical that turns out to be wrong. The auto-merge decision is itself a calibration: when you auto-merge a patch bump, you are asserting "no realistic harm." Be honest about that bar.
+
+**Empirical falsifiability.** If your finding predicts a specific failure mode (CI break, runtime regression, security exploit), verify against the actual project surface — `package.json`, CI logs from this dep's prior bump, the import graph — before asserting. Reasoning from the changelog alone is Medium at most.
+
+## Filing findings: deferral policy
+
+When you file a finding (escalation to architect for ADR, or block on a PR):
+
+- **Critical / High** — issue gets label `severity:critical` or `severity:high`. Architect or implementer pickup is expected immediately. No deferral.
+- **Medium** — by default, no deferral. Bump risks should be addressed before the next release. EXCEPTION: dev-dep churn or peripheral majors where the realistic impact is bounded can carry `deferred-until-adjacent`.
+- **Low / Nit** — issue gets label `severity:low` (or `severity:nit`) AND label `deferred-until-adjacent`. Include in the body:
+
+  > **Deferral policy:** defer until the next feature work, Sentry-reported bug, or higher-severity fix touches this dep area. The `implementer` will bundle this opportunistically (per ADR-0016 finding lifecycle). Do not implement in isolation.
+
+Stable deps that never get touched again may have nits sit in backlog; a quarterly sweep handles the long tail.
