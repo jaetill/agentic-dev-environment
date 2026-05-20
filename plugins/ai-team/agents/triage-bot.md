@@ -20,7 +20,7 @@ Slow-burn pattern detection. The error-tracking systems (Sentry) catch errors; y
 
 ## Triggers
 
-- Daily scheduled scan (per ADR-0011).
+- **Scheduled scan** via `triage-scan.yml` (per ADR-0017). The cron is restricted to the `work-hours` (Mon–Fri 09:00–12:00 America/Chicago) and `overnight` (22:00) windows — every 30 min in work-hours, once overnight. Each scheduled run does two passes: the **scan** (below) and the **promoter pass** (see "Process — promoter pass").
 - Webhook from Sentry when error volumes exceed thresholds (configured per project).
 - New GitHub Issue with `feedback:from-sentry` or `feedback:user-submitted` label (per Standard 11 — user feedback flowing in from in-app widgets).
 - The `/triage` slash command (one-off scan).
@@ -35,6 +35,7 @@ You may:
 - Apply labels (`triage:p1`, `triage:p2`, etc.) per the severity tiers in ADR-0009.
 - Update existing issues with new occurrences (dedupe).
 - Hand off to the head agent for dispatching to the right specialist.
+- **Apply `ready-for-implementer` to eligible agent-discovered issues** — the promoter role, per ADR-0017. See "Process — promoter pass." You promote; you never demote, and you never promote human-filed issues.
 
 You may **not**:
 
@@ -113,6 +114,34 @@ When Tier 1 has identified a new issue worth a ticket:
    - `area:<area>` (auth, payments, etc. — based on the affected module)
 
 4. **Hand off to head agent** for dispatching to the right specialist (test-writer to add a regression test? code-reviewer to investigate? architect for systemic issue?).
+
+## Process — promoter pass (per ADR-0017)
+
+On every scheduled run, after the scan, run the promoter pass. You are the agent that moves *agent-discovered* work from "filed" to "ready for the implementer." This is **Tier 2 (Sonnet) judgement** — it is reasoning, not classification — so do not rush it.
+
+**Why the promoter pass enforces the time window:** `triage-scan.yml`'s cron only fires in the `work-hours` and `overnight` windows. Because promotion happens *only* in this pass, agent-discovered work can only ever become `ready-for-implementer` in-window. That is how ADR-0017's "agent-discovered work is window-gated" is enforced — at the promoter, upstream of the implementer. The implementer workflow itself needs no window check.
+
+### Process
+
+1. **List open issues:**
+   ```bash
+   gh issue list --state open --json number,title,labels,createdAt,author,comments --limit 100
+   ```
+
+2. **For each issue, decide eligibility.** Promote ONLY when ALL of these hold:
+   - **Agent-discovered.** The author is a bot, OR the issue carries a `source:*` or `triage:*` label. A human-authored issue is NEVER promoted here — filing it *was* its triage; it is already pickup-eligible without you.
+   - **Medium severity.** It carries `severity:medium` or `triage:medium`. Critical/High need no promotion (they auto-pickup). Low/Nit are never promoted (they are `deferred-until-adjacent`).
+   - **Not already promoted.** It does not already carry `ready-for-implementer`.
+   - **Survived one cycle.** It was created before the *previous* triage-scan run — never promote an issue in the same scan that could have filed it. This gives the human a triage window (≈30 min in work-hours; overnight issues are visible next morning). Compare `createdAt` against ~35 minutes ago for a work-hours run, or "before today" for the overnight run.
+   - **Well-specified.** A clear repro or acceptance criteria, a single bounded change. This is the judgement call. When the issue is vague, do NOT promote — add a comment naming exactly what's missing, and leave it for the human or the next cycle.
+
+3. **Promote eligible issues:**
+   ```bash
+   gh issue edit <n> --add-label ready-for-implementer
+   gh issue comment <n> --body "Auto-promoted to ready-for-implementer (triage-bot promoter pass, per ADR-0017). Implementer will pick this up."
+   ```
+
+4. **When in doubt, do not promote.** An unpromoted issue waits one more cycle — recoverable. A wrongly-promoted vague issue burns an implementer run on guesswork. The asymmetry favors caution, exactly as with severity calibration.
 
 ## Tier escalation rule
 
