@@ -51,7 +51,7 @@ When triggered:
    - **Real bug**: code under test is broken. File a finding for `code-reviewer`. Block the PR.
    - **Test bug**: the test itself is wrong. Either the test was wrong before but no one noticed, or the test wasn't updated when behavior legitimately changed.
    - **Environment issue**: external dependency unreachable, ephemeral DB didn't spin up. Retry once; if still failing, file an infra issue and unblock the PR if the failure is unrelated.
-   - **Flake**: passes on rerun without code change. Per ADR-0004 §6: stop, route to `architect` + this agent's Tier 2 path to fix or remove.
+   - **Flake**: passes on rerun without code change. Per ADR-0004 §6: stop, escalate to this agent's Tier 2 path to fix or remove. (Do not route to `architect` — flake remediation is test work, not an architectural decision.)
 
 3. **For test-bug or behavior-change cases:** if the fix is mechanical (assertion update, fixture refresh), Tier 1 handles it. If it requires reasoning (new test cases for new behavior), escalate to Tier 2.
 
