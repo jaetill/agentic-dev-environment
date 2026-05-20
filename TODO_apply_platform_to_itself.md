@@ -1,63 +1,58 @@
-# TODO: Publish workspace to GitHub — HIGH priority
+# TODO: Apply platform to itself — mostly done
 
-**Captured:** 2026-05-15 evening, before Jason's break.
-**Reframed:** 2026-05-16 after the plugin migration (ADR-0015) landed on all three projects. The original "apply platform to itself" framing still applies, but a more pressing motivation now exists: each subscribing project's `.claude/settings.json` carries an absolute Windows path to the workspace marketplace. That is load-bearing single-machine state — anyone else who clones game-night-pwa, meal-planner, or ai-teacher gets a project that can't load the plugin. Publishing the workspace to GitHub lets the marketplace `source` become `{"source": "github", "repo": "jaetill/agentic-dev-environment"}` and removes the absolute-path dependency across all three projects.
+**Captured:** 2026-05-15 evening.
+**Reframed:** 2026-05-16 after the plugin migration (ADR-0015) landed.
+**Refreshed:** 2026-05-19 — the bulk of this work has landed. What remains is small.
 
-**Status:** Highest-leverage outstanding work item. Architecture question is resolved (ADR-0015).
+## Status — what landed
 
-## The premise
+| Item | Status |
+|---|---|
+| `git init` + initial commit | ✅ Done. Workspace is on GitHub at `jaetill/agentic-dev-environment`. |
+| Publish to GitHub | ✅ Done. Repo live; PRs merging routinely. |
+| Eliminate absolute-path single-machine dep | ✅ Done. All 8 subscribing projects use `{"source": "github", "repo": "jaetill/agentic-dev-environment"}` in their `.claude/settings.json`. |
+| Phase 1 — Documentation | ✅ Done. `docs/adr/` (16 ADRs), `docs/standards/` (11 standards), `docs/runbooks/`, `docs/reviews/` all present. |
+| Phase 2 — AI configuration | ✅ Done. The workspace IS the plugin source (`plugins/ai-team/`), and `.claude/` is wired. |
+| Phase 3 — Quality gates | ✅ Done. `validate-platform.yml` runs `adr-format-check`, `agent-frontmatter-check`, `link-check` on every PR. |
+| Phase 4 — CI workflows | ✅ Done. 19 workflows present: `claude-pr-review.yml`, `claude-implementer.yml`, `release-please.yml`, `validate-platform.yml`, `test-modules-plan.yml`, `test-modules-integration.yml`, etc. |
+| `release-please` setup | ✅ Done (PR #9, 2026-05-19). Config + workflow live; bumps `plugins/ai-team/.claude-plugin/plugin.json` via `extra-files`. |
+| Sentry hook bug fix that motivated this exercise (exec bits) | ✅ Done (PR #11, 2026-05-19). |
+| Agent-definition audit | ✅ Done (PR #13, 2026-05-19). `docs/reviews/2026-05-19-agent-definition-audit.md`. |
 
-The Agentic Dev Environment workspace is, itself, a project. It contains code (terraform modules, `templates/_shared/test-inbox/` TS package, PowerShell scripts), docs (ADRs, standards, runbooks), and platform templates. The platform that demands rigor of every other project does NOT yet apply that rigor to itself.
+## Outstanding work
 
-Specifically:
-- Its `.git` is a stub (HEAD exists, no objects/, no refs/).
-- No GitHub remote. Nothing tracks changes.
-- No CI. No PR review. No release-please.
-- Three projects depend on `templates/_shared/test-inbox/` via `file:` deps; if it breaks, all three break silently.
-- ADRs exist but nobody reviews them (no agent pipeline on the workspace).
+### 1. Cut the first release (low effort, real signal)
 
-## What "applying the platform to itself" would look like
+`release-please` is set up but no release exists. The next conventional-commit push to `main` should open a release PR automatically. Since merge-then-release-PR has been the cadence, the release PR is probably already open — verify and merge it. After that, projects can pin against `@v0.1.0` (or whatever release-please chooses) instead of `@main`.
 
-1. **`git init` properly** + initial commit of current state.
-2. **Publish to GitHub** as `jaetill/agentic-dev-environment` (private or public — decide).
-3. **Apply Phases 1-4 of platform adoption** to the workspace itself. This is delicious recursion: use the platform's verbatim agents and standards to bring the workspace into compliance with the platform.
-4. **Install a CI workflow** that runs `npm test` against `templates/_shared/test-inbox/` (the only code that has tests currently).
-5. **Install `claude-pr-review` + `security-review` + `dep-watcher`** on the workspace. Now every change to a platform agent, hook, or shared component gets reviewed by other platform agents.
-6. **`release-please`** to ship versioned platform releases. Projects can then pin against versions instead of file: paths.
+**Check:** `gh pr list --search "release-please"` on this repo.
 
-## Where the recursion gets interesting
+### 2. Verify `claude-pr-review` actually triggers on workspace PRs
 
-- The agents that review the workspace are the agents being changed. PRs that modify `code-reviewer.md` would be reviewed by the current version of `code-reviewer`. Tests of the platform run against the platform.
-- Standard 04 (quality gates) currently has zero teeth on the workspace. After self-application, it has teeth on its own definition.
-- The "platform port procedure" memory describes the steps. The workspace would BE the first reference application of the procedure on itself.
+PR #13's check list showed `validate`, `adr-format-check`, `agent-frontmatter-check`, `link-check`, `module-plan-tests`. **No `claude-pr-review`.** Either:
 
-## Benefits
+- It's configured but path-filtered to not trigger on agent-definition changes (possibly correct — reviewer doesn't need to review reviewer prompts);
+- Or it's not wired to fire on this workspace's PRs at all.
 
-- **Bugs in the platform get caught BY the platform.** The Turbopack/`instrumentation-client.ts` trap would have surfaced in a PR review by the very agents that should know about Next.js, IF those agents had been reviewing the templates.
-- **Drift detection.** When a project's `.claude/settings.json` drifts from the canonical subscription block (e.g. someone re-introduces locally-committed agent files), drift-detector flags it. Pre-plugin migration, the equivalent drift was between each project's `.claude/agents/` and the workspace's source; now drift detection lives at the subscription/version boundary.
-- **Real release cadence.** Today the workspace evolves silently. With release-please, every platform change becomes a versioned event that downstream projects can subscribe to (or pin against).
-- **Dogfooding pressure.** When the platform's own usability matters because YOU feel it, you'll fix the rough edges faster.
+Skim `.github/workflows/claude-pr-review.yml` to confirm intent. If the intent is "review every PR," fix the trigger. If the intent is "review only application-code PRs," document the carve-out.
 
-## Risks / friction
+### 3. Verify `test-inbox` JS tests actually run in CI
 
-- **Chicken-and-egg.** Initial commit can't go through PR review because the workflows aren't on main yet. Same bootstrap problem game-night-pwa had — handle with a single one-time direct push, then enforce afterward.
-- **Recursive complexity.** If a PR modifies an agent definition and the agent reviews the PR, do we use the new agent or the old one? GitHub Actions checks out the PR branch, so the NEW agent reviews itself. Could be fine, could be weird. Worth thinking through before committing.
-- **Time investment.** This IS more platform work, exactly what Jason just said he wants less of. The trap is real. Sequencing matters: ship features first, dogfood the platform second.
-- **~~Decision interaction with TODO_platform_architecture_review.md~~** — RESOLVED 2026-05-16 by ADR-0015. The outer-team direction is now in place via the plugin migration. What gets dogfooded is now well-defined: the plugin itself (`plugins/ai-team/`), the marketplace, and the workspace's supporting code (terraform modules, test-inbox, scripts, docs).
+`templates/_shared/test-inbox/` has a Vitest config and tests. The `ci-typescript.yml` workflow is present, but I haven't verified it actually runs the test-inbox suite on workspace PRs. If it doesn't, a breaking change to `test-inbox` would silently propagate to the 3 projects that depend on it via `file:` paths.
 
-## Recommended sequencing (updated 2026-05-16)
+**Check:** look at `ci-typescript.yml` paths filter; trigger a no-op PR touching `templates/_shared/test-inbox/`.
 
-1. **Initial publication** — `git init`, initial commit, push to `jaetill/agentic-dev-environment` (private to start). Immediately update each of the three projects' `.claude/settings.json` to swap the directory source for the GitHub source — fixes the absolute-path single-machine dep.
-2. **Phases 1-4 self-adoption** — apply documentation, AI configuration (the workspace already IS the plugin source, so this is just enabling reviewer agents on workspace PRs), quality gates, CI workflows.
-3. **release-please for the plugin** — versioned platform releases so projects can pin (`@v1` rather than `@main`).
+## Decisions deferred
 
-Step 1 has the highest leverage: it removes the load-bearing absolute path that currently lives in three projects.
+- **Public vs private repo.** Currently private. Arguments for public: portfolio piece, gets feedback, models good practice. Arguments against: exposes solo-dev quirks. Revisit when there's something polished worth showing — probably after first tagged release.
+- **Versioning cadence.** After first release, decide whether to pin projects against the version tag (`@v0.1.0`) or stay on `@main`. Pinning gives stability; `@main` gives free updates. Likely mixed: critical projects pin, exploratory ones float.
 
-## What's worth thinking about NOW (Jason's "thoughts I can read now")
+## What this exercise actually proved
 
-- **The platform is currently an internal product without an internal customer.** Self-application changes that. The workspace becomes the platform's first user. Useful for catching the "this is hard to use" smells.
-- **Versioning matters more than it seems.** Today, "platform v0.1" exists conceptually but not as a tag. As soon as you have a release-please flow on the workspace, every breaking change is visible. That changes the calculus on how/when to make breaking changes to agents, hooks, settings.json.
-- **Open question:** should the workspace be PUBLIC on GitHub? Arguments for: portfolio piece, gets feedback, models good practice. Arguments against: exposes solo-dev quirks, doesn't gain you anything if there are no other users. Probably private to start; revisit when there's something polished worth showing.
-- **The MCP/plugin angle.** If the platform becomes an MCP server or a Claude Code plugin, "applying the platform to itself" gets a clean answer: the platform IS the agent registry; the workspace just holds the registry. That's the outer-team model again, just phrased as a distribution mechanism. So TODO_platform_architecture_review interacts here.
+The "apply the platform to itself" framing turned out to be self-fulfilling. Once the plugin lived in this workspace and the workspace had CI, every fix the platform's agents recommended for OTHER projects became immediately applicable to this workspace too. The PR #11 hook executable-bit fix would not have been caught without an external user; that's an example of the kind of bug self-application alone wouldn't catch. So self-application is necessary-but-not-sufficient.
 
-## Drop the topic now per Jason's instruction; resume later.
+## Reference
+
+- [ADR-0015](docs/adr/0015-platform-as-plugin.md) — the distribution-mechanism decision this work falls out of.
+- [docs/reviews/2026-05-19-agent-definition-audit.md](docs/reviews/2026-05-19-agent-definition-audit.md) — the audit that proved the self-application is working.
+- `reference_platform_application_procedure.md` (memory) — the procedure being dogfooded.
