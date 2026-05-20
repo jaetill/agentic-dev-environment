@@ -34,7 +34,8 @@ on:
 
 permissions:
   contents: read
-  issues: write   # file new issues + apply the ready-for-implementer label
+  issues: write       # file new issues + apply the ready-for-implementer label
+  id-token: write     # claude-code-action OIDC
 
 concurrency:
   group: triage-scan-${{ github.repository }}
