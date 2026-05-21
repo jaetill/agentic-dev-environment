@@ -19,7 +19,7 @@ For each standard, before writing the doc:
 - 🟧 Awaiting decision — options presented, waiting on user
 - 🟩 Decided — standards doc + ADR written
 
-## The 11 standards
+## The 12 standards
 
 | # | Standard | Status | Doc | ADR |
 |---|---|---|---|---|
@@ -34,6 +34,7 @@ For each standard, before writing the doc:
 | 9 | [Release management](09-release-management.md) | 🟩 | [`09-release-management.md`](09-release-management.md) | [`0010-release-management.md`](../adr/0010-release-management.md) |
 | 10 | [AI workflows](10-ai-workflows.md) | 🟩 | [`10-ai-workflows.md`](10-ai-workflows.md) | [`0011-ai-workflows.md`](../adr/0011-ai-workflows.md) |
 | 11 | [User feedback](11-user-feedback.md) | 🟩 | [`11-user-feedback.md`](11-user-feedback.md) | [`0012-user-feedback.md`](../adr/0012-user-feedback.md) |
+| 12 | [Self-modification](12-self-modification.md) | 🟩 | [`12-self-modification.md`](12-self-modification.md) | [`0019-team-self-modification.md`](../adr/0019-team-self-modification.md) |
 
 ADR-0001 documents the platform's overall architecture and the choice to organize standards this way. **ADR numbers are assigned in creation order**, so they may not match the standard number — see each row's ADR link for the actual assignment.
 
