@@ -82,7 +82,7 @@ jobs:
           fetch-depth: 0
           # Use GITHUB_TOKEN for push permissions (already write per
           # workflow-level permissions block).
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.IMPLEMENTER_PAT || secrets.GITHUB_TOKEN }}
       # Node setup + install only when this repo is actually a Node project.
       # The platform repo itself has no root package.json; unconditionally
       # running setup-node (cache: npm) or `npm ci` fails there.
@@ -126,7 +126,30 @@ jobs:
             Read the issue FIRST, including its labels:
               gh issue view ${{ github.event.issue.number }} --json title,body,labels,comments
 
-            ## Step 0 — Determine the phase (feature plan-gate, ADR-0017)
+            ## Step 0 — Competence gate (process-flaw issues, ADR-0019)
+
+            If this issue is a process flaw — it carries the `process-flaw`
+            label, or its fix lives in `ai-team` (an agent definition, a
+            reusable workflow, a platform standard, a shared template) —
+            classify it per docs/standards/12-self-modification.md before
+            doing anything else:
+
+            - MECHANICAL — a permission, a typo, a missing tool grant, or
+              applying a pattern the team already uses elsewhere → proceed
+              through the build phase below.
+            - COMPOSITIONAL / STANDARDS / SECURITY-touching — it changes
+              the agent roster, what a role does, a gate, a review, a
+              standard, or the security posture → do NOT implement it.
+              Post an issue comment naming the classification and
+              recommending the architect path (research authoritative best
+              practice, propose an ADR with tradeoffs, human ratifies),
+              then STOP.
+
+            When you cannot confidently call a self-change mechanical,
+            treat it as compositional and stop. An unmade self-change is
+            recoverable; an improvised one is not.
+
+            ## Step 1 — Determine the phase (feature plan-gate, ADR-0017)
 
             Inspect the labels:
 
@@ -218,7 +241,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.IMPLEMENTER_PAT || secrets.GITHUB_TOKEN }}
       - uses: opentofu/setup-opentofu@v1
       - name: Configure AWS credentials (read-only iac-drift role)
         uses: aws-actions/configure-aws-credentials@v4
@@ -331,7 +354,7 @@ jobs:
         with:
           fetch-depth: 0
           ref: ${{ steps.pr.outputs.head_ref }}
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.IMPLEMENTER_PAT || secrets.GITHUB_TOKEN }}
       - name: Detect Node project
         id: detect
         if: steps.pr.outputs.skip != 'true'
@@ -436,7 +459,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.IMPLEMENTER_PAT || secrets.GITHUB_TOKEN }}
       - name: Detect Node project
         id: detect
         run: |

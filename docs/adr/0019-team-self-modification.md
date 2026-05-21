@@ -1,6 +1,6 @@
 # ADR-0019: Team self-modification — the platform repo as the team's self, and the project→platform feedback loop
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-05-21
 - **Deciders:** Jason Tilley (with AI architectural review)
 - **Tags:** ai-workflows, orchestration, governance, security
