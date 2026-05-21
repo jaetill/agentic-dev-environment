@@ -1,6 +1,8 @@
 # Standard 12 — Team Self-Modification
 
-> **Status:** Adopted via [ADR-0019](../adr/0019-team-self-modification.md).
+**ADR:** [ADR-0019](../adr/0019-team-self-modification.md)
+
+> **Status:** Adopted via ADR-0019.
 > **Scope:** the platform repo (`agentic-dev-environment`) and every agent that may discover or act on a flaw in `ai-team`.
 
 ## Principle
