@@ -156,11 +156,11 @@ jobs:
             File new ones with the default token:
               gh issue create --label "process-flaw,triage:medium" \
                 --title "[process-flaw] <project>: <short description>" \
-                --body "Reported from jaetill/<project> issue <url>. <body>"
+                --body "Reported from ONE project (jaetill/<project> issue <url>) — this is n=1, generality NOT established. Per Standard 12 the team must abstract it from <project>'s stack/codebase and decide: general flaw (fix ai-team), project-local (resolve in <project>'s knowledge layer — do NOT change the team), or general flaw needing a generalized fix. Do not assume it applies to every project. <body>"
 
             These are agent-discovered: Pass 2's promoter evaluates them on a
-            later cycle, and the implementer's competence gate (Standard 12)
-            classifies them when picked up.
+            later cycle, and the implementer's competence gate + generality
+            assessment (Standard 12) classify them when picked up.
 
             Report a short summary: issues scanned, new issues filed, issues
             promoted, process-flaw markers pulled.

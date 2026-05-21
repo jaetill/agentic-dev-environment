@@ -149,6 +149,13 @@ jobs:
             treat it as compositional and stop. An unmade self-change is
             recoverable; an improvised one is not.
 
+            A `process-flaw` pulled from a single project is n=1 — do NOT
+            assume its fix fits every project. If the flaw or its proposed
+            fix is shaped by that project's stack or codebase, treat it as
+            compositional and route it to the architect for a generality
+            assessment (Standard 12): general flaw, project-local, or
+            general flaw needing a generalized fix.
+
             ## Step 1 — Determine the phase (feature plan-gate, ADR-0017)
 
             Inspect the labels:
