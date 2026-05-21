@@ -419,6 +419,12 @@ jobs:
           retention-days: 7
 
   doc-keeper:
+    # doc-keeper runs in REVIEWER MODE (issue #24 — mirrors test-writer /
+    # issue #25). It posts doc-update RECOMMENDATIONS as a PR comment; it
+    # does not commit. A workflow token cannot push `.github/workflows/`
+    # changes anyway, and reviewer-mode keeps every doc edit under the same
+    # human-reviewed PR flow as code.
+    #
     # Bot-skip guard intentionally removed per the autonomous-team
     # architecture (ADR-0013). Implementer-authored PRs (actor: claude[bot])
     # MUST be reviewed; otherwise branch protection's required checks
@@ -431,8 +437,6 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: ${{ github.event.pull_request.head.ref }}
-          token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run doc-keeper agent
         uses: anthropics/claude-code-action@v1
         with:
@@ -445,46 +449,49 @@ jobs:
           # bot-initiated runs here.
           allowed_bots: 'claude[bot]'
           prompt: |
-            Act as the doc-keeper subagent defined in .claude/agents/doc-keeper.md.
+            Act as the doc-keeper subagent defined in .claude/agents/doc-keeper.md
+            in **reviewer mode** (per issue #24 — mirrors test-writer / issue #25).
 
-            Steps:
+            ## Role at PR time
+
+            You are a documentation REVIEWER, not a doc author at this stage.
+            Your job is to verify the PR keeps documentation in sync with its
+            changes, and to post recommendations where it doesn't. **You do
+            NOT push commits to this PR.**
+
+            ## Steps
+
             1. Inspect the diff: `git diff origin/${{ github.base_ref }}...HEAD`.
             2. Determine whether the changes warrant doc updates:
                - New Lambda, route, env var, or AWS resource → CLAUDE.md table
                  (Lambda functions, env vars, API routes, etc.) needs updating
                - New ADR-worthy decision → check docs/adr/ has a corresponding
                  entry (don't draft one; that's the architect's job)
-               - Behavioral change to user-facing feature → README or
+               - Behavioral change to a user-facing feature → README or
                  docs/runbooks/ may need a touch
                - Pure refactor / test additions / dependency bumps → no doc
                  changes needed
-            3. If doc updates are needed AND the change is mechanical (table
-               row, config line, env var entry), make the edit and commit it
-               to the PR head branch:
-                 git config user.name 'claude[bot]'
-                 git config user.email '41898282+claude[bot]@users.noreply.github.com'
-                 git add CLAUDE.md docs/
-                 git commit -m 'docs: update for PR changes (doc-keeper agent)'
-                 git push
-            4. If doc updates need judgment (rewriting a section, drafting a
-               runbook), DO NOT commit — list the recommended changes in the
-               PR comment instead.
-            5. Post a SINGLE PR comment via:
+            3. Post a SINGLE PR comment via:
                  gh pr comment ${{ github.event.pull_request.number }} --body-file -
 
             The comment must:
               - Lead with `## Doc Keeper (claude-sonnet-4-6)`
-              - List doc files updated (or "No doc updates needed.")
-              - List recommended manual doc changes if any
+              - For each doc file needing an update: name the file, the
+                section, and the specific change recommended
+              - Say "No doc updates needed." if documentation is already in sync
 
-            Constraints:
-              - Do NOT modify production code under any circumstance
-              - Do NOT touch docs/adr/ — ADRs are the architect's domain
+            ## Hard rules
+
+            - Do NOT commit or push anything. Documentation edits land through
+              the implementer's normal pipeline or the PR author — not at PR
+              time. (Reviewer mode, per issue #24.)
+            - Do NOT modify production code under any circumstance.
+            - Do NOT touch docs/adr/ — ADRs are the architect's domain.
           claude_args: |
             --model claude-sonnet-4-6
             --permission-mode bypassPermissions
-            --allowed-tools Bash,Read,Write,Edit,Glob,Grep
-            --append-system-prompt "Follow the platform standards in docs/standards/. Don't write ADRs."
+            --allowed-tools Bash,Read,Glob,Grep
+            --append-system-prompt "Follow the platform standards in docs/standards/. You are in REVIEWER mode per issue #24 — do not push commits. Don't write ADRs."
 
   security-review:
     # Bot-skip guard intentionally removed per the autonomous-team
