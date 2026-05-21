@@ -6,6 +6,7 @@ Operational playbooks. One file per recurring operation: how to deploy, how to r
 
 | File | Type | Purpose |
 |---|---|---|
+| [autonomous-loop.md](autonomous-loop.md) | overview | What the autonomous agent loop is, when it runs, how to check on it, known gaps |
 | [platform-port-quirks.md](platform-port-quirks.md) | catalog | Project-specific adaptations to apply when porting a new project to the platform |
 
 ## Format

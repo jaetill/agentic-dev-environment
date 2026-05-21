@@ -51,6 +51,15 @@ Reusable components consumed by scaffolded projects. Each lives under `templates
 
 Updates to platform components are template-propagation work: change the component, not the downstream consumer. Per `Working principles` above.
 
+## The autonomous loop
+
+This repo runs an **autonomous agent loop on GitHub Actions cron** — *not* Cowork scheduled tasks. If you are asked whether the "overnight" or "0900" run fired, check GitHub Actions run history (`gh run list`), never the Cowork scheduler.
+
+- **What runs it:** `.github/workflows/triage-scan.yml` (scheduled scan + issue promoter) and `.github/workflows/claude-implementer.yml` (picks up labelled issues). `ci-health.yml` is a supporting watcher. All are GitHub Actions workflows.
+- **When it runs:** autonomous work runs only inside two America/Chicago windows — `overnight` (01:00–04:00 daily) and `work-hours` (09:00–12:00 Mon–Fri). All other time is quiet. Windows, routing, and rationale are in [ADR-0017](docs/adr/0017-async-orchestration.md).
+- **How to check it:** `gh run list --workflow=triage-scan.yml`. A scheduled run showing `success` with its `triage` job *skipped* is the cron firing outside the window — correct behaviour, not a failure.
+- **Full detail:** [docs/runbooks/autonomous-loop.md](docs/runbooks/autonomous-loop.md) — windows, DST handling, manual triggering, routing, known gaps.
+
 ## What NOT to do
 
 - Don't create one-off solutions in scaffolded projects when the issue belongs in the template.

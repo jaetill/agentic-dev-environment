@@ -119,6 +119,7 @@ Human-filed issues are exempt from promotion entirely — filing the issue *is* 
 - New: `CODEOWNERS` at repo root (reviewer routing; branch-protection rules are a repo-settings change applied separately by the human).
 - Concurrency: `claude-implementer.yml` already carries a per-issue concurrency group with `cancel-in-progress: false`; branch isolation (`impl/<slug>-<issue>` branches) and a rebase pre-flight are already in `implementer.md`. Sub-decision 1 ratifies that existing design rather than replacing it.
 - Label conventions: routing uses the existing `feature-request` vs `bug`/`defect` labels (no new `type:*` taxonomy introduced) and the existing `ready-for-implementer` gate.
+- Human-filed pickup: `claude-implementer.yml` triggers on `issues: opened` for human-authored issues (author type `User`, not `Bot`) carrying `bug`/`defect`/`feature-request`. This is the concrete realization of "pre-promoted by the act of filing" — the `opened` event is itself a human action, so it triggers the implementer directly, with no promoter and no label round-trip (which also sidesteps the `GITHUB_TOKEN` no-cascade rule). Agent-filed issues are excluded from this path and still flow through the in-window promoter.
 
 ## Links
 
