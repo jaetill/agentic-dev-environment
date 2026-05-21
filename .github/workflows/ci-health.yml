@@ -1,0 +1,116 @@
+name: ci-health
+# CI-health watcher (per ADR-0017 follow-up).
+#
+# Watches the platform's own workflow runs for failures that do NOT
+# surface anywhere else. PR-triggered failures already show on the PR;
+# event-triggered and scheduled workflows (claude-implementer, triage-scan)
+# have no PR and no other watcher — a failure there can hide for days
+# (it did: CLAUDE_CODE_OAUTH_TOKEN was invalid and unnoticed 2026-05-17
+# to 2026-05-20).
+#
+# DESIGN RULE: this workflow has ZERO dependency on claude-code-action,
+# npm, or any agent. It must not share the failure mode of the things it
+# watches — otherwise it cannot report on them. It uses only `gh` (which
+# is preinstalled on GitHub runners) and bash.
+#
+# On finding failures it does two things, so the signal lands regardless
+# of whether the agent loop is healthy:
+#   1. Files / updates a plain GitHub issue (human-visible in the tracker).
+#   2. Exits non-zero, so the run itself goes red and GitHub notifies the
+#      repo owner through normal workflow-failure notifications.
+
+on:
+  schedule:
+    # Daily at 13:00 UTC (~08:00 America/Chicago) — Jason sees it at the
+    # start of his day.
+    - cron: '0 13 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read    # list workflow runs
+  issues: write    # file / update the CI-health issue
+
+concurrency:
+  group: ci-health-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Scan recent non-PR workflow runs for failures
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          # Look back ~25h (a little over the daily cadence so nothing
+          # slips through the cracks at the boundary).
+          since=$(date -u -d '25 hours ago' +%Y-%m-%dT%H:%M:%SZ)
+          echo "Scanning runs since $since"
+
+          # All failed runs in the window. `gh run list` returns most-recent
+          # first; 100 is plenty for a solo repo's daily volume.
+          runs=$(gh run list --repo "$REPO" --status failure --limit 100 \
+            --json name,workflowName,event,createdAt,url,conclusion)
+
+          # Keep only: created in the window, NOT pull_request/push events
+          # (those surface on the PR / commit already), and NOT this
+          # watcher itself (its own failure is its own signal).
+          offenders=$(echo "$runs" | jq --arg since "$since" '
+            [ .[]
+              | select(.createdAt >= $since)
+              | select(.event != "pull_request" and .event != "push")
+              | select(.workflowName != "ci-health")
+            ]')
+
+          count=$(echo "$offenders" | jq 'length')
+          echo "Qualifying failures: $count"
+
+          if [[ "$count" -eq 0 ]]; then
+            echo "::notice::CI health OK — no non-PR workflow failures in the last 25h."
+            exit 0
+          fi
+
+          # Build a human-readable summary.
+          summary=$(echo "$offenders" | jq -r '
+            .[] | "- **\(.workflowName)** (\(.event)) — \(.createdAt) — \(.url)"' \
+            | sort -u)
+
+          {
+            echo "## CI health: non-PR workflow failures detected"
+            echo ""
+            echo "The CI-health watcher found **$count** failed run(s) of"
+            echo "event-triggered or scheduled workflows in the last 25 hours."
+            echo "These do not surface on any PR, so they are easy to miss."
+            echo ""
+            echo "$summary"
+            echo ""
+            echo "_Filed automatically by \`.github/workflows/ci-health.yml\`._"
+            echo "_This issue updates in place; it is not re-filed each day._"
+          } > /tmp/ci-health-body.md
+
+          cat /tmp/ci-health-body.md
+
+          # Dedup by title — update an existing open issue rather than
+          # filing a new one every day.
+          title="CI health: non-PR workflow failures"
+          existing=$(gh issue list --repo "$REPO" --state open \
+            --search "\"$title\" in:title" --json number --jq '.[0].number // empty')
+
+          if [[ -n "$existing" ]]; then
+            echo "Updating existing CI-health issue #$existing"
+            gh issue comment "$existing" --repo "$REPO" --body-file /tmp/ci-health-body.md
+          else
+            echo "Filing new CI-health issue"
+            gh issue create --repo "$REPO" \
+              --title "$title" \
+              --label bug \
+              --body-file /tmp/ci-health-body.md
+          fi
+
+          # Exit red so the run fails loudly and GitHub notifies the owner.
+          echo "::error::CI health check failed — $count non-PR workflow failure(s). See the CI-health issue."
+          exit 1
