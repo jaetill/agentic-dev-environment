@@ -16,7 +16,7 @@ If someone asks "did the loop run last night / at 0900," the answer lives in **G
 | Workflow | Trigger | What it does |
 |---|---|---|
 | `triage-scan.yml` | cron (two windows) + `workflow_dispatch` | scans telemetry for new issue patterns; runs the **promoter** pass that labels eligible agent-discovered issues `ready-for-implementer` |
-| `claude-implementer.yml` | `issues: labeled` (pickup labels) + `issue_comment` + `workflow_dispatch` | picks up a labelled issue and opens an implementation PR; also runs the fix-iteration loop |
+| `claude-implementer.yml` | `issues: opened`/`labeled` + `issue_comment` + `workflow_dispatch` | picks up a human-filed or promoted issue and opens an implementation PR; also runs the fix-iteration loop |
 | `ci-health.yml` | cron | dependency-free watcher; files/updates an issue when non-PR workflows fail, auto-closes on recovery |
 | `claude-pr-review.yml` | `workflow_call` (reusable) | the review gate, invoked by each project's caller stub |
 
@@ -62,24 +62,18 @@ So a scheduled `triage-scan` run shows `success` even when it did no work — th
     gh workflow run triage-scan.yml -f reason="<why>"
     gh workflow run claude-implementer.yml -f issue_number=<n>
 
-## How work routes (and a known gap)
+## How work routes
 
-ADR-0017 routes work by **source × type × severity**. `claude-implementer`'s `initial` job fires **only** when the label just added is one of: `ready-for-implementer`, `source:sentry`, `severity:critical`, `plan-approved`, `skip-plan`.
+ADR-0017 routes work by **source × type × severity**. `claude-implementer`'s `initial` job is triggered two ways:
 
-The path that is fully wired today: an **agent-discovered Medium issue** → the in-window promoter applies `ready-for-implementer` → `claude-implementer` picks it up.
+- **Human-filed work — `issues: opened`.** When a human opens an issue carrying a type label (`bug`, `defect`, or `feature-request`), the implementer picks it up immediately — no window, no promoter. The `opened` event is itself a human action, so it triggers the workflow directly: there is no label round-trip and no `GITHUB_TOKEN` cascade problem. A human-filed **bug** goes straight to the build phase; a human-filed **feature** enters the plan-gate — the implementer posts an approach and waits for the human's `plan-approved`.
+- **Agent-discovered work — `issues: labeled`.** The implementer fires when a pickup label is added: `ready-for-implementer` (applied by the in-window promoter), `source:sentry`, `severity:critical`, `plan-approved`, or `skip-plan`.
 
-### Known gap — human-filed issues have no auto-pickup
-
-ADR-0017 says human-filed work is "pre-promoted by the act of filing" and "picked up within minutes regardless of clock." **The workflows do not implement this.** A human files an issue with `bug` / `feature-request` / `triage:*` labels — none of which are pickup labels — so:
-
-- the promoter correctly skips it (its spec excludes human-authored issues), and
-- `claude-implementer` never fires (no pickup label was added).
-
-The issue then sits untouched until a human manually applies `ready-for-implementer` or `skip-plan`. Issue #24 is the live example. Closing this gap — a labeler on `issues: opened`, or correcting the ADR's wording — is an open decision.
+A human-filed issue with **no** type label is not auto-picked-up — add `bug` / `feature-request`, or apply `ready-for-implementer` directly. Issues filed through the bug-report or feature-request template already carry the label. The `opened` trigger is not retroactive: an issue opened before this routing landed needs a one-time `ready-for-implementer`.
 
 ### Open question — does a promoter-applied label cascade?
 
-The promoter applies labels via `gh` authenticated with `GITHUB_TOKEN`. Labels applied by `GITHUB_TOKEN` **do not trigger** downstream workflows (GitHub's loop-prevention rule). Whether `claude-implementer` actually wakes on a promoter-applied label has not yet been observed end-to-end — verify it on the first real agent-discovered promotion.
+The promoter applies labels via `gh` authenticated with `GITHUB_TOKEN`. Labels applied by `GITHUB_TOKEN` **do not trigger** downstream workflows (GitHub's loop-prevention rule). Whether `claude-implementer` actually wakes on a promoter-applied label has not yet been observed end-to-end — verify it on the first real agent-discovered promotion. (The human-filed path above is immune: `issues: opened` is a human action, not a `GITHUB_TOKEN` action.)
 
 ## Failure modes
 
