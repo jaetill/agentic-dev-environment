@@ -67,14 +67,28 @@ jobs:
           # Use GITHUB_TOKEN for push permissions (already write per
           # workflow-level permissions block).
           token: ${{ secrets.GITHUB_TOKEN }}
+      # Node setup + install only when this repo is actually a Node project.
+      # The platform repo itself has no root package.json; unconditionally
+      # running setup-node (cache: npm) or `npm ci` fails there.
+      - name: Detect Node project
+        id: detect
+        run: |
+          if [ -f package.json ]; then
+            echo "node=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "node=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No root package.json — skipping Node setup."
+          fi
       - uses: actions/setup-node@v4
+        if: steps.detect.outputs.node == 'true'
         with:
           node-version: 22
           cache: npm
       - name: Install dependencies
+        if: steps.detect.outputs.node == 'true'
         run: |
           npm ci
-          npm ci --prefix lambda
+          [ -f lambda/package-lock.json ] && npm ci --prefix lambda || echo "no lambda deps"
       - name: Configure git author
         run: |
           git config user.name 'claude[bot]'
@@ -289,16 +303,26 @@ jobs:
           fetch-depth: 0
           ref: ${{ steps.pr.outputs.head_ref }}
           token: ${{ secrets.GITHUB_TOKEN }}
-      - uses: actions/setup-node@v4
+      - name: Detect Node project
+        id: detect
         if: steps.pr.outputs.skip != 'true'
+        run: |
+          if [ -f package.json ]; then
+            echo "node=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "node=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No root package.json — skipping Node setup."
+          fi
+      - uses: actions/setup-node@v4
+        if: steps.pr.outputs.skip != 'true' && steps.detect.outputs.node == 'true'
         with:
           node-version: 22
           cache: npm
       - name: Install dependencies
-        if: steps.pr.outputs.skip != 'true'
+        if: steps.pr.outputs.skip != 'true' && steps.detect.outputs.node == 'true'
         run: |
           npm ci
-          npm ci --prefix lambda
+          [ -f lambda/package-lock.json ] && npm ci --prefix lambda || echo "no lambda deps"
       - name: Configure git author
         if: steps.pr.outputs.skip != 'true'
         run: |
@@ -384,11 +408,25 @@ jobs:
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Detect Node project
+        id: detect
+        run: |
+          if [ -f package.json ]; then
+            echo "node=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "node=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No root package.json — skipping Node setup."
+          fi
       - uses: actions/setup-node@v4
+        if: steps.detect.outputs.node == 'true'
         with:
           node-version: 22
           cache: npm
-      - run: npm ci && npm ci --prefix lambda
+      - name: Install dependencies
+        if: steps.detect.outputs.node == 'true'
+        run: |
+          npm ci
+          [ -f lambda/package-lock.json ] && npm ci --prefix lambda || echo "no lambda deps"
       - name: Configure git author
         run: |
           git config user.name 'claude[bot]'
