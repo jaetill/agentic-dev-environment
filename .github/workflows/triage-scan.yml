@@ -18,13 +18,16 @@ name: triage-scan
 
 on:
   schedule:
-    # Cron is UTC. America/Chicago is UTC-5 (CDT) or UTC-6 (CST).
-    # work-hours window = 09:00-12:00 Chicago = 14:00-17:00 UTC (CDT) /
-    # 15:00-18:00 UTC (CST). Fire every 30 min across 14:00-18:00 UTC
-    # Mon-Fri; the window-check step below trims to the precise window.
+    # Cron is UTC. America/Chicago is UTC-5 (CDT) or UTC-6 (CST). Both crons
+    # fire on a generous UTC band; the window-check job below trims to the
+    # precise America/Chicago window (DST-correct).
+    #
+    # work-hours window = Mon-Fri 09:00-12:00 Chicago (while Jason is at work)
+    #   = 14:00-17:00 UTC (CDT) / 15:00-18:00 UTC (CST)
     - cron: '0,30 14-18 * * 1-5'
-    # overnight window = 22:00 Chicago = 03:00 UTC (CDT) / 04:00 UTC (CST).
-    - cron: '0 3,4 * * *'
+    # overnight window = daily 01:00-04:00 Chicago (while Jason is asleep)
+    #   = 06:00-09:00 UTC (CDT) / 07:00-10:00 UTC (CST)
+    - cron: '0,30 6-10 * * *'
   workflow_dispatch:
     inputs:
       reason:
@@ -60,16 +63,18 @@ jobs:
           fi
           hour=$((10#$(TZ=America/Chicago date +%H)))
           dow=$(TZ=America/Chicago date +%u)   # 1=Mon .. 7=Sun
-          if [[ $hour -ge 22 || $hour -lt 6 ]]; then
+          # overnight: daily 01:00-04:00 Chicago (while Jason is asleep)
+          if [[ $hour -ge 1 && $hour -lt 4 ]]; then
             echo "in_window=true"     >> "$GITHUB_OUTPUT"
             echo "window=overnight"   >> "$GITHUB_OUTPUT"
+          # work-hours: Mon-Fri 09:00-12:00 Chicago (while Jason is at work)
           elif [[ $dow -le 5 && $hour -ge 9 && $hour -lt 12 ]]; then
             echo "in_window=true"     >> "$GITHUB_OUTPUT"
             echo "window=work-hours"  >> "$GITHUB_OUTPUT"
           else
             echo "in_window=false"    >> "$GITHUB_OUTPUT"
             echo "window=quiet"       >> "$GITHUB_OUTPUT"
-            echo "::notice::Outside work-hours/overnight window (Chicago hour=$hour, dow=$dow); skipping scan."
+            echo "::notice::Outside the overnight/work-hours window (Chicago hour=$hour, dow=$dow); skipping scan."
           fi
 
   # ── triage-bot scan + promoter pass ─────────────────────────────────────
@@ -114,10 +119,9 @@ jobs:
               - It carries `severity:medium` or `triage:medium`.
               - It does NOT already carry `ready-for-implementer`.
               - It has survived at least one full triage-scan cycle since
-                filing — do NOT promote an issue created since the previous
-                scan (compare `createdAt` against ~35 min ago for work-hours,
-                or "before today" for the overnight run). This gives the human
-                a triage window.
+                filing — do NOT promote an issue created within the last
+                ~35 minutes (one cron gap). This guarantees triage-bot never
+                files an issue and promotes it in the same window pass.
               - It is well-specified enough to hand to the implementer: a
                 clear repro or acceptance criteria, a single bounded change.
                 This is a judgement call — apply it conservatively. When the

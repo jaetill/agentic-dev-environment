@@ -12,7 +12,7 @@ Correctness comes from **optimistic concurrency** — branch isolation + PR-base
 Four pillars:
 
 1. **Branch isolation (the correctness foundation).** Every async actor works on its own `issue-NNN` branch and integrates via PR. No actor ever pushes to a branch another actor or human is on. This — not a lock — is what prevents conflicts.
-2. **Three time windows** (`interactive`, `work-hours` = Mon–Fri 09:00–12:00, `overnight` = 22:00–06:00). Async agents fire only in `work-hours` + `overnight`. Afternoons/evenings/weekends are `quiet` so the queue is settled when Jason gets home.
+2. **Time windows** (`work-hours` = Mon–Fri 09:00–12:00, `overnight` = daily 01:00–04:00). Async agents fire only in those two windows. Afternoons/evenings are `quiet` so the queue is settled when Jason gets home.
 3. **Concurrency groups** (per area) — GitHub Actions native; only one async job touches a subtree at a time.
 4. **CODEOWNERS + branch protection** — reviewer routing + merge gates. Lighter-weight than first thought, because the repo is public and the friend will fork (fork-PR flow already isolates external contributors).
 
@@ -93,7 +93,7 @@ Three windows. Each agent declares which it fires in.
 |---|---|---|
 | `interactive` | (only relevant if the deferred beacon is ever built) | No |
 | `work-hours` | **Mon–Fri 09:00–12:00** | Yes — bounded throughput |
-| `overnight` | Daily 22:00–06:00 | Yes — heavy lifting |
+| `overnight` | Daily 01:00–04:00 | Yes — heavy lifting (Jason asleep) |
 | `quiet` | everything else (afternoons, evenings, weekends) | No |
 
 The morning-only `work-hours` window is deliberate (decision #1): implementer clears the queue while Jason is at work; by noon it stops; the afternoon/evening stays quiet so when Jason gets home the queue is settled and he gets a clean session.
@@ -133,7 +133,7 @@ Today: Sentry webhook would hit triage-bot reactively → spam risk during deplo
 Proposed:
 
 1. Sentry webhook → a thin receiver workflow that **only** buffers: appends the event to a single long-lived "Sentry buffer" issue per project (label `triage:buffer`).
-2. **Scheduled triage-bot scan** — every 30 min during `work-hours`, once at the start of `overnight`. Reads the buffer, clusters by `event.fingerprint`, dedupes against existing open issues, and files a new issue only when a cluster crosses a significance threshold (count ≥ N, or impacted-users ≥ U, or novel fingerprint). Clears processed buffer entries.
+2. **Scheduled triage-bot scan** — every 30 min during both windows (`work-hours` and `overnight`). Reads the buffer, clusters by `event.fingerprint`, dedupes against existing open issues, and files a new issue only when a cluster crosses a significance threshold (count ≥ N, or impacted-users ≥ U, or novel fingerprint). Clears processed buffer entries.
 3. Filed issues default `severity:medium`, promoted to `high` if user-impact crosses a threshold.
 
 Net: single-shot deploy-time errors never become issues; clustered patterns become exactly one issue each.
@@ -191,7 +191,7 @@ This puts the human checkpoint exactly at the *approach* — Jason's Discernment
 
 **triage-bot is the promoter (decision #6) — for agent-discovered work only.** On its scheduled scan, triage-bot applies `ready-for-implementer` to eligible `severity:medium` agent-filed issues. Eligibility:
 
-- The issue has survived **at least one full triage-bot cycle** since filing — triage-bot never promotes an issue in the same scan that filed it. Gives Jason a triage window equal to the scan interval (≈30 min in work-hours; overnight issues are visible next morning before eligible).
+- The issue has survived **at least one full triage-bot cycle** since filing — triage-bot never promotes an issue in the same scan that filed it. Gives a triage window equal to the scan interval (≈30 min — one cron gap; both windows scan every 30 min).
 - The issue is well-specified enough to hand off. This is a **Tier 2 (Sonnet) judgment** within triage-bot — promotion is reasoning, not classification.
 - Jason can pre-empt: manually applying `ready-for-implementer` promotes now; closing or downgrading removes eligibility.
 
@@ -253,7 +253,7 @@ The correctness foundation. Highest impact, lowest risk.
 
 The behavior Jason asked for: bulk work on timers, queue settled by afternoon; human ideas never wait.
 
-- New `.github/workflows/triage-scan.yml` — `schedule:` crons (every 30 min in the 09:00–12:00 window; once at 22:00). Calls triage-bot.
+- New `.github/workflows/triage-scan.yml` — `schedule:` crons (every 30 min in both windows: 01:00–04:00 daily and 09:00–12:00 Mon–Fri). Calls triage-bot.
 - Window-check step added to `claude-implementer.yml` and `triage-scan.yml` — but only gating *agent-discovered* work; human-filed issues skip it.
 - `type:bug` / `type:feature` label convention + an issue template that defaults humans to `type:feature`.
 - `plugins/ai-team/agents/triage-bot.md` — add the promoter logic (eligibility rule, one-cycle delay, Tier 2 judgment); always apply `type:bug` to filed issues.
