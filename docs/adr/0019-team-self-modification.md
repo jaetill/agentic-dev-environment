@@ -76,6 +76,33 @@ The bundle is internally consistent: sub-decisions 1, 2, and 6 make self-modific
 - Propagation back to projects is unchanged — it rides the existing reusable-workflow (ADR-0018) and plugin (ADR-0015) channels.
 - The two PATs are a human action to create; the loop cannot self-provision credentials (correctly).
 
+## Pros and Cons of the Options
+
+### Sub-decision 2: Feedback channel
+
+| Option | Pros | Cons |
+|---|---|---|
+| **Pull — triage-bot scans projects** (chosen) | One read-only token, centrally held; projects need no new credential; fits triage-bot's existing scan role | A flaw waits for the next triage window |
+| Push — project agent files the platform issue directly | Immediate; simplest logic | A write-capable token in every project repo |
+| Human relay | No new credential at all | Defeats the autonomy goal — the human becomes the relay |
+
+### Sub-decision 3: Competence gate
+
+| Option | Pros | Cons |
+|---|---|---|
+| **Classify mechanical vs. architecture** (chosen) | Human judgment + best-practice research land on the changes that need them; routine fixes stay fast | Classification is a judgment call agents can miss |
+| Treat every self-change as routine | Fastest | The team improvises changes to its own composition and gates — the expensive mistake |
+| Treat every self-change as architecture | Safest | Buries trivial fixes under research + ADR ceremony |
+
+### Sub-decision 6: Credential model
+
+| Option | Pros | Cons |
+|---|---|---|
+| **Two scoped tokens** (chosen) | The one-directional boundary is enforced by which tokens exist where, not by convention | Two credentials to create and rotate |
+| One broad PAT / App-wide permission | Fewer credentials | A project could push code to the platform repo; the boundary reverts to convention only |
+
+The remaining sub-decisions (1 boundary, 4 review depth, 5 ratification) had no seriously considered alternative — a team that cannot modify its own self, a self-change reviewed more lightly than a project feature, or self-changes with no human ratification each contradict a decision driver directly.
+
 ## Implementation notes
 
 - Operational procedure: [Standard 12 — self-modification](../standards/12-self-modification.md). Written with this ADR.
