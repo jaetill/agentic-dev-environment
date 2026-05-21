@@ -37,7 +37,7 @@ This is a bundle of five sub-decisions:
 We chose the bundle:
 
 - **Sub-decision 1 → Optimistic concurrency** (branch isolation + PR-based integration). Each actor works on its own branch; conflicts surface and resolve at merge. No session beacon.
-- **Sub-decision 2 → Time windows.** Autonomously-discovered work runs only in `work-hours` (Mon–Fri 09:00–12:00 America/Chicago) and `overnight` (22:00–06:00). All other time is quiet.
+- **Sub-decision 2 → Time windows.** Autonomously-discovered work runs only in `work-hours` (Mon–Fri 09:00–12:00 America/Chicago, while Jason is at work) and `overnight` (daily 01:00–04:00, while Jason is asleep). All other time is quiet.
 - **Sub-decision 3 → Route by source × type × severity.** Human-filed work bypasses both the window and the promoter. Only agent-discovered work is window-gated.
 - **Sub-decision 4 → Plan-gate for human-filed features; bugs skip it.** The implementer posts its intended approach on a feature issue and waits for the human's approval before writing code; bug fixes proceed directly.
 - **Sub-decision 5 → triage-bot is the promoter** for agent-discovered work; human-filed issues are pre-promoted by the act of filing.
@@ -58,7 +58,7 @@ The detailed implementation companion is [`PLAN_async_orchestration_architecture
 
 ### Negative
 
-- The morning-only `work-hours` window means a Medium agent-discovered issue filed at 13:00 waits until 22:00 for pickup. Accepted: the human explicitly wants the afternoon quiet, and Critical/High bypass the window anyway.
+- The two windows (`work-hours` 09:00–12:00, `overnight` 01:00–04:00) mean a Medium agent-discovered issue filed at 13:00 waits until that night's 01:00 `overnight` window for pickup. Accepted: the human explicitly wants afternoons/evenings quiet, and Critical/High bypass the window anyway.
 - The feature plan-gate adds one round-trip (post approach → await approval) before a feature is built. Accepted: the expensive mistake for a feature is building the wrong thing; a plan comment is cheap to review.
 - Optimistic concurrency means a wasted implementer run is possible — two runs touching the same files, the second aborts at its rebase pre-flight. Accepted: a wasted run is cheap; branch isolation guarantees no corruption.
 
