@@ -26,6 +26,12 @@ An agent that classifies a problem as a process flaw while working in a project 
 
 `triage-bot`, on its scheduled scan, pulls `process-flaw` markers across the project repos and files the corresponding issue on the platform repo. From there the platform loop (promoter → implementer) acts on it. This is the team's retro: it collects the field's process notes on its rounds.
 
+## Detecting a flaw — the ci-health channel
+
+The pull channel above depends on an agent or human *noticing* a process flaw and labelling it. Some flaws are never noticed that way — a reusable workflow that breaks fleet-wide, a scheduled job that silently stops. `ci-health.yml` (per [ADR-0020](../adr/0020-fleet-orchestration.md)) is the detection arm: it watches every fleet repo's non-PR workflow runs and, when it finds failures that surface nowhere else, files one consolidated issue on the platform repo labelled `triage:medium` — so the promoter routes it into the same loop.
+
+Detection complements reporting; it does not replace the assessment below. A ci-health-detected breakage still goes through the competence gate and the generality assessment: a project's own build/test CI failing is a project bug; a platform-sourced workflow (`claude-*`, a reusable, `triage-scan`) failing is a process flaw.
+
 ## Generality assessment — a project-reported flaw is n = 1
 
 A flaw reported through the pull channel was observed in **one project's** context. Before the team changes `ai-team` in response, it must abstract the report away from that project's stack and codebase and establish that the change serves the whole fleet. One project's experience is a single data point; changing the shared team on n = 1 is overfitting.

@@ -1,23 +1,24 @@
 name: ci-health
-# CI-health watcher (per ADR-0017 follow-up).
+# CI-health watcher (ADR-0017 follow-up; widened to the fleet by ADR-0020).
 #
-# Watches the platform's own workflow runs for failures that do NOT
+# Watches workflow runs across the WHOLE fleet for failures that do not
 # surface anywhere else. PR-triggered failures already show on the PR;
-# event-triggered and scheduled workflows (claude-implementer, triage-scan)
-# have no PR and no other watcher — a failure there can hide for days
-# (it did: CLAUDE_CODE_OAUTH_TOKEN was invalid and unnoticed 2026-05-17
-# to 2026-05-20).
+# event-triggered and scheduled workflows (claude-implementer, triage-scan,
+# the claude-* agents) have no PR and no other watcher — a failure there can
+# hide for days.
 #
-# DESIGN RULE: this workflow has ZERO dependency on claude-code-action,
-# npm, or any agent. It must not share the failure mode of the things it
-# watches — otherwise it cannot report on them. It uses only `gh` (which
-# is preinstalled on GitHub runners) and bash.
+# DESIGN RULE: this workflow shares no failure mode with the things it
+# watches. It has ZERO dependency on claude-code-action, npm, or any agent.
+# It uses `gh`, bash, and exactly one GitHub-published action —
+# `create-github-app-token` — to mint the cross-repo token (ADR-0020). That
+# action is GitHub infrastructure, not part of the agent stack, so a failure
+# in the watched loop cannot take this watcher down with it.
 #
-# On finding failures it does two things, so the signal lands regardless
-# of whether the agent loop is healthy:
-#   1. Files / updates a plain GitHub issue (human-visible in the tracker).
-#   2. Exits non-zero, so the run itself goes red and GitHub notifies the
-#      repo owner through normal workflow-failure notifications.
+# On finding failures it does two things, so the signal lands regardless of
+# whether the agent loop is healthy:
+#   1. Files / updates a plain GitHub issue on the platform repo, labelled
+#      `triage:medium` so the fleet promoter routes it to a fix (ADR-0020).
+#   2. Exits non-zero, so the run goes red and GitHub notifies the owner.
 
 on:
   schedule:
@@ -28,8 +29,8 @@ on:
 
 permissions:
   contents: read
-  actions: read    # list workflow runs
-  issues: write    # file / update the CI-health issue
+  actions: read    # list workflow runs on this repo
+  issues: write    # file / update the CI-health issue here
 
 concurrency:
   group: ci-health-${{ github.repository }}
@@ -39,89 +40,105 @@ jobs:
   watch:
     runs-on: ubuntu-latest
     steps:
-      - name: Scan recent non-PR workflow runs for failures
+      # Cross-repo credential — Actions:read across the fleet (ADR-0020).
+      - name: Mint fleet App token
+        id: fleet-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.FLEET_APP_ID }}
+          private-key: ${{ secrets.FLEET_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+
+      - name: Scan the fleet for non-PR workflow failures
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          REPO: ${{ github.repository }}
+          FLEET_TOKEN: ${{ steps.fleet-token.outputs.token }}
+          OWNER: ${{ github.repository_owner }}
         run: |
           set -euo pipefail
 
-          # Look back ~25h (a little over the daily cadence so nothing
-          # slips through the cracks at the boundary).
+          # ~25h lookback — a little over the daily cadence so nothing slips
+          # through at the boundary.
           since=$(date -u -d '25 hours ago' +%Y-%m-%dT%H:%M:%SZ)
-          echo "Scanning runs since $since"
+          echo "Scanning fleet runs since $since"
 
-          # All failed runs in the window. `gh run list` returns most-recent
-          # first; 100 is plenty for a solo repo's daily volume.
-          runs=$(gh run list --repo "$REPO" --status failure --limit 100 \
-            --json name,workflowName,event,createdAt,url,conclusion)
+          # The fleet — every repo the platform watches.
+          FLEET="agentic-dev-environment game-night-pwa meal-planner ai-teacher jaetill-portal splendor draft carto genealogy"
 
-          # Keep only: created in the window, NOT pull_request/push events
-          # (those surface on the PR / commit already), and NOT this
-          # watcher itself (its own failure is its own signal).
-          offenders=$(echo "$runs" | jq --arg since "$since" '
-            [ .[]
-              | select(.createdAt >= $since)
-              | select(.event != "pull_request" and .event != "push")
-              | select(.workflowName != "ci-health")
-            ]')
+          # Collect qualifying failures across the whole fleet.
+          all='[]'
+          for repo in $FLEET; do
+            runs=$(GH_TOKEN="$FLEET_TOKEN" gh run list --repo "$OWNER/$repo" \
+              --status failure --limit 100 \
+              --json workflowName,event,createdAt,url 2>/dev/null || echo '[]')
+            # Keep: created in the window, NOT pull_request/push (those show
+            # on the PR/commit already), and NOT this watcher itself.
+            keep=$(echo "$runs" | jq --arg since "$since" --arg repo "$repo" '
+              [ .[]
+                | select(.createdAt >= $since)
+                | select(.event != "pull_request" and .event != "push")
+                | select(.workflowName != "ci-health")
+                | . + {repo: $repo}
+              ]')
+            all=$(jq -n --argjson a "$all" --argjson b "$keep" '$a + $b')
+          done
 
-          count=$(echo "$offenders" | jq 'length')
-          echo "Qualifying failures: $count"
+          count=$(echo "$all" | jq 'length')
+          echo "Qualifying fleet failures: $count"
 
-          title="CI health: non-PR workflow failures"
+          title="CI health: fleet workflow failures"
+
+          # Existing open CI-health issue, if any (dedup by title).
+          existing=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open \
+            --search "\"$title\" in:title" --json number --jq '.[0].number // empty')
 
           if [[ "$count" -eq 0 ]]; then
-            echo "::notice::CI health OK — no non-PR workflow failures in the last 25h."
-            # If a CI-health issue is open from a prior failure, health has
-            # recovered — close it so the watcher doesn't cry wolf forever.
-            existing=$(gh issue list --repo "$REPO" --state open \
-              --search "\"$title\" in:title" --json number --jq '.[0].number // empty')
+            echo "::notice::CI health OK — no non-PR workflow failures across the fleet in the last 25h."
+            # Health recovered — close any open CI-health issue so the
+            # watcher does not cry wolf forever.
             if [[ -n "$existing" ]]; then
               echo "Health recovered — closing CI-health issue #$existing"
-              gh issue comment "$existing" --repo "$REPO" \
-                --body "CI health recovered — no non-PR workflow failures in the last 25h. Closing automatically; the watcher reopens a fresh issue if failures recur."
-              gh issue close "$existing" --repo "$REPO"
+              gh issue comment "$existing" --repo "$GITHUB_REPOSITORY" \
+                --body "CI health recovered — no non-PR workflow failures across the fleet in the last 25h. Closing automatically; the watcher reopens a fresh issue if failures recur."
+              gh issue close "$existing" --repo "$GITHUB_REPOSITORY"
             fi
             exit 0
           fi
 
-          # Build a human-readable summary.
-          summary=$(echo "$offenders" | jq -r '
-            .[] | "- **\(.workflowName)** (\(.event)) — \(.createdAt) — \(.url)"' \
-            | sort -u)
+          # Human-readable summary, grouped by repo.
+          summary=$(echo "$all" | jq -r '
+            group_by(.repo)[]
+            | "### \(.[0].repo)",
+              (.[] | "- **\(.workflowName)** (\(.event)) — \(.createdAt) — \(.url)"),
+              ""')
 
           {
-            echo "## CI health: non-PR workflow failures detected"
+            echo "## CI health: fleet workflow failures detected"
             echo ""
             echo "The CI-health watcher found **$count** failed run(s) of"
-            echo "event-triggered or scheduled workflows in the last 25 hours."
-            echo "These do not surface on any PR, so they are easy to miss."
+            echo "event-triggered or scheduled workflows across the fleet in the"
+            echo "last 25 hours. These do not surface on any PR, so they are"
+            echo "easy to miss."
             echo ""
             echo "$summary"
-            echo ""
             echo "_Filed automatically by \`.github/workflows/ci-health.yml\`._"
+            echo "_Labelled \`triage:medium\` so the fleet promoter routes it to a fix (ADR-0020)._"
             echo "_This issue updates in place; it is not re-filed each day._"
           } > /tmp/ci-health-body.md
 
           cat /tmp/ci-health-body.md
 
-          # Dedup by title — update an existing open issue rather than
-          # filing a new one every day.
-          existing=$(gh issue list --repo "$REPO" --state open \
-            --search "\"$title\" in:title" --json number --jq '.[0].number // empty')
-
           if [[ -n "$existing" ]]; then
             echo "Updating existing CI-health issue #$existing"
-            gh issue comment "$existing" --repo "$REPO" --body-file /tmp/ci-health-body.md
+            gh issue comment "$existing" --repo "$GITHUB_REPOSITORY" --body-file /tmp/ci-health-body.md
           else
             echo "Filing new CI-health issue"
-            gh issue create --repo "$REPO" \
+            gh issue create --repo "$GITHUB_REPOSITORY" \
               --title "$title" \
-              --label bug \
+              --label "bug,triage:medium" \
               --body-file /tmp/ci-health-body.md
           fi
 
           # Exit red so the run fails loudly and GitHub notifies the owner.
-          echo "::error::CI health check failed — $count non-PR workflow failure(s). See the CI-health issue."
+          echo "::error::CI health check failed — $count non-PR workflow failure(s) across the fleet. See the CI-health issue."
           exit 1

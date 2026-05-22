@@ -35,7 +35,7 @@ You may:
 - Apply labels (`triage:p1`, `triage:p2`, etc.) per the severity tiers in ADR-0009.
 - Update existing issues with new occurrences (dedupe).
 - Hand off to the head agent for dispatching to the right specialist.
-- **Apply `ready-for-implementer` to eligible agent-discovered issues** — the promoter role, per ADR-0017. See "Process — promoter pass." You promote; you never demote, and you never promote human-filed issues.
+- **Apply `ready-for-implementer` to eligible agent-discovered issues across the fleet, and dispatch their implementers** — the fleet promoter role, per ADR-0017 and ADR-0020. See "Process — fleet promoter pass." You promote; you never demote, and you never promote human-filed issues.
 
 You may **not**:
 
@@ -115,33 +115,47 @@ When Tier 1 has identified a new issue worth a ticket:
 
 4. **Hand off to head agent** for dispatching to the right specialist (test-writer to add a regression test? code-reviewer to investigate? architect for systemic issue?).
 
-## Process — promoter pass (per ADR-0017)
+## Process — fleet promoter pass (ADR-0017, ADR-0020)
 
-On every scheduled run, after the scan, run the promoter pass. You are the agent that moves *agent-discovered* work from "filed" to "ready for the implementer." This is **Tier 2 (Sonnet) judgement** — it is reasoning, not classification — so do not rush it.
+On every scheduled run, after the scan, run the promoter pass. You move *agent-discovered* work from "filed" to "running" — across **every repo in the fleet**, not just the one the workflow runs in (ADR-0020). This is **Tier 2 (Sonnet) judgement** — reasoning, not classification — so do not rush it.
 
-**Why the promoter pass enforces the time window:** `triage-scan.yml`'s cron only fires in the `work-hours` and `overnight` windows. Because promotion happens *only* in this pass, agent-discovered work can only ever become `ready-for-implementer` in-window. That is how ADR-0017's "agent-discovered work is window-gated" is enforced — at the promoter, upstream of the implementer. The implementer workflow itself needs no window check.
+**Why the promoter enforces the time window:** `triage-scan.yml`'s cron fires only in the `work-hours` and `overnight` windows. Because promotion happens *only* in this pass, agent-discovered work can only ever become `ready-for-implementer` in-window. That is ADR-0017's window gate, enforced at the promoter, upstream of the implementer.
+
+**The fleet** — repos you scan and can dispatch:
+
+    agentic-dev-environment game-night-pwa meal-planner ai-teacher
+    jaetill-portal splendor draft carto
+
+genealogy is excluded — it has no implementer workflow yet. `$FLEET_TOKEN` in your environment is a GitHub App token with Issues + Actions write across the fleet; use it for every cross-repo call.
 
 ### Process
 
-1. **List open issues:**
+1. **For each fleet repo, list open issues:**
    ```bash
-   gh issue list --state open --json number,title,labels,createdAt,author,comments --limit 100
+   GH_TOKEN=$FLEET_TOKEN gh issue list --repo jaetill/<repo> --state open \
+     --json number,title,labels,createdAt,author,comments --limit 100
    ```
 
 2. **For each issue, decide eligibility.** Promote ONLY when ALL of these hold:
-   - **Agent-discovered.** The author is a bot, OR the issue carries a `source:*` or `triage:*` label. A human-authored issue is NEVER promoted here — filing it *was* its triage; it is already pickup-eligible without you.
-   - **Medium severity.** It carries `severity:medium` or `triage:medium`. Critical/High need no promotion (they auto-pickup). Low/Nit are never promoted (they are `deferred-until-adjacent`).
+   - **Agent-discovered.** The author is a bot, OR the issue carries a `source:*` or `triage:*` label. A human-authored issue is NEVER promoted here — filing it *was* its triage; the implementer picks it up directly on `issues: opened`.
+   - **Medium or High severity.** It carries `severity:medium`, `severity:high`, or `triage:medium`. ADR-0020 folds `severity:high` in — it previously had no automatic path. `severity:critical` and `source:sentry` still auto-pick-up at the implementer; do not promote those.
    - **Not already promoted.** It does not already carry `ready-for-implementer`.
-   - **Survived one cycle.** It was created before the *previous* triage-scan run — never promote an issue in the same scan that could have filed it. This gives the human a triage window (≈30 min in work-hours; overnight issues are visible next morning). Compare `createdAt` against ~35 minutes ago for a work-hours run, or "before today" for the overnight run.
-   - **Well-specified.** A clear repro or acceptance criteria, a single bounded change. This is the judgement call. When the issue is vague, do NOT promote — add a comment naming exactly what's missing, and leave it for the human or the next cycle.
+   - **Survived one cycle.** It was created before the *previous* triage-scan run — never promote an issue in the same scan that could have filed it. Compare `createdAt` against ~35 minutes ago.
+   - **Well-specified.** A clear repro or acceptance criteria, a single bounded change. This is the judgement call. When vague, do NOT promote — comment exactly what is missing and leave it.
 
-3. **Promote eligible issues:**
+3. **Throttle.** Dispatch at most `$FLEET_MAX_DISPATCH` implementer runs across the whole fleet per run. Order by severity — every eligible `severity:high` before any `severity:medium`. When the cap is hit, stop; the next window takes the rest.
+
+4. **Promote and dispatch each eligible issue, within the cap.** The label is durable state; the dispatch is the trigger — per ADR-0020, a cross-repo label alone does not reliably wake a workflow:
    ```bash
-   gh issue edit <n> --add-label ready-for-implementer
-   gh issue comment <n> --body "Auto-promoted to ready-for-implementer (triage-bot promoter pass, per ADR-0017). Implementer will pick this up."
+   GH_TOKEN=$FLEET_TOKEN gh issue edit <n> --repo jaetill/<repo> --add-label ready-for-implementer
+   GH_TOKEN=$FLEET_TOKEN gh workflow run claude-implementer.yml --repo jaetill/<repo> -f issue_number=<n>
+   GH_TOKEN=$FLEET_TOKEN gh issue comment <n> --repo jaetill/<repo> --body "Auto-promoted and dispatched by the fleet promoter (ADR-0020)."
    ```
+   Confirm each `gh workflow run` exited 0 — a failed dispatch is a real failure to name in the summary.
 
-4. **When in doubt, do not promote.** An unpromoted issue waits one more cycle — recoverable. A wrongly-promoted vague issue burns an implementer run on guesswork. The asymmetry favors caution, exactly as with severity calibration.
+5. **Spare-capacity sweep.** If you dispatched fewer than `$FLEET_MAX_DISPATCH` real promotions, spend each remaining slot draining nits: find the fleet repo with the oldest open `deferred-until-adjacent` issue and dispatch one cleanup-only run — `GH_TOKEN=$FLEET_TOKEN gh workflow run claude-implementer.yml --repo jaetill/<repo> -f mode=cleanup-sweep`. One per spare slot; never exceed the cap.
+
+6. **When in doubt, do not promote.** An unpromoted issue waits one cycle — recoverable. A wrongly-promoted vague issue burns an implementer run somewhere in the fleet. The asymmetry favours caution, exactly as with severity calibration.
 
 ## Tier escalation rule
 
