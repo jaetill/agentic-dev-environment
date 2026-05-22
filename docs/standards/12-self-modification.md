@@ -26,6 +26,18 @@ An agent that classifies a problem as a process flaw while working in a project 
 
 `triage-bot`, on its scheduled scan, pulls `process-flaw` markers across the project repos and files the corresponding issue on the platform repo. From there the platform loop (promoter → implementer) acts on it. This is the team's retro: it collects the field's process notes on its rounds.
 
+## Generality assessment — a project-reported flaw is n = 1
+
+A flaw reported through the pull channel was observed in **one project's** context. Before the team changes `ai-team` in response, it must abstract the report away from that project's stack and codebase and establish that the change serves the whole fleet. One project's experience is a single data point; changing the shared team on n = 1 is overfitting.
+
+The architect performs this assessment and reaches one of three outcomes:
+
+1. **General process flaw** — the team's workflow, a gate, or a role is genuinely wrong, and the fix benefits (or is neutral for) every project → change `ai-team`.
+2. **Project-local issue** — the problem is an artifact of the reporting project's stack, codebase, or situation, not the team's process → it is **not** a team change; resolve it in that project's own knowledge/config layer. (Per the platform principle: every project runs the same team and the same rigor — only the *knowledge* differs.)
+3. **General flaw, parochial proposed fix** — the flaw is real and general, but the fix as the reporting project framed it is shaped by that project's particulars → change `ai-team`, but with a *generalized* fix, not the project-specific one.
+
+The team must actively reach one of these — it must never default to "a project said our process is broken, so change the process." When generality cannot be established, treat the report as project-local (outcome 2) and state what evidence would be needed to reclassify it.
+
 ## The competence gate
 
 Before the team changes itself, it must decide whether it is *qualified* to make that specific change. Every self-change is classified:

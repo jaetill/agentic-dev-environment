@@ -1,6 +1,6 @@
 # ADR-0019: Team self-modification — the platform repo as the team's self, and the project→platform feedback loop
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-05-21
 - **Deciders:** Jason Tilley (with AI architectural review)
 - **Tags:** ai-workflows, orchestration, governance, security
@@ -46,7 +46,7 @@ A bundle of six sub-decisions:
 
 2. **Feedback channel → pull.** A project agent that classifies a problem as a team flaw labels *its own* project issue `process-flaw` (using the token it already has — no cross-repo write). `triage-bot`, on its scheduled scan, pulls those markers across the project repos and files the corresponding issue on the platform repo. The existing platform loop (promoter → implementer) acts on it. This is the team's retro: it collects the field's process notes on its rounds.
 
-3. **Competence gate → classify the self-change.** *Mechanical* changes (a permission, a typo, a missing tool grant, applying an already-decided pattern) → the implementer does them directly. *Compositional / standards / security-touching* changes (the agent roster, what a role does, a gate, a standard, the security posture) are architecture decisions: the architect researches authoritative best practices for team composition, standards, and security, proposes with tradeoffs, and a human ratifies *before* implementation. When an agent is unsure it has the knowledge to make a self-change well, it must not improvise — it researches or escalates. [Standard 12](../standards/12-self-modification.md) is the operational procedure.
+3. **Competence gate → classify the self-change.** *Mechanical* changes (a permission, a typo, a missing tool grant, applying an already-decided pattern) → the implementer does them directly. *Compositional / standards / security-touching* changes (the agent roster, what a role does, a gate, a standard, the security posture) are architecture decisions: the architect researches authoritative best practices for team composition, standards, and security, proposes with tradeoffs, and a human ratifies *before* implementation. When an agent is unsure it has the knowledge to make a self-change well, it must not improvise — it researches or escalates. A flaw reported through the feedback channel also gets a **generality assessment**: a single project's report is n = 1, so the architect must abstract it from that project's specifics and establish the fix serves the whole fleet — or route a project-local issue to that project's knowledge layer rather than mutating the shared team. [Standard 12](../standards/12-self-modification.md) is the operational procedure.
 
 4. **Review depth → the platform repo reviews itself.** Every self-modification PR runs the full `claude-pr-review` reusable, including `security-review` as a hard gate. The platform repo gains its own caller stub for the reusable.
 
@@ -70,6 +70,7 @@ The bundle is internally consistent: sub-decisions 1, 2, and 6 make self-modific
 - Latency: a process flaw waits for the next triage-scan window, not seconds. Accepted — process flaws are rarely emergencies, and a blocking one can be filed `severity:critical` to bypass the window.
 - The competence gate routes compositional/standards/security flaws through a heavier path (architect + research + human) than a routine bug. Accepted — that is the point; an improvised change to the team is the expensive mistake.
 - Classification (mechanical vs. compositional) is a judgment call agents will sometimes miss. Failure modes are bounded: a false escalation is a junk issue the human closes; a false "mechanical" produces a PR the security-review gate and the human merge are positioned to catch.
+- A flaw reported from one project can be over-generalized into a fleet-wide change that does not fit the others. Mitigated by the generality assessment (Standard 12), which defaults an unproven flaw to project-local.
 
 ### Neutral
 

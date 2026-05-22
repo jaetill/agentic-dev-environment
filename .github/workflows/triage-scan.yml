@@ -88,6 +88,7 @@ jobs:
       - name: Run triage-bot (scan + promoter pass)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FEEDBACK_READ_TOKEN: ${{ secrets.FEEDBACK_READ_TOKEN }}
           WINDOW: ${{ needs.window.outputs.window }}
         uses: anthropics/claude-code-action@v1
         with:
@@ -98,7 +99,7 @@ jobs:
             Act as the `triage-bot` subagent (see plugins/ai-team/agents/triage-bot.md).
             This is a scheduled scan in the **${{ needs.window.outputs.window }}** window.
 
-            Run TWO passes, in order:
+            Run THREE passes, in order:
 
             ## Pass 1 — Scan
             Run your Tier 1 scan process. On a repo with production telemetry
@@ -134,7 +135,35 @@ jobs:
             Critical/High issues need no promotion (they auto-pickup). Low/Nit
             issues are never promoted (they are `deferred-until-adjacent`).
 
-            Report a short summary: issues scanned, new issues filed, issues promoted.
+            ## Pass 3 — Pull process-flaw markers from project repos (ADR-0019)
+
+            `$FEEDBACK_READ_TOKEN` is a read-only token for the project
+            repos. If it is empty, SKIP this pass — the feedback channel is
+            not yet provisioned — and say so in the summary.
+
+            Otherwise, for each project repo:
+              game-night-pwa meal-planner carto draft ai-teacher jaetill-portal splendor
+
+            list its open `process-flaw` issues:
+              GH_TOKEN=$FEEDBACK_READ_TOKEN gh issue list --repo jaetill/<project> \
+                --state open --label process-flaw --json number,title,body,url
+
+            For each one, file a matching issue ON THIS platform repo so the
+            loop can act on it — unless one already exists. Dedup by
+            searching this repo for the source URL (default token):
+              gh issue list --state open --search "<project-issue-url>" --json number
+
+            File new ones with the default token:
+              gh issue create --label "process-flaw,triage:medium" \
+                --title "[process-flaw] <project>: <short description>" \
+                --body "Reported from ONE project (jaetill/<project> issue <url>) — this is n=1, generality NOT established. Per Standard 12 the team must abstract it from <project>'s stack/codebase and decide: general flaw (fix ai-team), project-local (resolve in <project>'s knowledge layer — do NOT change the team), or general flaw needing a generalized fix. Do not assume it applies to every project. <body>"
+
+            These are agent-discovered: Pass 2's promoter evaluates them on a
+            later cycle, and the implementer's competence gate + generality
+            assessment (Standard 12) classify them when picked up.
+
+            Report a short summary: issues scanned, new issues filed, issues
+            promoted, process-flaw markers pulled.
           claude_args: |
             --model claude-sonnet-4-6
             --permission-mode bypassPermissions
