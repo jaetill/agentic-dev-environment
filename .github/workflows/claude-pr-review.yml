@@ -23,6 +23,25 @@ permissions:
   id-token: write   # required by anthropics/claude-code-action for OIDC
 
 jobs:
+  # detect-node — gates the npm-based test jobs (functional-test, e2e-test,
+  # test-writer) so they skip cleanly on a repo with no Node app, e.g. the
+  # platform repo itself. Subscribing projects have a package.json, so
+  # node='true' there and nothing changes for them.
+  detect-node:
+    runs-on: ubuntu-latest
+    outputs:
+      node: ${{ steps.d.outputs.node }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: d
+        run: |
+          if [ -f package.json ]; then
+            echo "node=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "node=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No root package.json — npm-based test jobs will skip."
+          fi
+
   code-review:
     # Skip on bot-initiated runs (e.g. test-writer pushed new tests, triggering
     # synchronize with github.actor=claude[bot]). The action itself rejects bot
@@ -188,6 +207,8 @@ jobs:
           echo "Code review: no blocking findings. Job passing."
 
   functional-test:
+    needs: detect-node
+    if: needs.detect-node.outputs.node == 'true'
     # Bot-skip guard intentionally removed per the autonomous-team
     # architecture (ADR-0013). Implementer-authored PRs (actor: claude[bot])
     # MUST be reviewed; otherwise branch protection's required checks
@@ -246,6 +267,8 @@ jobs:
             --append-system-prompt "Follow the platform standards in docs/standards/."
 
   test-writer:
+    needs: detect-node
+    if: needs.detect-node.outputs.node == 'true'
     # Bot-skip guard intentionally removed per the autonomous-team
     # architecture (ADR-0013). Implementer-authored PRs (actor: claude[bot])
     # MUST be reviewed; otherwise branch protection's required checks
@@ -339,6 +362,8 @@ jobs:
             --append-system-prompt "Follow the platform standards in docs/standards/. You are in REVIEWER mode per issue #25 — do not push commits."
 
   e2e-test:
+    needs: detect-node
+    if: needs.detect-node.outputs.node == 'true'
     # Bot-skip guard intentionally removed per the autonomous-team
     # architecture (ADR-0013). Implementer-authored PRs (actor: claude[bot])
     # MUST be reviewed; otherwise branch protection's required checks

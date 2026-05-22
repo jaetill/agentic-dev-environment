@@ -1,0 +1,26 @@
+name: pr-review
+# Per ADR-0019 sub-decision 4 — the platform repo runs the claude-pr-review
+# reusable on its own PRs, so self-modification PRs get code-review and
+# security-review (the security gate). The reusable's npm-based test jobs
+# (functional-test, e2e-test, test-writer) detect the absence of a Node app
+# — this repo has none — and skip cleanly via the reusable's detect-node gate.
+#
+# Named pr-review.yml, NOT claude-pr-review.yml: in this repo
+# claude-pr-review.yml IS the reusable, so the caller cannot share its name.
+# Elsewhere (the project repos) the caller stub takes the claude-pr-review.yml
+# name; here it cannot collide with the reusable it calls.
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+  id-token: write
+
+jobs:
+  review:
+    uses: ./.github/workflows/claude-pr-review.yml
+    secrets: inherit
