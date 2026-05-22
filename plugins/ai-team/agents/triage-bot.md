@@ -153,7 +153,7 @@ genealogy is excluded — it has no implementer workflow yet. `$FLEET_TOKEN` in 
    ```
    Confirm each `gh workflow run` exited 0 — a failed dispatch is a real failure to name in the summary.
 
-5. **Spare-capacity sweep.** If you dispatched fewer than `$FLEET_MAX_DISPATCH` real promotions, spend each remaining slot draining nits: find the fleet repo with the oldest open `deferred-until-adjacent` issue and dispatch one cleanup-only run — `GH_TOKEN=$FLEET_TOKEN gh workflow run claude-implementer.yml --repo jaetill/<repo> -f mode=cleanup-sweep`. One per spare slot; never exceed the cap.
+5. **Spare-capacity sweep.** If you dispatched fewer than `$FLEET_MAX_DISPATCH` real promotions, spend each remaining slot draining nits. For each spare slot, pick the fleet repo with the most open `deferred-until-adjacent` issues — **skip any repo whose count is zero** (a cleanup-sweep there is a wasted run) — and dispatch one cleanup-only run: `GH_TOKEN=$FLEET_TOKEN gh workflow run claude-implementer.yml --repo jaetill/<repo> -f mode=cleanup-sweep`. One per spare slot; never the same repo twice in a run; never exceed the cap.
 
 6. **When in doubt, do not promote.** An unpromoted issue waits one cycle — recoverable. A wrongly-promoted vague issue burns an implementer run somewhere in the fleet. The asymmetry favours caution, exactly as with severity calibration.
 

@@ -29,8 +29,7 @@ on:
 
 permissions:
   contents: read
-  actions: read    # list workflow runs on this repo
-  issues: write    # file / update the CI-health issue here
+  issues: write    # file / update the CI-health issue here (fleet run-listing uses FLEET_TOKEN)
 
 concurrency:
   group: ci-health-${{ github.repository }}
