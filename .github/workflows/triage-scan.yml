@@ -227,7 +227,8 @@ jobs:
   # trigger nothing downstream, ADR-0018). The gate is deterministic — issue
   # type + check state + labels, no agent judgement. The platform repo is
   # excluded: its PRs are self-modifications, human-merged per ADR-0019.
-  # `vars.AUTONOMOUS_MERGE=off` pauses this job fleet-wide.
+  # `vars.AUTONOMOUS_MERGE=off` pauses this job fleet-wide;
+  # `vars.AUTONOMOUS_MERGE_CAP` (default 10) caps merges per run.
   auto-merge:
     needs: window
     if: needs.window.outputs.in_window == 'true'
@@ -246,6 +247,7 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.fleet-token.outputs.token }}
           AUTONOMOUS_MERGE: ${{ vars.AUTONOMOUS_MERGE || 'on' }}
+          AUTONOMOUS_MERGE_CAP: ${{ vars.AUTONOMOUS_MERGE_CAP || '10' }}
         run: |
           set -uo pipefail
           if [[ "${AUTONOMOUS_MERGE}" == "off" ]]; then
@@ -258,11 +260,23 @@ jobs:
           # ADR-0019. genealogy has no implementer loop.
           REPOS="game-night-pwa meal-planner ai-teacher jaetill-portal splendor draft carto"
           merged=0 ; held=0
+          # Per-run blast-radius cap (security-review): a malfunctioning or
+          # adversarially-prompted implementer cannot land more than this many
+          # merges in one window — the rest wait for the next cron or a human.
+          cap=${AUTONOMOUS_MERGE_CAP:-10}
           for repo in $REPOS; do
             slug="jaetill/${repo}"
+            # Implementer-authored PRs only. `gh pr list --json author` renders
+            # a GitHub App bot's login as `app/<slug>` (NOT `<slug>[bot]`, the
+            # webhook/git form) — verified against meal-planner #64/#65/#68,
+            # all `app/claude`. release-please and human PRs are excluded.
             prs=$(gh pr list --repo "$slug" --state open --json number,author \
                     --jq '.[] | select(.author.login == "app/claude") | .number' 2>/dev/null || true)
             for pr in $prs; do
+              if [[ "$merged" -ge "$cap" ]]; then
+                echo "::notice::Auto-merge per-run cap ($cap) reached — remaining qualifying PRs left for the next window."
+                break 2
+              fi
               meta=$(gh pr view "$pr" --repo "$slug" --json labels,body 2>/dev/null || true)
               if [[ -z "$meta" ]]; then
                 echo "  $slug#$pr — could not read PR; hold"; held=$((held+1)); continue
@@ -284,13 +298,21 @@ jobs:
               if [[ "$is_defect" != "true" ]]; then
                 echo "  $slug#$pr — issue #$issue not defect/bug; hold"; held=$((held+1)); continue
               fi
-              # ADR-0021 cond. 2 — every check green (gh pr checks exits 0 only
-              # when all checks have completed and passed)
-              if ! gh pr checks "$pr" --repo "$slug" >/dev/null 2>&1; then
+              # ADR-0021 cond. 2 — every check green. `gh pr checks` exits 0
+              # for "all passed" but ALSO for "no checks at all" (vacuously
+              # true) — guard that so a repo with CI disabled cannot slip the
+              # gate. Decide from --json bucket content, emitted regardless of
+              # the exit code (security-review + code-review).
+              buckets=$(gh pr checks "$pr" --repo "$slug" --json bucket --jq '.[].bucket' 2>/dev/null || true)
+              if [[ -z "$buckets" ]]; then
+                echo "  $slug#$pr — no checks reported; hold (gate requires a green CI battery)"
+                held=$((held+1)); continue
+              fi
+              if echo "$buckets" | grep -qvE '^(pass|skipping)$'; then
                 echo "  $slug#$pr — checks not all green; hold"; held=$((held+1)); continue
               fi
               # All four conditions hold — merge as the fleet App.
-              if gh pr merge "$pr" --repo "$slug" --squash; then
+              if gh pr merge "$pr" --repo "$slug" --squash --delete-branch; then
                 echo "::notice::Auto-merged $slug#$pr (fix for #$issue) per ADR-0021."
                 merged=$((merged+1))
               else

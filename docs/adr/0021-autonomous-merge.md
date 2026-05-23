@@ -82,8 +82,8 @@ This is the operational form of commander's intent: a `defect`/`bug` fix within 
 
 - **Workflow:** a new `auto-merge` job in `.github/workflows/triage-scan.yml` (the central promoter). It mints the fleet App token, sweeps the project fleet for green qualifying implementer PRs, and calls `gh pr merge --squash` on each.
 - **Placement — central, not the reusable.** An earlier draft put this job in the `claude-pr-review` reusable. Implementation surfaced the flaw: a per-repo reusable job could only merge with `GITHUB_TOKEN`, and a `GITHUB_TOKEN` merge triggers nothing downstream (ADR-0018) — release-please would never see it, so nothing would deploy. The merge must be performed by the fleet App (whose events cascade), and the App credential lives only on the platform repo — so the job lives in the platform-central `triage-scan` promoter, alongside the rest of the fleet-wide loop (ADR-0020). The Option-A decision is unchanged; only placement was refined.
-- **Fleet App permissions:** the App needs `contents: write` + `pull requests: write` to merge. If it was installed with only the promoter's `issues` + `actions` write, those two permissions must be added and the installation re-approved.
-- **Gate inputs:** the type label on the linked issue (from the PR's `Closes #N`); `gh pr checks` exit status; the `requires-adr:*` label set; the PR author; the `AUTONOMOUS_MERGE` variable.
+- **Fleet App permissions:** the auto-merge job merges as the fleet App, which needs `contents: write` + `pull requests: write`. The App had been installed with only the promoter's `issues` + `actions` write; both write scopes were added to the App and the installation re-approved on 2026-05-23, before this job went live.
+- **Gate inputs:** the type label on the linked issue (from the PR's `Closes #N`); the `gh pr checks` bucket states (a PR with zero checks does not qualify — the gate requires a non-empty green battery, not a vacuous pass); the `requires-adr:*` label set; the PR author; the `AUTONOMOUS_MERGE` variable. A per-run cap (`AUTONOMOUS_MERGE_CAP`, default 10) bounds merges per window.
 - **Standard 10 (AI workflows)** gains a section on the implementer-PR auto-merge gate; the plugin's shipped copy is updated in lockstep.
 - **ADR-0016** is amended — the finding lifecycle gains a terminal **merge** stage for the routine-fix path.
 - **ADR-0003** gains a forward reference to this ADR.
@@ -95,7 +95,7 @@ This is the operational form of commander's intent: a `defect`/`bug` fix within 
 - [ADR-0010 — release management](0010-release-management.md) — precedent: `release-captain` already auto-merges release PRs.
 - [ADR-0016 — finding lifecycle](0016-finding-lifecycle-calibration-deferral.md) — amended: gains the terminal merge stage.
 - [ADR-0017 — async orchestration](0017-async-orchestration.md) — the feature plan-gate, this ADR's scope-change boundary.
-- [ADR-0018 — workflow distribution](0018-workflow-distribution.md) — why the job lives in the reusable.
+- [ADR-0018 — workflow distribution](0018-workflow-distribution.md) — the `GITHUB_TOKEN` no-cascade rule; why the merge runs as the fleet App in the central promoter, not the per-repo reusable.
 - [ADR-0019 — team self-modification](0019-team-self-modification.md) — the platform-repo human-merge floor, preserved.
 - [ADR-0020 — fleet orchestration](0020-fleet-orchestration.md) — the loop this ADR closes.
 - Mission command / *commander's intent* — subordinates act on the intent, not on per-action approval.
