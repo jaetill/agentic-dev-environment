@@ -1,7 +1,7 @@
 # Runbook — the autonomous agent loop
 
 **Type:** operations overview.
-**Decision records:** [ADR-0017](../adr/0017-async-orchestration.md) — scheduling & routing; [ADR-0018](../adr/0018-workflow-distribution.md) — workflow distribution; [ADR-0020](../adr/0020-fleet-orchestration.md) — fleet orchestration.
+**Decision records:** [ADR-0017](../adr/0017-async-orchestration.md) — scheduling & routing; [ADR-0018](../adr/0018-workflow-distribution.md) — workflow distribution; [ADR-0020](../adr/0020-fleet-orchestration.md) — fleet orchestration; [ADR-0021](../adr/0021-autonomous-merge.md) — autonomous merge of fix PRs.
 
 ## What the loop is
 
@@ -15,7 +15,7 @@ If someone asks "did the loop run last night / at 0900," the answer lives in **G
 
 | Workflow | Trigger | What it does |
 |---|---|---|
-| `triage-scan.yml` | cron (two windows) + `workflow_dispatch` | runs the **fleet promoter**: scans every portfolio repo, labels eligible agent-discovered issues `ready-for-implementer`, and dispatches the target repo's `claude-implementer.yml` (ADR-0020) |
+| `triage-scan.yml` | cron (two windows) + `workflow_dispatch` | runs the **fleet promoter** (scans every portfolio repo, labels eligible agent-discovered issues `ready-for-implementer`, dispatches the target repo's `claude-implementer.yml` — ADR-0020) and the **fleet auto-merger** (squash-merges green, qualifying implementer fix PRs as the fleet App; `vars.AUTONOMOUS_MERGE=off` pauses it — ADR-0021) |
 | `claude-implementer.yml` | `issues: opened`/`labeled` + `issue_comment` + `workflow_dispatch` | picks up a human-filed or promoted issue and opens an implementation PR; also runs the fix-iteration loop |
 | `ci-health.yml` | cron | fleet-wide watcher; observes every repo's non-PR workflow runs and files a consolidated platform-repo issue on failure, labelled `triage:medium` so the promoter routes it (ADR-0020) |
 | `claude-pr-review.yml` | `workflow_call` (reusable) | the review gate, invoked by each project's caller stub |
