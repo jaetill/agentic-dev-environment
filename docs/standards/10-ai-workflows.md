@@ -294,7 +294,7 @@ Reviewer-style agents (`code-reviewer`, `security-reviewer`, `triage-bot`, `doc-
 
 ### Deferral policy
 
-Low and nit findings get filed as GitHub issues with the **`deferred-until-adjacent`** label. The implementer does NOT pick them up in isolation. Instead, when working on a feature, Sentry bug, or higher-severity fix, the implementer scans for deferred issues citing files in the same directory and **bundles up to 2 of them into the in-flight PR** under a "While here" section.
+Low and nit findings get filed as GitHub issues with the **`deferred-until-adjacent`** label. The implementer does NOT pick them up in isolation. Instead — per **[ADR-0020](../adr/0020-fleet-orchestration.md)**, which amends ADR-0016's flat cap of 2 — every dispatched implementer run drains nits across two PRs. The **fix PR** bundles directory-adjacent deferred nits, cap `min(floor(total / 2), 4)`. A separate **sidecar cleanup PR** drains the rest, cap `max(floor(total / 2), 8)`, chunked at 12 issues per PR. `total` is the repo's open `deferred-until-adjacent` count. The promoter's spare-capacity `mode=cleanup-sweep` dispatch drains repos that get no qualifying work — so cold-code nits no longer wait on coincidental adjacency.
 
 Medium findings default to non-deferred; defense-in-depth Mediums and prose-quality Mediums may carry the deferral label sparingly.
 
@@ -312,6 +312,30 @@ Issues labeled `source:sentry` (auto-applied by Sentry's GitHub integration when
 
 To make Sentry-bug auto-pickup actually fire, each consuming project's `claude-implementer.yml` must trigger on `source:sentry` and `severity:critical` labels in addition to `ready-for-implementer`. This is a one-line workflow-trigger change; tracked in the platform-port-quirks runbook. The `source:sentry` label itself is applied by Sentry's GitHub integration's alert-rule config — no separate auto-labeler workflow is needed.
 
+## 9b. Fleet orchestration
+
+Per **[ADR-0020](../adr/0020-fleet-orchestration.md)**, the autonomous loop runs as **one central loop reaching the whole portfolio**, not one loop per repo.
+
+### One loop, every repo
+
+`triage-scan.yml` is a single scheduled workflow on the platform repo. Its promoter pass scans and promotes agent-discovered work across every fleet repo. `severity:medium`, `severity:high`, and `triage:medium` are all promotable — ADR-0020 added `severity:high`, which previously had no automatic path. `severity:critical` and `source:sentry` still auto-pick-up at the implementer.
+
+### Dispatch, not cascade
+
+When the promoter promotes an issue it (1) applies `ready-for-implementer` as durable state and (2) explicitly dispatches that repo's `claude-implementer.yml` via `workflow_dispatch`. The dispatch is the trigger — a cross-repo label event does not reliably wake a workflow (GitHub's `GITHUB_TOKEN` cascade rule). A failed dispatch is visible in the scanner log; a silent label is not.
+
+### The fleet credential
+
+The loop's cross-repo credential is a GitHub App with `Issues` + `Actions` write across the fleet; the platform workflow mints a short-lived installation token per run. It writes platform→project only — the project→platform boundary (ADR-0019, Standard 12) is untouched.
+
+### Throughput
+
+The promoter respects a per-run dispatch cap (`FLEET_MAX_DISPATCH_PER_RUN`, default 6) so unblocking the backlog does not flood the implementers. Spare capacity is spent on `mode=cleanup-sweep` dispatches that drain deferred nits.
+
+### Detection across the fleet
+
+`ci-health.yml` watches every fleet repo's non-PR workflow runs and files one consolidated issue on the platform repo when failures hide. See Standard 12 for how a detected breakage in a platform-sourced workflow routes to a team fix.
+
 ## 10. Setup checklist
 
 When bootstrapping a new project, the `new-project.sh` script will:
@@ -320,6 +344,7 @@ When bootstrapping a new project, the `new-project.sh` script will:
 - [ ] Add the canonical `permissions.deny` block to `.claude/settings.json` (plugin manifests cannot ship permissions per the Claude Code spec)
 - [ ] Add `.claude/audit.log` and `.claude/sessions/` to `.gitignore`
 - [ ] Configure GitHub Actions workflows that invoke agents on triggers (per §9)
+- [ ] Install the fleet GitHub App on the repo so the central promoter and ci-health watcher can reach it (Issues + Actions write; see [ADR-0020](../adr/0020-fleet-orchestration.md))
 - [ ] Generate project-specific `CLAUDE.md` (≤200 lines)
 - [ ] Verify the plugin loads on first session (`claude plugin list` shows `ai-team@agentic-dev-environment` enabled)
 

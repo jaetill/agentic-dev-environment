@@ -1,32 +1,34 @@
 name: triage-scan
 # Phase B of ADR-0017 — scheduled triage-bot scan.
+# ADR-0020 — fleet orchestration: the promoter pass, and the dispatches it
+# issues, now reach every repo in the fleet, not just this one. The loop is
+# centralised here on the platform repo; its hands reach the whole portfolio.
 #
-# Two jobs run from one scheduled invocation:
-#   1. scan    — triage-bot scans Sentry/logs/feedback for new patterns and
-#                files issues (no-op on the platform repo, which has no
-#                production telemetry; real work on subscribing app repos).
-#   2. promote — triage-bot's PROMOTER pass: applies `ready-for-implementer`
-#                to eligible agent-discovered `severity:medium` issues.
+# Three passes run from one scheduled invocation:
+#   1. scan    — triage-bot scans telemetry for new issue patterns. A no-op
+#                on the platform repo (no production telemetry).
+#   2. promote — the FLEET promoter (ADR-0020): scans every fleet repo's open
+#                issues, applies `ready-for-implementer` to eligible
+#                agent-discovered work, and DISPATCHES that repo's
+#                implementer. `severity:high` is now in scope.
+#   3. flaws   — pulls `process-flaw` markers from the fleet and files them
+#                here for the loop to act on (ADR-0019).
 #
 # WINDOW ENFORCEMENT: this workflow is the *only* path by which
-# agent-discovered Medium work gets promoted. Because it runs on a cron
-# restricted to the work-hours + overnight windows (and a window-check
-# step trims the DST-drift edges precisely), promotion can only happen
-# in-window. That is how ADR-0017's "agent-discovered work is
-# window-gated" is enforced — at the promoter, not at the implementer.
-# claude-implementer.yml therefore needs no window gate of its own.
+# agent-discovered Medium/High work gets promoted. The cron is restricted to
+# the work-hours + overnight windows (the window job below trims the DST
+# edges), so promotion can only happen in-window — ADR-0017's gate, enforced
+# at the promoter.
 
 on:
   schedule:
     # Cron is UTC. America/Chicago is UTC-5 (CDT) or UTC-6 (CST). Both crons
-    # fire on a generous UTC band; the window-check job below trims to the
-    # precise America/Chicago window (DST-correct).
+    # fire on a generous UTC band; the window-check job trims to the precise
+    # America/Chicago window (DST-correct).
     #
-    # work-hours window = Mon-Fri 09:00-12:00 Chicago (while Jason is at work)
-    #   = 14:00-17:00 UTC (CDT) / 15:00-18:00 UTC (CST)
+    # work-hours window = Mon-Fri 09:00-12:00 Chicago = 14:00-17:00 UTC (CDT)
     - cron: '0,30 14-18 * * 1-5'
-    # overnight window = daily 01:00-04:00 Chicago (while Jason is asleep)
-    #   = 06:00-09:00 UTC (CDT) / 07:00-10:00 UTC (CST)
+    # overnight window = daily 01:00-04:00 Chicago = 06:00-09:00 UTC (CDT)
     - cron: '0,30 6-10 * * *'
   workflow_dispatch:
     inputs:
@@ -37,7 +39,7 @@ on:
 
 permissions:
   contents: read
-  issues: write       # file new issues + apply the ready-for-implementer label
+  issues: write       # file process-flaw issues on THIS repo (Pass 3)
   id-token: write     # claude-code-action OIDC
 
 concurrency:
@@ -77,18 +79,31 @@ jobs:
             echo "::notice::Outside the overnight/work-hours window (Chicago hour=$hour, dow=$dow); skipping scan."
           fi
 
-  # ── triage-bot scan + promoter pass ─────────────────────────────────────
+  # ── triage-bot: scan + fleet promoter + flaw pull ───────────────────────
   triage:
     needs: window
     if: needs.window.outputs.in_window == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-      - name: Run triage-bot (scan + promoter pass)
+
+      # Mint a GitHub App installation token — the loop's cross-repo
+      # credential (ADR-0020). Issues + Actions write across the fleet;
+      # short-lived (~1h). Supersedes FEEDBACK_READ_TOKEN.
+      - name: Mint fleet App token
+        id: fleet-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.FLEET_APP_ID }}
+          private-key: ${{ secrets.FLEET_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+
+      - name: Run triage-bot (scan + fleet promote + flaw pull)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          FEEDBACK_READ_TOKEN: ${{ secrets.FEEDBACK_READ_TOKEN }}
+          FLEET_TOKEN: ${{ steps.fleet-token.outputs.token }}
+          FLEET_MAX_DISPATCH: ${{ vars.FLEET_MAX_DISPATCH_PER_RUN || '6' }}
           WINDOW: ${{ needs.window.outputs.window }}
         uses: anthropics/claude-code-action@v1
         with:
@@ -97,75 +112,109 @@ jobs:
           show_full_output: true
           prompt: |
             Act as the `triage-bot` subagent (see plugins/ai-team/agents/triage-bot.md).
-            This is a scheduled scan in the **${{ needs.window.outputs.window }}** window.
+            This is a scheduled scan in the **${{ needs.window.outputs.window }}**
+            window. Per ADR-0020 the promoter is fleet-wide — it reaches every
+            repo in the fleet.
 
-            Run THREE passes, in order:
+            Two credentials are in your environment:
+              - `$GH_TOKEN` — the platform repo's own token. Use it only for
+                same-repo operations (filing process-flaw issues in Pass 3).
+              - `$FLEET_TOKEN` — a GitHub App token with Issues + Actions
+                write across the fleet. Use it for EVERY scan, label, and
+                dispatch: `GH_TOKEN=$FLEET_TOKEN gh ... --repo jaetill/<repo>`.
+
+            The fleet — repos the promoter scans and can dispatch:
+              agentic-dev-environment game-night-pwa meal-planner ai-teacher
+              jaetill-portal splendor draft carto
+            (genealogy is intentionally excluded — it has no implementer
+            workflow yet; never dispatch to it.)
+
+            The platform repo (agentic-dev-environment) IS in the fleet: its
+            own agent-discovered findings, and the process-flaw issues Pass 3
+            files here, are promoted and dispatched the same way. Its
+            implementer self-modifies the team and its PRs need a human merge
+            (ADR-0019) — that is handled downstream, not by you.
+
+            Run THREE passes, in order.
 
             ## Pass 1 — Scan
-            Run your Tier 1 scan process. On a repo with production telemetry
-            (Sentry / CloudWatch), surface and file new issue patterns per your
-            spec. On the platform repo (no production telemetry) this pass is
-            expected to be a no-op — that is a valid outcome; do not manufacture
-            findings.
+            Run your Tier 1 scan. On the platform repo this is a no-op — no
+            production telemetry. Do not manufacture findings.
 
-            ## Pass 2 — Promoter (per ADR-0017)
-            Apply `ready-for-implementer` to eligible agent-discovered issues:
+            ## Pass 2 — Fleet promoter + dispatch (ADR-0020)
+            You move agent-discovered work from "filed" to "running" across
+            every fleet repo.
 
-              gh issue list --state open --json number,title,labels,createdAt,author,comments --limit 100
+            For each fleet repo, list its open issues:
+              GH_TOKEN=$FLEET_TOKEN gh issue list --repo jaetill/<repo> \
+                --state open --json number,title,labels,createdAt,author,comments --limit 100
 
             An issue is eligible for promotion when ALL hold:
-              - It is AGENT-discovered: author is a bot, OR it carries a
-                `source:*` or `triage:*` label. (Human-authored issues are
-                NEVER promoted here — filing is their triage.)
-              - It carries `severity:medium` or `triage:medium`.
+              - AGENT-discovered: the author is a bot, OR it carries a
+                `source:*` or `triage:*` label. Human-authored issues are
+                NEVER promoted here — filing them was their triage; the
+                implementer picks those up directly on `issues: opened`.
+              - It carries `severity:medium`, `severity:high`, or
+                `triage:medium`. ADR-0020 folds `severity:high` in — it
+                previously had no automatic path. Do NOT promote
+                `severity:critical` or `source:sentry`: those auto-pick-up at
+                the implementer already.
               - It does NOT already carry `ready-for-implementer`.
-              - It has survived at least one full triage-scan cycle since
-                filing — do NOT promote an issue created within the last
-                ~35 minutes (one cron gap). This guarantees triage-bot never
-                files an issue and promotes it in the same window pass.
-              - It is well-specified enough to hand to the implementer: a
-                clear repro or acceptance criteria, a single bounded change.
-                This is a judgement call — apply it conservatively. When the
-                issue is vague, leave it unpromoted and add a comment naming
-                what's missing.
+              - It has survived at least one full triage-scan cycle — do NOT
+                promote an issue created in the last ~35 minutes.
+              - It is well-specified: a clear repro or acceptance criteria, a
+                single bounded change. Judgement call — when vague, leave it
+                unpromoted and comment exactly what is missing.
 
-            For each eligible issue: `gh issue edit <n> --add-label ready-for-implementer`
-            and post a one-line comment noting it was auto-promoted per ADR-0017.
+            THROTTLE: dispatch at most $FLEET_MAX_DISPATCH implementer runs
+            across the whole fleet this run. Order by severity — promote every
+            eligible `severity:high` before any `severity:medium`. When the
+            cap is reached, stop; the next window takes the rest.
 
-            Critical/High issues need no promotion (they auto-pickup). Low/Nit
-            issues are never promoted (they are `deferred-until-adjacent`).
+            For each eligible issue, within the cap:
+              1. GH_TOKEN=$FLEET_TOKEN gh issue edit <n> --repo jaetill/<repo> \
+                   --add-label ready-for-implementer
+              2. Dispatch that repo's implementer. Per ADR-0020 the label is
+                 durable state; THIS dispatch is the trigger:
+                   GH_TOKEN=$FLEET_TOKEN gh workflow run claude-implementer.yml \
+                     --repo jaetill/<repo> -f issue_number=<n>
+              3. GH_TOKEN=$FLEET_TOKEN gh issue comment <n> --repo jaetill/<repo> \
+                   --body "Auto-promoted and dispatched by the fleet promoter (ADR-0020)."
+            Confirm each `gh workflow run` exited 0 — a failed dispatch is a
+            real failure; name it in the summary.
 
-            ## Pass 3 — Pull process-flaw markers from project repos (ADR-0019)
+            SPARE-CAPACITY SWEEP: if you dispatched fewer than
+            $FLEET_MAX_DISPATCH real promotions, spend each remaining slot
+            draining nits. Pick the fleet repo with the most open
+            `deferred-until-adjacent` issues — skip any repo whose count is
+            zero, a cleanup-sweep there is a wasted run — and dispatch one
+            cleanup-only run:
+              GH_TOKEN=$FLEET_TOKEN gh workflow run claude-implementer.yml \
+                --repo jaetill/<repo> -f mode=cleanup-sweep
+            One cleanup dispatch per spare slot; never the same repo twice;
+            never exceed the cap.
 
-            `$FEEDBACK_READ_TOKEN` is a read-only token for the project
-            repos. If it is empty, SKIP this pass — the feedback channel is
-            not yet provisioned — and say so in the summary.
-
-            Otherwise, for each project repo:
-              game-night-pwa meal-planner carto draft ai-teacher jaetill-portal splendor
-
-            list its open `process-flaw` issues:
-              GH_TOKEN=$FEEDBACK_READ_TOKEN gh issue list --repo jaetill/<project> \
+            ## Pass 3 — Pull process-flaw markers (ADR-0019)
+            For each fleet repo, list its open `process-flaw` issues:
+              GH_TOKEN=$FLEET_TOKEN gh issue list --repo jaetill/<repo> \
                 --state open --label process-flaw --json number,title,body,url
 
-            For each one, file a matching issue ON THIS platform repo so the
-            loop can act on it — unless one already exists. Dedup by
-            searching this repo for the source URL (default token):
+            For each, file a matching issue ON THIS platform repo so the loop
+            can act on it — unless one already exists. Dedup by searching this
+            repo for the source URL (default token):
               gh issue list --state open --search "<project-issue-url>" --json number
 
             File new ones with the default token:
               gh issue create --label "process-flaw,triage:medium" \
                 --title "[process-flaw] <project>: <short description>" \
-                --body "Reported from ONE project (jaetill/<project> issue <url>) — this is n=1, generality NOT established. Per Standard 12 the team must abstract it from <project>'s stack/codebase and decide: general flaw (fix ai-team), project-local (resolve in <project>'s knowledge layer — do NOT change the team), or general flaw needing a generalized fix. Do not assume it applies to every project. <body>"
+                --body "Reported from ONE project (jaetill/<project> issue <url>) — n=1, generality NOT established. Per Standard 12 the architect must abstract it and decide: general flaw (fix ai-team) or project-local (resolve in <project>'s knowledge layer). <body>"
 
-            These are agent-discovered: Pass 2's promoter evaluates them on a
-            later cycle, and the implementer's competence gate + generality
-            assessment (Standard 12) classify them when picked up.
-
-            Report a short summary: issues scanned, new issues filed, issues
-            promoted, process-flaw markers pulled.
+            ## Summary
+            Report: repos scanned, issues promoted (split by severity),
+            implementers dispatched, cleanup sweeps dispatched, any FAILED
+            dispatches, process-flaw markers pulled, new platform issues filed.
           claude_args: |
             --model claude-sonnet-4-6
             --permission-mode bypassPermissions
             --allowed-tools Bash,Read,Grep,Glob
-            --append-system-prompt "Follow the platform standards in docs/standards/. Promotion is a Tier 2 (Sonnet) judgement per ADR-0017 — be conservative; an unpromoted issue is recoverable, a wrongly-promoted vague issue wastes an implementer run."
+            --append-system-prompt "Follow the platform standards in docs/standards/. Fleet promotion is a Tier 2 (Sonnet) judgement per ADR-0017 and ADR-0020 — be conservative. An unpromoted issue waits one window; a wrongly-promoted vague issue wastes an implementer run somewhere in the fleet. When in doubt, do not promote."

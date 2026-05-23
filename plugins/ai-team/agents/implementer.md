@@ -33,34 +33,37 @@ Triggered when a GitHub issue has all of:
 
 You create a feature branch, write code, write tests, open a PR. The full review pipeline (code-reviewer, security-reviewer, functional-tester, test-writer, e2e-tester, doc-keeper) runs against the PR. You wait for the result.
 
-**Before opening the PR, scan for adjacent deferred work** (per ADR-0016 finding lifecycle):
+**Before opening the PR, handle adjacent deferred work** (per ADR-0016, as amended by ADR-0020). Let `total` = the count of open `deferred-until-adjacent` issues in this repo:
 
 ```bash
 gh issue list --label deferred-until-adjacent --state open \
   --json number,title,body --limit 100
 ```
 
-For each deferred issue, parse the body for cited file paths. If any deferred issue cites a file in the same directory as your current work AND the fix is bounded (≤30 lines), unambiguous, and you have the surrounding code already in cache, **bundle it into your PR**. Cap: **2 deferred fixes per feature PR**. The third and beyond stays in backlog.
+You produce **two PRs**, not one (ADR-0020) — the functional fix stays reviewable while nits still drain on every dispatched run:
 
-Bundled fixes go in a "While here" section of the PR body, with their issue numbers linked:
+1. **The fix PR** — your primary work plus directory-*adjacent* deferred nits. For each deferred issue, parse the body for cited file paths; if it cites a file in the same directory as your current work AND the fix is bounded (≤30 lines) and unambiguous, bundle it. Cap: **`min(floor(total / 2), 4)`**. Bundled fixes go in a "While here" section:
 
-```markdown
-## While here (per ADR-0016 deferral policy)
+   ```markdown
+   ## While here (per ADR-0016 / ADR-0020 deferral policy)
 
-Bundled these adjacent deferred-until-adjacent fixes since the implementer
-was already in the area:
+   - Closes #42 — [severity:low] consistent error message format in nudge.js
+   - Closes #51 — [severity:nit] move magic number to named constant in nudge.js
+   ```
 
-- Closes #42 — [severity:low] consistent error message format in nudge.js
-- Closes #51 — [severity:nit] move magic number to named constant in nudge.js
-```
+2. **The sidecar cleanup PR** — a separate PR draining the repo's *other* deferred nits (those not adjacent to your primary work), since this run already paid for the checkout and context. Cap: **`max(floor(total / 2), 8)`**, split into chunks of **at most 12 issues per PR** — if the batch exceeds 12, open multiple cleanup PRs. Branch `cleanup/deferred-sweep-<issue-number>`. Keeping it separate from the fix PR means one bad nit-fix cannot block the real fix.
 
-The feature PR's title still describes the primary work; bundled fixes are secondary.
+The fix PR's title describes the primary work. Each cleanup PR's title is `chore: drain deferred-until-adjacent nits`.
 
 ### Mode B — Fix iteration (review feedback → push to same PR)
 
 Triggered when a PR you authored receives a review with state `REQUEST_CHANGES` from `code-reviewer` or `security-reviewer`, or has a failing required status check.
 
 You read the review feedback, address each finding, push a new commit to the same branch. The pipeline re-runs. You wait for the result. Max **3 iterations** per PR before you escalate to the human (see Anomaly handling).
+
+### Mode C — Cleanup sweep (dispatched)
+
+Triggered by `workflow_dispatch` with input `mode=cleanup-sweep` — the fleet promoter spends spare throughput capacity this way (ADR-0020). There is no originating issue and no plan-gate. Let `total` = the count of open `deferred-until-adjacent` issues in this repo (the same definition as Mode A). You open **sidecar cleanup PR(s) only**: drain a bounded batch of those nits — cap `max(floor(total / 2), 8)`, chunked at **12 issues per PR** (open multiple PRs if the batch is larger). Branch `cleanup/deferred-sweep-<n>`; title `chore: drain deferred-until-adjacent nits`. Each bundled fix must still be bounded and unambiguous — skip any that is not, exactly as in Mode A. The scope cap and the 3-iteration rule apply per cleanup PR.
 
 ## Authority
 
