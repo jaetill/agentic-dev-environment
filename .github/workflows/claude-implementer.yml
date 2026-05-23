@@ -127,7 +127,6 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           show_full_output: true
           prompt: |
             Act as the `implementer` subagent (see .claude/agents/implementer.md).
@@ -278,7 +277,6 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           show_full_output: true
           prompt: |
             Act as the `iac-implementer` subagent (.claude/agents/iac-implementer.md).
@@ -422,7 +420,6 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           show_full_output: true
           allowed_bots: 'claude[bot]'
           prompt: |
@@ -468,7 +465,7 @@ jobs:
             --allowed-tools Bash,Read,Write,Edit,Glob,Grep
             --append-system-prompt "Follow the platform standards in docs/standards/. You are operating in Mode B per .claude/agents/implementer.md."
 
-  # ── Manual dispatch (workflow_dispatch) — for smoke testing ─────────────
+  # ── workflow_dispatch handler — fleet promoter dispatch (ADR-0020) ──────
   manual-dispatch:
     if: |
       github.event_name == 'workflow_dispatch'
@@ -509,11 +506,16 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # The fleet promoter (ADR-0020) dispatches this workflow as the
+          # GitHub App jaetill-ai-triage-team[bot] — a Bot actor.
+          # claude-code-action rejects Bot-initiated runs unless the bot is
+          # allow-listed. workflow_dispatch is itself permission-gated, so
+          # allowing the fleet App here is safe.
+          allowed_bots: 'jaetill-ai-triage-team[bot]'
           show_full_output: true
           prompt: |
-            Manual dispatch for testing — same as Mode A but the issue
-            number comes from workflow_dispatch input.
+            Dispatched implementation (Mode A) — fleet promoter (ADR-0020)
+            or manual smoke test. Issue number from the workflow_dispatch input.
 
             Issue number: ${{ inputs.issue_number }}
 
@@ -565,7 +567,9 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Dispatched by the fleet promoter App — allow the Bot actor
+          # (full rationale on the workflow_dispatch handler above).
+          allowed_bots: 'jaetill-ai-triage-team[bot]'
           show_full_output: true
           prompt: |
             Act as the `implementer` subagent, operating in **Mode C — cleanup
