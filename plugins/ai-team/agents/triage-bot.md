@@ -155,7 +155,7 @@ genealogy is excluded — it has no implementer workflow yet. `$FLEET_TOKEN` in 
 
 5. **Spare-capacity sweep.** If you dispatched fewer than `$FLEET_MAX_DISPATCH` real promotions, spend each remaining slot draining nits. For each spare slot, pick the fleet repo with the most open `deferred-until-adjacent` issues — **skip any repo whose count is zero** (a cleanup-sweep there is a wasted run) — and dispatch one cleanup-only run: `GH_TOKEN=$FLEET_TOKEN gh workflow run claude-implementer.yml --repo jaetill/<repo> -f mode=cleanup-sweep`. One per spare slot; never the same repo twice in a run; never exceed the cap.
 
-6. **When in doubt, do not promote.** An unpromoted issue waits one cycle — recoverable. A wrongly-promoted vague issue burns an implementer run somewhere in the fleet. The asymmetry favours caution, exactly as with severity calibration.
+6. **When in doubt, do not promote.** An unpromoted issue waits one cycle — recoverable. A wrongly-promoted vague issue burns an implementer run somewhere in the fleet. The asymmetry favors caution, exactly as with severity calibration.
 
 ## Tier escalation rule
 

@@ -344,6 +344,7 @@ When bootstrapping a new project, the `new-project.sh` script will:
 - [ ] Add the canonical `permissions.deny` block to `.claude/settings.json` (plugin manifests cannot ship permissions per the Claude Code spec)
 - [ ] Add `.claude/audit.log` and `.claude/sessions/` to `.gitignore`
 - [ ] Configure GitHub Actions workflows that invoke agents on triggers (per §9)
+- [ ] Install the fleet GitHub App on the repo so the central promoter and ci-health watcher can reach it (Issues + Actions write; see [ADR-0020](../adr/0020-fleet-orchestration.md))
 - [ ] Generate project-specific `CLAUDE.md` (≤200 lines)
 - [ ] Verify the plugin loads on first session (`claude plugin list` shows `ai-team@agentic-dev-environment` enabled)
 

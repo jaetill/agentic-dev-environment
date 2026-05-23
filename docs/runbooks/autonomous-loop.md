@@ -62,6 +62,10 @@ So a scheduled `triage-scan` run shows `success` even when it did no work — th
     gh workflow run triage-scan.yml -f reason="<why>"
     gh workflow run claude-implementer.yml -f issue_number=<n>
 
+To manually drain deferred nits on a specific fleet repo (Mode C cleanup sweep, ADR-0020):
+
+    gh workflow run claude-implementer.yml --repo jaetill/<repo> -f mode=cleanup-sweep
+
 ## How work routes
 
 ADR-0017 routes work by **source × type × severity**. `claude-implementer`'s `initial` job is triggered two ways:

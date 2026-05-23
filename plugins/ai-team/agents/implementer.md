@@ -63,7 +63,7 @@ You read the review feedback, address each finding, push a new commit to the sam
 
 ### Mode C — Cleanup sweep (dispatched)
 
-Triggered by `workflow_dispatch` with input `mode=cleanup-sweep` — the fleet promoter spends spare throughput capacity this way (ADR-0020). There is no originating issue and no plan-gate. You open **sidecar cleanup PR(s) only**: drain a bounded batch of the repo's open `deferred-until-adjacent` nits — cap `max(floor(total / 2), 8)`, chunked at **12 issues per PR** (open multiple PRs if the batch is larger). Branch `cleanup/deferred-sweep-<n>`; title `chore: drain deferred-until-adjacent nits`. Each bundled fix must still be bounded and unambiguous — skip any that is not, exactly as in Mode A. The scope cap and the 3-iteration rule apply per cleanup PR.
+Triggered by `workflow_dispatch` with input `mode=cleanup-sweep` — the fleet promoter spends spare throughput capacity this way (ADR-0020). There is no originating issue and no plan-gate. Let `total` = the count of open `deferred-until-adjacent` issues in this repo (the same definition as Mode A). You open **sidecar cleanup PR(s) only**: drain a bounded batch of those nits — cap `max(floor(total / 2), 8)`, chunked at **12 issues per PR** (open multiple PRs if the batch is larger). Branch `cleanup/deferred-sweep-<n>`; title `chore: drain deferred-until-adjacent nits`. Each bundled fix must still be bounded and unambiguous — skip any that is not, exactly as in Mode A. The scope cap and the 3-iteration rule apply per cleanup PR.
 
 ## Authority
 

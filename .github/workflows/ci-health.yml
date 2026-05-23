@@ -61,15 +61,20 @@ jobs:
           since=$(date -u -d '25 hours ago' +%Y-%m-%dT%H:%M:%SZ)
           echo "Scanning fleet runs since $since"
 
-          # The fleet — every repo the platform watches.
-          FLEET="agentic-dev-environment game-night-pwa meal-planner ai-teacher jaetill-portal splendor draft carto genealogy"
+          # The fleet — the 8 loop-participating repos. Matches the
+          # triage-scan promoter's list exactly; genealogy is excluded (it
+          # has no claude-* loop workflows) until it adopts the platform.
+          FLEET="agentic-dev-environment game-night-pwa meal-planner ai-teacher jaetill-portal splendor draft carto"
 
           # Collect qualifying failures across the whole fleet.
           all='[]'
           for repo in $FLEET; do
             runs=$(GH_TOKEN="$FLEET_TOKEN" gh run list --repo "$OWNER/$repo" \
               --status failure --limit 100 \
-              --json workflowName,event,createdAt,url 2>/dev/null || echo '[]')
+              --json workflowName,event,createdAt,url 2>/dev/null) || {
+              echo "::warning::ci-health: could not list runs for $OWNER/$repo (App token access, or repo missing) — treating as no failures"
+              runs='[]'
+            }
             # Keep: created in the window, NOT pull_request/push (those show
             # on the PR/commit already), and NOT this watcher itself.
             keep=$(echo "$runs" | jq --arg since "$since" --arg repo "$repo" '

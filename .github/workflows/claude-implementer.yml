@@ -59,6 +59,11 @@ concurrency:
 
 jobs:
   # ── Mode A: initial implementation ──────────────────────────────────────
+  # ADR-0020 sender guard: a `ready-for-implementer` label triggers this job
+  # ONLY when a human applied it. A bot (the fleet promoter, App identity)
+  # applies the label as state and dispatches separately — guarding on
+  # `sender.type != 'Bot'` here prevents that label+dispatch double-trigger.
+  # `source:sentry` / `severity:critical` auto-pickup is unaffected.
   initial:
     if: |
       github.event_name == 'issues'
@@ -238,6 +243,7 @@ jobs:
         (
           github.event.action == 'labeled'
           && github.event.label.name == 'ready-for-implementer'
+          && github.event.sender.type != 'Bot'
         )
         || (
           github.event.action == 'opened'
