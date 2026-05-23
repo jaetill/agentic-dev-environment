@@ -1,6 +1,6 @@
 # ADR-0021: Autonomous merge of implementer fix PRs
 
-- **Status:** Proposed
+- **Status:** Accepted — ratified by human merge of PR #51, 2026-05-23
 - **Date:** 2026-05-23
 - **Deciders:** Jason Tilley
 - **Tags:** ai-workflows, governance, ci-cd, orchestration, autonomy
@@ -33,7 +33,7 @@ Two things need settling:
 
 ## Decision Outcome
 
-Chosen option: **Option A.** A job in the `claude-pr-review` reusable auto-merges an implementer fix PR when, and only when, **all** of the following hold:
+Chosen option: **Option A.** A job in the `triage-scan` promoter — the platform-central loop, running as the fleet App — auto-merges an implementer fix PR when, and only when, **all** of the following hold:
 
 1. The PR is **authored by the implementer agent** and closes an issue labelled **`defect`** or **`bug`** — not `feature-request` (those keep the ADR-0017 plan-gate, where the human approves the approach first).
 2. **Every required check passes** — this is ADR-0003's AI review battery. `code-review` and `security-review` are hard gates (a Critical/High finding → `VERDICT: BLOCK` → no merge); `functional-test` and the rest pass.
@@ -59,7 +59,7 @@ This is the operational form of commander's intent: a `defect`/`bug` fix within 
 
 ### Neutral
 
-- One new job in the `claude-pr-review` reusable — defined once, inherited by every caller (ADR-0018). `release-please` and human-authored PRs are excluded by the implementer-authored filter.
+- One new job in the `triage-scan` promoter, running centrally as the fleet App. `release-please` and human-authored PRs are excluded by the implementer-authored filter (PR author `app/claude`).
 
 ## Pros and Cons of the Options
 
@@ -80,8 +80,10 @@ This is the operational form of commander's intent: a `defect`/`bug` fix within 
 
 ## Implementation notes
 
-- **Workflow:** a new `auto-merge` job in `.github/workflows/claude-pr-review.yml` (the reusable). It `needs:` the gate jobs, evaluates the four conditions, and calls `gh pr merge --squash`.
-- **Gate inputs:** the type label on the linked issue (from the PR's `Closes #N`); the gate jobs' conclusions; the `requires-adr:*` label set; `github.repository`; the `AUTONOMOUS_MERGE` variable.
+- **Workflow:** a new `auto-merge` job in `.github/workflows/triage-scan.yml` (the central promoter). It mints the fleet App token, sweeps the project fleet for green qualifying implementer PRs, and calls `gh pr merge --squash` on each.
+- **Placement — central, not the reusable.** An earlier draft put this job in the `claude-pr-review` reusable. Implementation surfaced the flaw: a per-repo reusable job could only merge with `GITHUB_TOKEN`, and a `GITHUB_TOKEN` merge triggers nothing downstream (ADR-0018) — release-please would never see it, so nothing would deploy. The merge must be performed by the fleet App (whose events cascade), and the App credential lives only on the platform repo — so the job lives in the platform-central `triage-scan` promoter, alongside the rest of the fleet-wide loop (ADR-0020). The Option-A decision is unchanged; only placement was refined.
+- **Fleet App permissions:** the App needs `contents: write` + `pull requests: write` to merge. If it was installed with only the promoter's `issues` + `actions` write, those two permissions must be added and the installation re-approved.
+- **Gate inputs:** the type label on the linked issue (from the PR's `Closes #N`); `gh pr checks` exit status; the `requires-adr:*` label set; the PR author; the `AUTONOMOUS_MERGE` variable.
 - **Standard 10 (AI workflows)** gains a section on the implementer-PR auto-merge gate; the plugin's shipped copy is updated in lockstep.
 - **ADR-0016** is amended — the finding lifecycle gains a terminal **merge** stage for the routine-fix path.
 - **ADR-0003** gains a forward reference to this ADR.
