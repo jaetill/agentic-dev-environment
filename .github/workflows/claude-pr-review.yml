@@ -62,11 +62,14 @@ jobs:
       - name: Run code-reviewer agent
         uses: anthropics/claude-code-action@v1
         with:
-          # Prefer the OAuth token (counts against the Claude Max subscription)
-          # when present; fall back to a pay-per-token API key. Either works;
-          # only one needs to be set.
+          # Authenticate against the one Claude Max subscription via OAuth.
+          # Do NOT add anthropic_api_key here: claude-code-action, given
+          # both an OAuth token and an API key, picks the API key — a
+          # pay-per-token account the fleet does not fund. OAuth-only
+          # keeps every fleet repo on Max. (Removed 2026-05-22: an
+          # inherited stale ANTHROPIC_API_KEY routed one repo's CI to a
+          # depleted account — billing_error. The fleet runs on Max.)
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           # The action's sticky-comment / buffered-inline-comment flow is
           # designed for @claude-mention triggers; on bare pull_request events
           # the post step reports "No buffered inline comments" and nothing
@@ -233,7 +236,6 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           show_full_output: true
           # Allow runs initiated by claude[bot] (i.e. implementer-authored
           # PRs and synchronize events from agent commits). Loop prevention
@@ -298,7 +300,6 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           show_full_output: true
           # Allow runs initiated by claude[bot] (i.e. implementer-authored
           # PRs and synchronize events from agent commits). Loop prevention
@@ -395,7 +396,6 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           show_full_output: true
           # Allow runs initiated by claude[bot] (i.e. implementer-authored
           # PRs and synchronize events from agent commits). Loop prevention
@@ -466,7 +466,6 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           show_full_output: true
           # Allow runs initiated by claude[bot] (i.e. implementer-authored
           # PRs and synchronize events from agent commits). Loop prevention
@@ -535,7 +534,6 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           show_full_output: true
           # Allow runs initiated by claude[bot] (i.e. implementer-authored
           # PRs and synchronize events from agent commits). Loop prevention
@@ -813,7 +811,6 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           show_full_output: true
           # Allow runs initiated by claude[bot] (i.e. implementer-authored
           # PRs and synchronize events from agent commits). Loop prevention
