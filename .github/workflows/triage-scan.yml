@@ -218,3 +218,86 @@ jobs:
             --permission-mode bypassPermissions
             --allowed-tools Bash,Read,Grep,Glob
             --append-system-prompt "Follow the platform standards in docs/standards/. Fleet promotion is a Tier 2 (Sonnet) judgement per ADR-0017 and ADR-0020 — be conservative. An unpromoted issue waits one window; a wrongly-promoted vague issue wastes an implementer run somewhere in the fleet. When in doubt, do not promote."
+
+  # ── Auto-merge — close the loop on routine implementer fix PRs (ADR-0021) ─
+  # ADR-0003 set the approval model to AI shipping authority; ADR-0021 applies
+  # it to the autonomous implementer's fix PRs. This job merges green,
+  # qualifying implementer PRs across the PROJECT fleet, AS THE FLEET APP — so
+  # the merge cascades to release-please + deploy (a GITHUB_TOKEN merge would
+  # trigger nothing downstream, ADR-0018). The gate is deterministic — issue
+  # type + check state + labels, no agent judgement. The platform repo is
+  # excluded: its PRs are self-modifications, human-merged per ADR-0019.
+  # `vars.AUTONOMOUS_MERGE=off` pauses this job fleet-wide.
+  auto-merge:
+    needs: window
+    if: needs.window.outputs.in_window == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Mint fleet App token
+        id: fleet-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.FLEET_APP_ID }}
+          private-key: ${{ secrets.FLEET_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+
+      - name: Merge qualifying implementer fix PRs
+        env:
+          GH_TOKEN: ${{ steps.fleet-token.outputs.token }}
+          AUTONOMOUS_MERGE: ${{ vars.AUTONOMOUS_MERGE || 'on' }}
+        run: |
+          set -uo pipefail
+          if [[ "${AUTONOMOUS_MERGE}" == "off" ]]; then
+            echo "::notice::AUTONOMOUS_MERGE=off — autonomous merge is paused."
+            echo "## Auto-merge: paused (AUTONOMOUS_MERGE=off)" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          # Project fleet only. The platform repo (agentic-dev-environment) is
+          # excluded — its PRs are self-modifications, human-merged per
+          # ADR-0019. genealogy has no implementer loop.
+          REPOS="game-night-pwa meal-planner ai-teacher jaetill-portal splendor draft carto"
+          merged=0 ; held=0
+          for repo in $REPOS; do
+            slug="jaetill/${repo}"
+            prs=$(gh pr list --repo "$slug" --state open --json number,author \
+                    --jq '.[] | select(.author.login == "app/claude") | .number' 2>/dev/null || true)
+            for pr in $prs; do
+              meta=$(gh pr view "$pr" --repo "$slug" --json labels,body 2>/dev/null || true)
+              if [[ -z "$meta" ]]; then
+                echo "  $slug#$pr — could not read PR; hold"; held=$((held+1)); continue
+              fi
+              # ADR-0021 cond. 3 — no requires-adr:* label (ADR-gated → human)
+              if echo "$meta" | jq -e '[.labels[].name] | any(startswith("requires-adr"))' >/dev/null 2>&1; then
+                echo "  $slug#$pr — requires-adr label; hold for human"; held=$((held+1)); continue
+              fi
+              # ADR-0021 cond. 1 — closes a defect/bug issue (a feature keeps
+              # ADR-0017's plan-gate and never reaches here)
+              issue=$(echo "$meta" | jq -r '.body // ""' \
+                        | grep -ioE '(close[sd]?|fix(e[sd])?|resolve[sd]?) +#[0-9]+' \
+                        | grep -oE '[0-9]+' | head -1 || true)
+              if [[ -z "$issue" ]]; then
+                echo "  $slug#$pr — no linked issue; hold"; held=$((held+1)); continue
+              fi
+              is_defect=$(gh issue view "$issue" --repo "$slug" --json labels \
+                            --jq '[.labels[].name] | any(. == "defect" or . == "bug")' 2>/dev/null || echo false)
+              if [[ "$is_defect" != "true" ]]; then
+                echo "  $slug#$pr — issue #$issue not defect/bug; hold"; held=$((held+1)); continue
+              fi
+              # ADR-0021 cond. 2 — every check green (gh pr checks exits 0 only
+              # when all checks have completed and passed)
+              if ! gh pr checks "$pr" --repo "$slug" >/dev/null 2>&1; then
+                echo "  $slug#$pr — checks not all green; hold"; held=$((held+1)); continue
+              fi
+              # All four conditions hold — merge as the fleet App.
+              if gh pr merge "$pr" --repo "$slug" --squash; then
+                echo "::notice::Auto-merged $slug#$pr (fix for #$issue) per ADR-0021."
+                merged=$((merged+1))
+              else
+                echo "::warning::$slug#$pr qualified but the merge failed; left for a human."
+                held=$((held+1))
+              fi
+            done
+          done
+          echo "## Auto-merge — $merged merged, $held held" >> "$GITHUB_STEP_SUMMARY"
+          echo "Auto-merge sweep complete: $merged merged, $held held."
