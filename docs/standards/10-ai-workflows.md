@@ -326,7 +326,7 @@ When the promoter promotes an issue it (1) applies `ready-for-implementer` as du
 
 ### The fleet credential
 
-The loop's cross-repo credential is a GitHub App with `Issues` + `Actions` write across the fleet; the platform workflow mints a short-lived installation token per run. It writes platform→project only — the project→platform boundary (ADR-0019, Standard 12) is untouched.
+The loop's cross-repo credential is a GitHub App; the platform workflow mints a short-lived installation token per run. It holds `Issues` + `Actions` write for promotion and `Contents` + `Pull requests` write for autonomous merge (§9c) across the fleet. It writes platform→project only — the project→platform boundary (ADR-0019, Standard 12) is untouched.
 
 ### Throughput
 
@@ -336,6 +336,30 @@ The promoter respects a per-run dispatch cap (`FLEET_MAX_DISPATCH_PER_RUN`, defa
 
 `ci-health.yml` watches every fleet repo's non-PR workflow runs and files one consolidated issue on the platform repo when failures hide. See Standard 12 for how a detected breakage in a platform-sourced workflow routes to a team fix.
 
+## 9c. Autonomous merge of routine fix PRs
+
+Per **[ADR-0021](../adr/0021-autonomous-merge.md)**, the fleet loop closes itself: the autonomous implementer's routine fix PRs are squash-merged by an `auto-merge` job in the `triage-scan` promoter — no human, no open session. This *applies* ADR-0003's approval model (AI shipping authority; the human gates only ADR-decisions) to the implementer path, the same way `release-captain` already auto-merges release PRs.
+
+### The four-condition gate
+
+The job merges an implementer fix PR when, and only when, **all four** conditions hold. The gate is deterministic — decidable from labels and check state, with no agent judgement at merge time:
+
+1. **Implementer-authored, fixing a defect.** The PR's author is the implementer agent (`gh pr list --json author` renders the App bot as `app/claude`) and it closes an issue labelled `defect` or `bug`. A `feature-request` is excluded — features keep ADR-0017's plan-gate, where the human approves the approach first.
+2. **Every check green.** The full AI review battery (§9, ADR-0003) passed; `code-review` and `security-review` are hard gates. A PR with *zero* checks does not qualify — the gate requires a non-empty green battery, not a vacuous pass.
+3. **No `requires-adr:*` label.** The five ADR-gated categories (ADR-0003) route to the human, unchanged.
+4. **A project repo.** The platform repo is excluded — its PRs are self-modifications, human-merged per [ADR-0019](../adr/0019-team-self-modification.md) / Standard 12.
+
+### Controls
+
+- **`AUTONOMOUS_MERGE`** — repo/org variable, default `on`. Set it `off` to pause autonomous merge fleet-wide with no code change.
+- **`AUTONOMOUS_MERGE_CAP`** — default `10`. Bounds merges per run, so a malfunctioning implementer cannot land an unbounded batch in a single window.
+
+### Why the merge runs centrally, as the fleet App
+
+The job lives in the central `triage-scan` promoter, not the per-repo `claude-pr-review` reusable, and merges with the fleet App token — not `GITHUB_TOKEN`. A `GITHUB_TOKEN` merge triggers nothing downstream (ADR-0018): release-please would never see it, so nothing would deploy. The fleet App's events cascade, and its installation credential lives only on the platform repo — so the merge must run centrally. This is why the fleet App also carries `Contents` + `Pull requests` write (see §9b).
+
+This is the operational form of *commander's intent*: a `defect`/`bug` fix inside the implementer's scope cap is routine and ships; anything that redefines scope arrives as a `feature-request` (→ plan-gate) or trips `requires-adr` (→ human).
+
 ## 10. Setup checklist
 
 When bootstrapping a new project, the `new-project.sh` script will:
@@ -344,7 +368,7 @@ When bootstrapping a new project, the `new-project.sh` script will:
 - [ ] Add the canonical `permissions.deny` block to `.claude/settings.json` (plugin manifests cannot ship permissions per the Claude Code spec)
 - [ ] Add `.claude/audit.log` and `.claude/sessions/` to `.gitignore`
 - [ ] Configure GitHub Actions workflows that invoke agents on triggers (per §9)
-- [ ] Install the fleet GitHub App on the repo so the central promoter and ci-health watcher can reach it (Issues + Actions write; see [ADR-0020](../adr/0020-fleet-orchestration.md))
+- [ ] Install the fleet GitHub App on the repo so the central promoter, auto-merger, and ci-health watcher can reach it (`Issues` + `Actions` + `Contents` + `Pull requests` write; see [ADR-0020](../adr/0020-fleet-orchestration.md), [ADR-0021](../adr/0021-autonomous-merge.md))
 - [ ] Generate project-specific `CLAUDE.md` (≤200 lines)
 - [ ] Verify the plugin loads on first session (`claude plugin list` shows `ai-team@agentic-dev-environment` enabled)
 
