@@ -294,7 +294,7 @@ Reviewer-style agents (`code-reviewer`, `security-reviewer`, `triage-bot`, `doc-
 
 ### Deferral policy
 
-Low and nit findings get filed as GitHub issues with the **`deferred-until-adjacent`** label. The implementer does NOT pick them up in isolation. Instead, when working on a feature, Sentry bug, or higher-severity fix, the implementer scans for deferred issues citing files in the same directory and **bundles up to 2 of them into the in-flight PR** under a "While here" section.
+Low and nit findings get filed as GitHub issues with the **`deferred-until-adjacent`** label. The implementer does NOT pick them up in isolation. Instead — per **[ADR-0020](../adr/0020-fleet-orchestration.md)**, which amends ADR-0016's flat cap of 2 — every dispatched implementer run drains nits across two PRs. The **fix PR** bundles directory-adjacent deferred nits, cap `min(floor(total / 2), 4)`. A separate **sidecar cleanup PR** drains the rest, cap `max(floor(total / 2), 8)`, chunked at 12 issues per PR. `total` is the repo's open `deferred-until-adjacent` count. The promoter's spare-capacity `mode=cleanup-sweep` dispatch drains repos that get no qualifying work — so cold-code nits no longer wait on coincidental adjacency.
 
 Medium findings default to non-deferred; defense-in-depth Mediums and prose-quality Mediums may carry the deferral label sparingly.
 
@@ -312,6 +312,54 @@ Issues labeled `source:sentry` (auto-applied by Sentry's GitHub integration when
 
 To make Sentry-bug auto-pickup actually fire, each consuming project's `claude-implementer.yml` must trigger on `source:sentry` and `severity:critical` labels in addition to `ready-for-implementer`. This is a one-line workflow-trigger change; tracked in the platform-port-quirks runbook. The `source:sentry` label itself is applied by Sentry's GitHub integration's alert-rule config — no separate auto-labeler workflow is needed.
 
+## 9b. Fleet orchestration
+
+Per **[ADR-0020](../adr/0020-fleet-orchestration.md)**, the autonomous loop runs as **one central loop reaching the whole portfolio**, not one loop per repo.
+
+### One loop, every repo
+
+`triage-scan.yml` is a single scheduled workflow on the platform repo. Its promoter pass scans and promotes agent-discovered work across every fleet repo. `severity:medium`, `severity:high`, and `triage:medium` are all promotable — ADR-0020 added `severity:high`, which previously had no automatic path. `severity:critical` and `source:sentry` still auto-pick-up at the implementer.
+
+### Dispatch, not cascade
+
+When the promoter promotes an issue it (1) applies `ready-for-implementer` as durable state and (2) explicitly dispatches that repo's `claude-implementer.yml` via `workflow_dispatch`. The dispatch is the trigger — a cross-repo label event does not reliably wake a workflow (GitHub's `GITHUB_TOKEN` cascade rule). A failed dispatch is visible in the scanner log; a silent label is not.
+
+### The fleet credential
+
+The loop's cross-repo credential is a GitHub App; the platform workflow mints a short-lived installation token per run. It holds `Issues` + `Actions` write for promotion and `Contents` + `Pull requests` write for autonomous merge (§9c) across the fleet. It writes platform→project only — the project→platform boundary (ADR-0019, Standard 12) is untouched.
+
+### Throughput
+
+The promoter respects a per-run dispatch cap (`FLEET_MAX_DISPATCH_PER_RUN`, default 6) so unblocking the backlog does not flood the implementers. Spare capacity is spent on `mode=cleanup-sweep` dispatches that drain deferred nits.
+
+### Detection across the fleet
+
+`ci-health.yml` watches every fleet repo's non-PR workflow runs and files one consolidated issue on the platform repo when failures hide. See Standard 12 for how a detected breakage in a platform-sourced workflow routes to a team fix.
+
+## 9c. Autonomous merge of routine fix PRs
+
+Per **[ADR-0021](../adr/0021-autonomous-merge.md)**, the fleet loop closes itself: the autonomous implementer's routine fix PRs are squash-merged by an `auto-merge` job in the `triage-scan` promoter — no human, no open session. This *applies* ADR-0003's approval model (AI shipping authority; the human gates only ADR-decisions) to the implementer path, the same way `release-captain` already auto-merges release PRs.
+
+### The four-condition gate
+
+The job merges an implementer fix PR when, and only when, **all four** conditions hold. The gate is deterministic — decidable from labels and check state, with no agent judgement at merge time:
+
+1. **Implementer-authored, fixing a defect.** The PR's author is the implementer agent (`gh pr list --json author` renders the App bot as `app/claude`) and it closes an issue labelled `defect` or `bug`. A `feature-request` is excluded — features keep ADR-0017's plan-gate, where the human approves the approach first.
+2. **Every check green.** The full AI review battery (§9, ADR-0003) passed; `code-review` and `security-review` are hard gates. A PR with *zero* checks does not qualify — the gate requires a non-empty green battery, not a vacuous pass.
+3. **No `requires-adr:*` label.** The five ADR-gated categories (ADR-0003) route to the human, unchanged.
+4. **A project repo.** The platform repo is excluded — its PRs are self-modifications, human-merged per [ADR-0019](../adr/0019-team-self-modification.md) / Standard 12.
+
+### Controls
+
+- **`AUTONOMOUS_MERGE`** — repo/org variable, default `on`. Set it `off` to pause autonomous merge fleet-wide with no code change.
+- **`AUTONOMOUS_MERGE_CAP`** — default `10`. Bounds merges per run, so a malfunctioning implementer cannot land an unbounded batch in a single window.
+
+### Why the merge runs centrally, as the fleet App
+
+The job lives in the central `triage-scan` promoter, not the per-repo `claude-pr-review` reusable, and merges with the fleet App token — not `GITHUB_TOKEN`. A `GITHUB_TOKEN` merge triggers nothing downstream (ADR-0018): release-please would never see it, so nothing would deploy. The fleet App's events cascade, and its installation credential lives only on the platform repo — so the merge must run centrally. This is why the fleet App also carries `Contents` + `Pull requests` write (see §9b).
+
+This is the operational form of *commander's intent*: a `defect`/`bug` fix inside the implementer's scope cap is routine and ships; anything that redefines scope arrives as a `feature-request` (→ plan-gate) or trips `requires-adr` (→ human).
+
 ## 10. Setup checklist
 
 When bootstrapping a new project, the `new-project.sh` script will:
@@ -320,6 +368,7 @@ When bootstrapping a new project, the `new-project.sh` script will:
 - [ ] Add the canonical `permissions.deny` block to `.claude/settings.json` (plugin manifests cannot ship permissions per the Claude Code spec)
 - [ ] Add `.claude/audit.log` and `.claude/sessions/` to `.gitignore`
 - [ ] Configure GitHub Actions workflows that invoke agents on triggers (per §9)
+- [ ] Install the fleet GitHub App on the repo so the central promoter, auto-merger, and ci-health watcher can reach it (`Issues` + `Actions` + `Contents` + `Pull requests` write; see [ADR-0020](../adr/0020-fleet-orchestration.md), [ADR-0021](../adr/0021-autonomous-merge.md))
 - [ ] Generate project-specific `CLAUDE.md` (≤200 lines)
 - [ ] Verify the plugin loads on first session (`claude plugin list` shows `ai-team@agentic-dev-environment` enabled)
 
