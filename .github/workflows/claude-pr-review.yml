@@ -231,7 +231,11 @@ jobs:
       - name: Install dependencies
         run: |
           npm ci
-          npm ci --prefix lambda
+          # Guard the lambda install — repos without a backend lambda
+          # (e.g. splendor, ai-teacher) have no lambda/package-lock.json,
+          # and an unconditional `npm ci --prefix lambda` fails EUSAGE
+          # there (platform issue #32). Mirrors claude-implementer.yml.
+          [ -f lambda/package-lock.json ] && npm ci --prefix lambda || echo "no lambda deps — skipping"
       - name: Run functional-tester agent
         uses: anthropics/claude-code-action@v1
         with:
@@ -295,7 +299,11 @@ jobs:
       - name: Install dependencies
         run: |
           npm ci
-          npm ci --prefix lambda
+          # Guard the lambda install — repos without a backend lambda
+          # (e.g. splendor, ai-teacher) have no lambda/package-lock.json,
+          # and an unconditional `npm ci --prefix lambda` fails EUSAGE
+          # there (platform issue #32). Mirrors claude-implementer.yml.
+          [ -f lambda/package-lock.json ] && npm ci --prefix lambda || echo "no lambda deps — skipping"
       - name: Run test-writer agent
         uses: anthropics/claude-code-action@v1
         with:
