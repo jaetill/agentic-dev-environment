@@ -1,6 +1,6 @@
 # ADR-0016: Finding lifecycle - calibration, deferral, and Sentry-driven cleanup
 
-- **Status:** Accepted — Rule 2 deferral caps amended by [ADR-0020](0020-fleet-orchestration.md)
+- **Status:** Accepted — Rule 2 deferral caps amended by [ADR-0020](0020-fleet-orchestration.md); terminal merge stage added by [ADR-0021](0021-autonomous-merge.md)
 - **Date:** 2026-05-16
 - **Deciders:** Jason Tilley
 - **Tags:** ai-workflows, governance, agents, signal-to-noise
