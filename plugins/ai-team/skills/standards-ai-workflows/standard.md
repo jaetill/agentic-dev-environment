@@ -383,4 +383,61 @@ The platform's agents run in two distinct execution contexts. Each agent's front
 | **Cowork** | Interactive (you're at your desk talking to Claude) or scheduled-via-Cowork tasks | Memory across sessions; MCP connectors (Slack, Linear/Jira/Atlassian, Notion, GitHub, calendar, email, etc.); desktop notification capability; full file/bash access to your workspace |
 | **CI** | GitHub Actions invokes the agent via `anthropics/claude-code-action@v1` on a trigger (PR, push, tag, schedule) | The repo content; AWS via OIDC; secrets configured in the GitHub environment; GitHub Issues / PR APIs; whatever's wired in the workflow YAML |
 
-### Ca
+### Capability matrix per agent
+
+| Agent | Primary context | Cowork enhancements |
+|---|---|---|
+| `architect` (headless) | CI | In Cowork: head agent in architect mode handles interactive design; the headless `architect` only fires on ADR-gated PRs |
+| `code-reviewer` | CI | None significant; CI is the right place for PR review |
+| `security-reviewer` | CI | None significant; CI is the right place for PR review |
+| `test-writer` | Either | Cowork: can use connectors (e.g., read Linear ticket for context). CI: just the diff. |
+| `functional-tester` | Either | Cowork: can post test reports to Slack via connector. CI: PR comment only. |
+| `e2e-tester` | Either | Same as functional-tester |
+| `doc-keeper` | CI | None significant |
+| `release-captain` | CI | Cowork: can post release announcements to Slack/Notion via connectors. CI: GitHub Release page only. |
+| `dep-watcher` | CI | None significant |
+| `incident-responder` | CI **+ Cowork-enhanced for paging** | **Cowork: can reach the human via desktop notification + Slack DM + email via connectors** (the actual paging). CI: can only open issues + send via configured webhooks (PagerDuty, Slack-via-webhook). |
+| `drift-detector` | CI | Cowork: can cross-post drift summaries to Linear/Notion |
+| `triage-bot` | CI **+ Cowork-enhanced for cross-tracker dispatch** | **Cowork: can post high-impact tickets to Linear/Jira/Slack via connectors; can email user-feedback submitters via SES (if SES not wired in CI).** CI: GitHub Issues only. |
+
+### The handoff pattern
+
+Some workflows want capabilities that span contexts. The platform pattern:
+
+1. **CI does the structured work.** Always. Every event creates a GitHub Issue, PR comment, or commit — something durable in the repo.
+2. **Cowork does the connector fan-out.** When you open a Cowork session (interactive or scheduled), the head agent in scrummaster mode reads the GitHub state and reconciles to connector-only destinations.
+
+Concrete examples:
+
+- **User feedback** (per Standard 11): the `/api/feedback` backend creates GitHub Issues with `feedback:user-submitted`. CI-context `triage-bot` daily-scans these and applies classification labels. **Next Cowork session**: head agent reviews high-impact items and forwards summaries to Slack/Linear/email.
+- **Drift detection**: CI-context `drift-detector` runs weekly and creates a GitHub Issue per drift. **Next Cowork session**: head agent reviews the digest and notifies on Slack if anything is structurally significant.
+- **Release announcement**: CI-context `release-captain` creates the GitHub Release. **Next Cowork session**: head agent in release-announcer mode posts to Slack/Notion with the narrative summary.
+
+### Scheduled tasks — where they run
+
+| Schedule | Run via | Why |
+|---|---|---|
+| Daily/weekly **digest generation** (head agent in scrummaster mode) | **Cowork scheduled task** (preferred) — falls back to CI cron with reduced capability | Digest pulls from Slack/Linear/Notion via connectors; CI version can only pull from GitHub. |
+| Daily **`triage-bot` log scan** | **CI cron** | Log sources (CloudWatch, Sentry) work the same in both; CI is fine. |
+| Weekly **`drift-detector` IaC plan** | **CI cron** | AWS access + tofu binary; CI is the right place. |
+| **Sentry release entry** post-deploy | **CI** (in the release workflow) | Tied to the deploy event; runs in the deploy workflow. |
+| **Dep CVE scan** | **CI cron + Dependabot** | GitHub-native. |
+
+The pattern: **CI handles the work that's tied to repo state or runs on a strict cadence the human can't be guaranteed to be at.** Cowork handles the work that benefits from connectors AND tolerates "next time the human is at their desk" cadence.
+
+### What this means for agent frontmatter
+
+Each agent's `primary_context` is declared in frontmatter. The agent's system prompt's "Inputs" section enumerates what's available in each context, and the "Process" section's anomaly-handling notes when a needed connector is unavailable in the current context (typically: degrade gracefully — produce GitHub-issue output even when Slack/Linear connectors are missing, and let the next Cowork session reconcile).
+
+## 12. Anti-patterns to avoid
+
+- ❌ **Default-Sonnet-everywhere.** Wasteful. Tier the agents by reasoning depth required.
+- ❌ **Skipping prompt caching for the system prompt.** 80% cost difference; trivial to enable.
+- ❌ **Subagents calling subagents directly.** They're peer specialists; the head agent dispatches. (Tier 2 escalation within a single agent is fine because it's the same agent's prompt routing.)
+- ❌ **Sequential when parallel works.** PR review battery should always fan out.
+- ❌ **Adding human-confirmation steps "to be safe."** Per ADR-0003, that pattern rots. Use hooks for genuine danger; agents have authority for their scope.
+- ❌ **Hook scripts that run for >500ms.** Hooks are fast checks; if you need real work, dispatch an agent.
+- ❌ **Memory writes from subagents.** Head agent owns memory; subagents are stateless.
+- ❌ **`workflow_dispatch` (manual triggers) for routine work.** That's the emergency-deploy escape hatch only. If you find yourself triggering manually often, automate it instead.
+- ❌ **Agents doing work that hooks could prevent.** A `PreToolUse(Bash)` hook blocking destructive commands is cheaper and more reliable than asking the agent to "be careful."
+- ❌ **Custom system prompts written from scratch per project.** The platform's agent definitions are the source of truth; project-specific tuning is per-project frontmatter, not from-scratch prompts.
