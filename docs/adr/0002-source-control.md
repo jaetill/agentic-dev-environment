@@ -1,6 +1,6 @@
 # ADR-0002: Source Control Conventions
 
-- **Status:** Accepted
+- **Status:** Accepted — branch-protection sub-decision (no-admin-bypass, signed commits, strict) amended by [ADR-0023](0023-origin-based-autonomy-boundary.md)
 - **Date:** 2026-05-08
 - **Deciders:** Jason
 - **Tags:** source-control, git, github
@@ -111,6 +111,8 @@ The bundle is internally consistent: squash merge requires Conventional Commits 
 | **Strict** (chosen) | PR + status checks + signed commits + linear history + no admin bypass. Gates only work if they have teeth. |
 | **Standard** | PR + status checks + no force-push. Doesn't enforce signing or linear history; weaker portfolio signal. |
 | **Loose** (no protection) | Friction-free; defeats the entire purpose of the platform. |
+
+> **Amended by [ADR-0023](0023-origin-based-autonomy-boundary.md) (2026-05-25).** "Strict" bundled no-admin-bypass and signed commits in with the load-bearing parts (PR required, status checks, linear history). ADR-0023 reclassifies `enforce_admins` and `required_signatures` as plumbing rather than human-control gates, and turns `required_conversation_resolution` off (it blocks autonomous merge). The required status *checks* — the CI + AI-review battery — remain. See ADR-0023 and Standard 01 §6.
 
 ## Implementation notes
 

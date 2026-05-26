@@ -1,6 +1,6 @@
 # ADR-0019: Team self-modification — the platform repo as the team's self, and the project→platform feedback loop
 
-- **Status:** Accepted — feedback credential widened and re-typed by [ADR-0020](0020-fleet-orchestration.md)
+- **Status:** Accepted — feedback credential widened and re-typed by [ADR-0020](0020-fleet-orchestration.md); sub-decision 5 (blanket human-merge) narrowed to compositional self-changes by [ADR-0023](0023-origin-based-autonomy-boundary.md)
 - **Date:** 2026-05-21
 - **Deciders:** Jason Tilley (with AI architectural review)
 - **Tags:** ai-workflows, orchestration, governance, security
@@ -51,6 +51,8 @@ A bundle of six sub-decisions:
 4. **Review depth → the platform repo reviews itself.** Every self-modification PR runs the full `claude-pr-review` reusable, including `security-review` as a hard gate. The platform repo gains its own caller stub for the reusable.
 
 5. **Ratification → the human merges, always.** The team may *propose* any change to itself; a human *ratifies* by merging. The platform repo never gets auto-merge. This one asymmetry is the entire safety floor — a team that could rewrite its own gates and approve that itself has none.
+
+> **Amended by [ADR-0023](0023-origin-based-autonomy-boundary.md) (2026-05-25).** Sub-decision 5 is **narrowed**: routine and mechanical platform fixes, and all error-driven (machine-origin) work on the platform repo, now merge autonomously like project work. Human ratification is retained only for the **design of a compositional self-change** — a change to the team's own gates, agent roster, standards, or security posture — at the decision stage (sub-decision 3, the competence gate, unchanged). The categorical floor "the system cannot weaken its own safety unsupervised" is preserved; the blanket human-merge of *every* platform PR is retired.
 
 6. **Credential model → two scoped tokens.** An *implementer PAT* (Contents + Workflows write, scoped to the platform repo only) lets the team modify itself — and *only there*. A *feedback read-token* (Issues:read across the project repos, held in the platform repo) lets `triage-bot` pull flaw markers. No project ever holds a token that can change the team. The one-directional boundary becomes a fact of which tokens exist where, not a rule an agent must remember.
 

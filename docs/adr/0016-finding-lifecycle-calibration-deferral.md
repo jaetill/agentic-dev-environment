@@ -1,6 +1,6 @@
 # ADR-0016: Finding lifecycle - calibration, deferral, and Sentry-driven cleanup
 
-- **Status:** Accepted — Rule 2 deferral caps amended by [ADR-0020](0020-fleet-orchestration.md); terminal merge stage added by [ADR-0021](0021-autonomous-merge.md)
+- **Status:** Accepted — Rule 2 deferral caps amended by [ADR-0020](0020-fleet-orchestration.md); terminal merge stage added by [ADR-0021](0021-autonomous-merge.md); oscillation/loop-detection rule added by [ADR-0023](0023-origin-based-autonomy-boundary.md)
 - **Date:** 2026-05-16
 - **Deciders:** Jason Tilley
 - **Tags:** ai-workflows, governance, agents, signal-to-noise
@@ -55,6 +55,10 @@ Medium findings default to non-deferred (they imply real risk), but security-rev
 Issues with the `source:sentry` label (Sentry's GitHub integration auto-applies this when its alert rules create an issue) OR `severity:critical` get implementer attention immediately, regardless of whether `ready-for-implementer` is set. Production errors that fired in real user sessions are pre-validated work - they don't need a triage gate.
 
 Sentry-bug pickup is ALSO a trigger for the deferral-bundling scan. Fixing a real bug usually involves loading a file into context that has nits filed against it; bundle them.
+
+### Rule 4: Oscillation detection (added by [ADR-0023](0023-origin-based-autonomy-boundary.md), 2026-05-25)
+
+A finding that has been fixed and then reverted before is not a finding to re-fix — it is a signal the loop is churning. Before acting on a finding, the implementer and triage-bot check git and issue history for a prior fix-and-revert cycle of the same finding; on a detected cycle they halt and escalate to a human rather than re-fixing. ADR-0023 places loop-churn defense here, in agent logic, deliberately instead of behind a human gate. Operational detail lands in the agent definitions per ADR-0023's implementation set.
 
 ### Backlog finalization
 

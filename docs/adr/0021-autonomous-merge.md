@@ -1,6 +1,6 @@
 # ADR-0021: Autonomous merge of implementer fix PRs
 
-- **Status:** Accepted — ratified by human merge of PR #51, 2026-05-23
+- **Status:** Accepted — ratified by human merge of PR #51, 2026-05-23; auto-merge gate re-keyed from work type to work origin by [ADR-0023](0023-origin-based-autonomy-boundary.md)
 - **Date:** 2026-05-23
 - **Deciders:** Jason Tilley
 - **Tags:** ai-workflows, governance, ci-cd, orchestration, autonomy
@@ -39,6 +39,8 @@ Chosen option: **Option A.** A job in the `triage-scan` promoter — the platfor
 2. **Every required check passes** — this is ADR-0003's AI review battery. `code-review` and `security-review` are hard gates (a Critical/High finding → `VERDICT: BLOCK` → no merge); `functional-test` and the rest pass.
 3. The PR carries **no `requires-adr:*` label** — this is ADR-0003 sub-decision 5: the five ADR-gated categories (destructive migration, new dependency, security-relevant, API contract, schema) route to the human, unchanged.
 4. The repo is a **project repo**, not the platform repo (ADR-0019's floor).
+
+> **Conditions 1 and 4 amended by [ADR-0023](0023-origin-based-autonomy-boundary.md) (2026-05-25).** The gate is re-keyed from work *type* to work *origin*. **Condition 1** becomes: the linked issue is **machine-origin** — it carries `source:sentry`, `source:cloudwatch`, or `origin:internal-review` and is not human-authored. Human-origin PRs (feature *or* bug) no longer auto-merge — they take a human checkpoint. **Condition 4** becomes: routine/mechanical platform-repo fixes now qualify; only compositional self-changes (ADR-0019 as narrowed by ADR-0023) are excluded. Conditions 2 (checks green) and 3 (no `requires-adr`) are unchanged.
 
 Conditions 2 and 3 are not new — they are ADR-0003's existing mechanism. Condition 1 defers to ADR-0017's feature plan-gate; condition 4 defers to ADR-0019. What this ADR genuinely adds is the conditions-as-a-job for the implementer path, and the explicit acceptance of the closed loop.
 
