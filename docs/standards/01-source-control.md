@@ -90,13 +90,15 @@ The following rules **must** be enabled on `main` for every project repo:
 - Require status checks to pass:
   - All checks in `ci-<stack>.yml` (lint, type, test, security)
   - `claude-pr-review` check (the AI code-reviewer + security-reviewer)
-- Require branches to be up to date before merging
 - Require **signed commits**
 - Require **linear history**
-- Require conversation resolution before merging
 - Do not allow force pushes
 - Do not allow deletions
 - Apply rules to administrators (no admin bypass — gates only work if they have teeth)
+
+> **Do _not_ require branches to be up to date before merging** — the GitHub `strict` status-check flag stays **off**. [ADR-0021](../adr/0021-autonomous-merge.md)'s autonomous auto-merge squash-merges fix PRs without rebasing behind branches; under `strict` mode a behind PR's passing checks report back to GitHub as "expected" and the merge is permanently blocked. `scripts/configure-branch-protection.ps1` enforces `strict = false` on every repo — do not re-enable it.
+
+> **Do _not_ require conversation resolution before merging** — `required_conversation_resolution` stays **off**. Per [ADR-0023](../adr/0023-origin-based-autonomy-boundary.md), the autonomous auto-merge (`gh pr merge --squash`) doesn't resolve PR review threads; if AI reviewers post any comment thread, an enabled repo blocks the loop's merge silently. Off everywhere fleet-wide.
 
 These are settable via GitHub UI under Settings → Branches, or via Terraform / GitHub CLI as part of the bootstrap script.
 

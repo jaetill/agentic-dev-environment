@@ -340,14 +340,14 @@ The promoter respects a per-run dispatch cap (`FLEET_MAX_DISPATCH_PER_RUN`, defa
 
 Per **[ADR-0021](../adr/0021-autonomous-merge.md)**, the fleet loop closes itself: the autonomous implementer's routine fix PRs are squash-merged by an `auto-merge` job in the `triage-scan` promoter — no human, no open session. This *applies* ADR-0003's approval model (AI shipping authority; the human gates only ADR-decisions) to the implementer path, the same way `release-captain` already auto-merges release PRs.
 
-### The four-condition gate
+### The gate
 
-The job merges an implementer fix PR when, and only when, **all four** conditions hold. The gate is deterministic — decidable from labels and check state, with no agent judgement at merge time:
+The job merges an implementer fix PR when, and only when, **all** of the following hold. The gate is deterministic — decidable from labels and check state, with no agent judgement at merge time. Per [ADR-0023](../adr/0023-origin-based-autonomy-boundary.md), the conditions are keyed to work **origin**, not work type.
 
-1. **Implementer-authored, fixing a defect.** The PR's author is the implementer agent (`gh pr list --json author` renders the App bot as `app/claude`) and it closes an issue labelled `defect` or `bug`. A `feature-request` is excluded — features keep ADR-0017's plan-gate, where the human approves the approach first.
+1. **Implementer-authored, machine-origin fix.** The PR's author is the implementer agent (`gh pr list --json author` renders the App bot as `app/claude`) and it closes an issue whose origin is **machine** — the issue's author is a bot, OR the issue carries `source:sentry`, `source:cloudwatch`, or `origin:internal-review`. Human-origin issues (any type, including a bug filed by a person) take a human-merge checkpoint and are held. Features (whether human-filed or otherwise) keep ADR-0017's plan-gate and never reach this job.
 2. **Every check green.** The full AI review battery (§9, ADR-0003) passed; `code-review` and `security-review` are hard gates. A PR with *zero* checks does not qualify — the gate requires a non-empty green battery, not a vacuous pass.
-3. **No `requires-adr:*` label.** The five ADR-gated categories (ADR-0003) route to the human, unchanged.
-4. **A project repo.** The platform repo is excluded — its PRs are self-modifications, human-merged per [ADR-0019](../adr/0019-team-self-modification.md) / Standard 12.
+3. **No `requires-adr:*` label.** The five ADR-gated categories (ADR-0003) route to the human, unchanged — regardless of origin.
+4. **No `compositional-self-change` label.** Per ADR-0023, routine/mechanical platform-repo fixes are eligible like any project fix; only **compositional** self-changes — changes to the team's gates, agent roster, standards, or security posture — keep a human checkpoint. The implementer/architect applies this label when the change is classified compositional. (This replaces the old "project repo only" exclusion.)
 
 ### Controls
 

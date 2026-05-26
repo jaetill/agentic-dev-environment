@@ -255,10 +255,12 @@ jobs:
             echo "## Auto-merge: paused (AUTONOMOUS_MERGE=off)" >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
-          # Project fleet only. The platform repo (agentic-dev-environment) is
-          # excluded — its PRs are self-modifications, human-merged per
-          # ADR-0019. genealogy has no implementer loop.
-          REPOS="game-night-pwa meal-planner ai-teacher jaetill-portal splendor draft carto"
+          # Per ADR-0023, the autonomy boundary is origin (not type), and the
+          # platform repo is included for routine/mechanical fixes. Compositional
+          # self-changes (team gates / agents / standards / security) are excluded
+          # by the compositional-self-change label check below.
+          # genealogy still has no implementer loop.
+          REPOS="game-night-pwa meal-planner ai-teacher jaetill-portal splendor draft carto agentic-dev-environment"
           merged=0 ; held=0
           # Per-run blast-radius cap (security-review): a malfunctioning or
           # adversarially-prompted implementer cannot land more than this many
@@ -285,18 +287,34 @@ jobs:
               if echo "$meta" | jq -e '[.labels[].name] | any(startswith("requires-adr"))' >/dev/null 2>&1; then
                 echo "  $slug#$pr — requires-adr label; hold for human"; held=$((held+1)); continue
               fi
-              # ADR-0021 cond. 1 — closes a defect/bug issue (a feature keeps
-              # ADR-0017's plan-gate and never reaches here)
+              # ADR-0023 narrowed self-mod floor: compositional self-changes —
+              # changes to the team's gates, agent roster, standards, or
+              # security posture — keep a human checkpoint. The implementer or
+              # architect applies this label when it classifies the change as
+              # compositional; auto-merge holds the PR for a human merge.
+              if echo "$meta" | jq -e '[.labels[].name] | any(. == "compositional-self-change")' >/dev/null 2>&1; then
+                echo "  $slug#$pr — compositional-self-change label; hold for human (ADR-0023)"; held=$((held+1)); continue
+              fi
+              # ADR-0021 cond. 1, as amended by ADR-0023: the linked issue must
+              # be MACHINE-ORIGIN. Machine-origin = the issue author is a bot,
+              # OR the issue carries `source:sentry`, `source:cloudwatch`, or
+              # `origin:internal-review`. Human-origin issues (any type,
+              # including a bug filed by a person) take a human-merge checkpoint
+              # and are held here. The feature plan-gate still keeps features
+              # out of this path entirely (ADR-0017).
               issue=$(echo "$meta" | jq -r '.body // ""' \
                         | grep -ioE '(close[sd]?|fix(e[sd])?|resolve[sd]?) +#[0-9]+' \
                         | grep -oE '[0-9]+' | head -1 || true)
               if [[ -z "$issue" ]]; then
                 echo "  $slug#$pr — no linked issue; hold"; held=$((held+1)); continue
               fi
-              is_defect=$(gh issue view "$issue" --repo "$slug" --json labels \
-                            --jq '[.labels[].name] | any(. == "defect" or . == "bug")' 2>/dev/null || echo false)
-              if [[ "$is_defect" != "true" ]]; then
-                echo "  $slug#$pr — issue #$issue not defect/bug; hold"; held=$((held+1)); continue
+              issue_meta=$(gh issue view "$issue" --repo "$slug" --json author,labels 2>/dev/null || echo '{}')
+              is_machine_origin=$(echo "$issue_meta" | jq -r '
+                (.author.is_bot == true) or
+                ([.labels[].name] | any(. == "source:sentry" or . == "source:cloudwatch" or . == "origin:internal-review"))
+              ' 2>/dev/null || echo false)
+              if [[ "$is_machine_origin" != "true" ]]; then
+                echo "  $slug#$pr — issue #$issue is human-origin; hold for human merge (ADR-0023)"; held=$((held+1)); continue
               fi
               # ADR-0021 cond. 2 — every check green. `gh pr checks` exits 0
               # for "all passed" but ALSO for "no checks at all" (vacuously

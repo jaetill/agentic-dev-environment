@@ -143,6 +143,39 @@ genealogy is excluded — it has no implementer workflow yet. `$FLEET_TOKEN` in 
    - **Survived one cycle.** It was created before the *previous* triage-scan run — never promote an issue in the same scan that could have filed it. Compare `createdAt` against ~35 minutes ago.
    - **Well-specified.** A clear repro or acceptance criteria, a single bounded change. This is the judgement call. When vague, do NOT promote — comment exactly what is missing and leave it.
 
+**Oscillation guard** ([ADR-0023](../../../docs/adr/0023-origin-based-autonomy-boundary.md), [ADR-0016](../../../docs/adr/0016-finding-lifecycle-calibration-deferral.md) Rule 4) — apply to each eligibility-passing candidate before throttle.
+
+A loop that keeps re-promoting the same recurring finding for re-fixing is the loop-churn pathology — catch it here, in the promoter, before an implementer is dispatched. For each candidate that passes eligibility, search for prior **closed** issues in the same repo describing the same finding within the last ~90 days:
+
+```bash
+GH_TOKEN=$FLEET_TOKEN gh issue list --repo jaetill/<repo> --state closed \
+  --search "<key file path or finding phrase>" \
+  --json number,title,closedAt,body --limit 20
+```
+
+For each match, find its closing PR and check whether the default branch has a `Revert "<original subject>"` commit since (a revert PR's body usually contains `Reverts #<orig-pr>`):
+
+```bash
+GH_TOKEN=$FLEET_TOKEN gh issue view <n> --repo jaetill/<repo> --json closedBy
+GH_TOKEN=$FLEET_TOKEN gh pr list --repo jaetill/<repo> --state merged \
+  --search "Revert" --json number,title --limit 10
+```
+
+**If a fix-revert cycle of this same finding is found within ~90 days, do NOT promote.** Comment on the current candidate:
+
+```
+Oscillation detected (ADR-0023 / ADR-0016 Rule 4): this finding was previously
+fixed in PR #<orig> and reverted in PR #<revert>. The fleet promoter halts on
+detected fix-revert cycles — re-dispatching would likely produce the same
+outcome. Escalating to human for resolution-path ratification.
+```
+
+Apply the `oscillation-detected` label (create it if missing) and skip this candidate. Continue to the next.
+
+**Degenerate case:** if this is the third or later occurrence (fixed → reverted → refiled), say so explicitly in the escalation comment — the loop has cycled and the resolution path needs human ratification before another autonomous attempt.
+
+**Edge cases:** a merely *similar* prior issue that wasn't reverted is normal fix accretion — promote as usual. Cycles older than ~90 days are not considered.
+
 3. **Throttle.** Dispatch at most `$FLEET_MAX_DISPATCH` implementer runs across the whole fleet per run. Order by severity — every eligible `severity:high` before any `severity:medium`. When the cap is hit, stop; the next window takes the rest.
 
 4. **Promote and dispatch each eligible issue, within the cap.** The label is durable state; the dispatch is the trigger — per ADR-0020, a cross-repo label alone does not reliably wake a workflow:
