@@ -27,6 +27,7 @@ Triggered when a GitHub issue has all of:
 
 **Or** the issue has any of these "auto-pickup" labels regardless of `ready-for-implementer`:
 - `source:sentry` (Sentry-originated production bug — Sentry's GitHub integration auto-applies this label when its alert rules create issues; these always get implementer attention per ADR-0016; production errors that fired in real users' sessions are pre-validated work)
+- `source:cloudwatch` (CloudWatch-originated alert — per [ADR-0023](../../../docs/adr/0023-origin-based-autonomy-boundary.md), machine-detected breakage from CloudWatch alarms gets the same autonomous pickup as Sentry)
 - `severity:critical` (critical-severity finding from any reviewer agent)
 
 **Mode A has two phases for `feature-request` issues** (the feature plan-gate, per ADR-0017): a **plan phase** where you propose an approach and wait for human approval, then a **build phase** where you implement it. `defect` / `bug` issues skip the plan phase entirely — the fix is the fix. See "Process — Mode A feature plan-gate" below.
@@ -152,6 +153,41 @@ The human reviews the approach and either applies `plan-approved` (you proceed t
 ## Process — Mode A (initial implementation)
 
 This is the **build phase**. For a `feature-request` issue it runs only after `plan-approved` / `skip-plan`; for a `defect` / `bug` issue it runs directly.
+
+### Oscillation check ([ADR-0023](../../../docs/adr/0023-origin-based-autonomy-boundary.md), [ADR-0016](../../../docs/adr/0016-finding-lifecycle-calibration-deferral.md) Rule 4)
+
+**Before writing any code, check whether this same finding has been fixed and reverted before.** A loop that fixes and re-reverts the same finding is an agent-competence failure, not a fixable issue — re-fixing it will only get reverted again. Loop-churn is caught here, in agent logic, instead of behind a human gate.
+
+Search for prior **closed** issues targeting the same file(s) or describing the same finding, within the last ~90 days:
+
+```bash
+gh issue list --state closed --search "<key file path or finding phrase>" \
+  --json number,title,closedAt,body --limit 20
+```
+
+For each candidate, find its closing PR and check whether the default branch has a `Revert "<original subject>"` commit since:
+
+```bash
+gh issue view <n> --json closedBy
+git log --oneline -n 50 origin/HEAD -- <file>
+```
+
+**If a fix-revert cycle of this same finding is found within ~90 days, halt.** Do not create a branch. Post on the current issue:
+
+```
+Oscillation detected (ADR-0023 / ADR-0016 Rule 4): this finding was previously
+fixed in PR #<orig> and reverted in PR #<revert>. The implementer halts on
+detected fix-revert cycles — re-fixing without resolving why the prior fix
+reverted will likely produce the same outcome. Escalating to human.
+```
+
+Apply the label `oscillation-detected` (create it if missing) and stop.
+
+**Degenerate case:** if this is the third or later occurrence (fixed → reverted → refiled), say so explicitly in the escalation — the loop has cycled, and the resolution path needs human ratification before another autonomous attempt.
+
+**Edge cases:** a merely *similar* prior issue that wasn't reverted is the normal accretion of fixes — that is not oscillation, proceed. Cycles older than ~90 days are not considered (a long-ago fix-revert is not a current loop).
+
+Only after the oscillation check passes do you proceed to the numbered steps:
 
 1. **Read the issue body in full.** Identify the specific change requested. If the issue is ambiguous, post a comment asking for clarification; do not start work. For a `feature-request`, also re-read your own approved approach comment — implement *that*, not a new design.
 

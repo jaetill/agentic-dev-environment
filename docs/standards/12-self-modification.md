@@ -74,8 +74,9 @@ A compositional self-change is evaluated against established practice:
 ## Review and ratification
 
 - Every self-modification PR runs the full `claude-pr-review` reusable, with `security-review` as a hard gate.
-- A self-change reaches `main` only by a **human merge**. The team proposes; the human ratifies. The platform repo is never granted auto-merge.
+- **Routine and mechanical platform fixes** — and all **error-driven** (machine-origin) work on the platform repo — merge autonomously via the fleet auto-merge job, exactly like project work. Per [ADR-0021](../adr/0021-autonomous-merge.md) as amended by [ADR-0023](../adr/0023-origin-based-autonomy-boundary.md).
+- **Compositional self-changes** — anything that changes the team's gates, agent roster, standards, or security posture — keep a human checkpoint at the **design stage**: the architect proposes (with research and tradeoffs), and a human ratifies the design *before* implementation begins (competence gate above). The implementer/architect applies the `compositional-self-change` label on the resulting PR so the auto-merge gate holds it for a human merge. The categorical floor — *the system cannot weaken its own safety unsupervised* — is preserved as this narrow, rare touchpoint.
 
 ## Why
 
-A team that cannot improve its own process is half a team; a team that can rewrite its own gates and approve that itself has no safety floor. This standard keeps both true at once: the team may propose any change to itself, and a human always ratifies. Full rationale in [ADR-0019](../adr/0019-team-self-modification.md).
+A team that cannot improve its own process is half a team; a team that can rewrite its own gates and approve that itself has no safety floor. This standard keeps both true: the team may propose any change to itself, and a human ratifies the *design* of any change that touches the team's own gates/agents/standards/security. Routine maintenance flows autonomously like project work. Full rationale in [ADR-0019](../adr/0019-team-self-modification.md) (sub-decision 5 narrowed by [ADR-0023](../adr/0023-origin-based-autonomy-boundary.md)).
