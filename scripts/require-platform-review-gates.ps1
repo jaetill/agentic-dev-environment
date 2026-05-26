@@ -33,7 +33,7 @@
   Requires: gh CLI, authenticated.
 #>
 
-$Apply = $false   # dry run by default — see RUN ORDER warning above
+$Apply = $true   # applied — re-read the RUN ORDER warning above before re-running
 
 $repo   = 'jaetill/agentic-dev-environment'
 $branch = 'main'
