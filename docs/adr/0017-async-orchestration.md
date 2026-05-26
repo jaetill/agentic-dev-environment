@@ -1,6 +1,6 @@
 # ADR-0017: Async orchestration — scheduling, concurrency, and work routing for the autonomous team
 
-- **Status:** Accepted
+- **Status:** Accepted — sub-decisions 3 (routing) & 4 (feature handling) amended by [ADR-0023](0023-origin-based-autonomy-boundary.md)
 - **Date:** 2026-05-20
 - **Deciders:** Jason Tilley (with AI architectural review)
 - **Tags:** ai-workflows, ci-cd, orchestration, concurrency
@@ -41,6 +41,8 @@ We chose the bundle:
 - **Sub-decision 3 → Route by source × type × severity.** Human-filed work bypasses both the window and the promoter. Only agent-discovered work is window-gated.
 - **Sub-decision 4 → Plan-gate for human-filed features; bugs skip it.** The implementer posts its intended approach on a feature issue and waits for the human's approval before writing code; bug fixes proceed directly.
 - **Sub-decision 5 → triage-bot is the promoter** for agent-discovered work; human-filed issues are pre-promoted by the act of filing.
+
+> **Sub-decisions 3 and 4 amended by [ADR-0023](0023-origin-based-autonomy-boundary.md) (2026-05-25).** The routing axis is now **origin**, not `source × type × severity`: human-submitted work (feature request, bug, or issue) is human-gated; machine-detected work (Sentry, CloudWatch, agent findings) runs autonomously through commit. The feature plan-gate is **retained** for human-origin features. What changes: human-filed **bugs no longer skip to an autonomous merge** — they take a human-merge checkpoint, because a bug report from an outside person is still a human request against the product. Sub-decisions 1, 2, and 5 are unaffected.
 
 The bundle is internally consistent because the governing principle — *the window exists for surprise control, and human-requested work is never a surprise* — ties sub-decisions 2, 3, and 5 together, while sub-decision 1 (optimistic concurrency) is what makes it safe to skip a session beacon, and sub-decision 4 places the one human checkpoint exactly where human judgment is most valuable (a feature's approach).
 
