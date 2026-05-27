@@ -1,0 +1,15 @@
+# Example inputs for the ops cockpit. Per ADR-0022.
+#
+# PREFERRED: do NOT use a tfvars file for the two secrets. Set them as
+# environment variables so they never touch disk in this public repo:
+#
+#   $env:TF_VAR_grafana_url     = "https://<stack>.grafana.net"
+#   $env:TF_VAR_grafana_api_key = "<grafana service-account token>"
+#   $env:TF_VAR_github_token    = "<fine-grained read-only PAT>"
+#
+# This file exists only to document the inputs. A real terraform.tfvars
+# is gitignored — but env vars are still preferred for the secrets.
+
+grafana_url     = "https://CHANGEME.grafana.net"
+grafana_api_key = "set-via-TF_VAR_grafana_api_key-instead"
+github_token    = "set-via-TF_VAR_github_token-instead"

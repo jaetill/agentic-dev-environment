@@ -51,6 +51,14 @@ Reusable components consumed by scaffolded projects. Each lives under `templates
 
 Updates to platform components are template-propagation work: change the component, not the downstream consumer. Per `Working principles` above.
 
+## Fleet infrastructure
+
+Standalone infrastructure living in `infra/` — fleet-level singletons, not reusable template modules.
+
+| Component | Purpose | ADR |
+|---|---|---|
+| [`infra/ops-cockpit/`](infra/ops-cockpit/) | Grafana Cloud ops cockpit — loop run health, fleet issue/PR flow, human TODOs. Terraform-managed, self-refreshing. | [ADR-0022](docs/adr/0022-ops-cockpit-dashboard-host.md) |
+
 ## The autonomous loop
 
 This repo runs an **autonomous agent loop on GitHub Actions cron** — *not* Cowork scheduled tasks. If you are asked whether the "overnight" or "0900" run fired, check GitHub Actions run history (`gh run list`), never the Cowork scheduler.
