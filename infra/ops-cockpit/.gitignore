@@ -1,0 +1,9 @@
+# This repo is public — never commit secrets or local state.
+*.tfvars
+!*.tfvars.example
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+# .terraform.lock.hcl IS committed on purpose (provider version pinning).
