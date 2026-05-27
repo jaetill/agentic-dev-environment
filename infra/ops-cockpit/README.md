@@ -87,6 +87,18 @@ The dashboard currently renders one placeholder text panel. Phase 1b replaces it
 
 **Build workflow.** With the data source live, build one GitHub-datasource panel in the Grafana UI to confirm the exact query JSON the plugin emits, copy that JSON into `dashboard.tf`, and re-apply. The UI is used only to discover the query schema — the dashboard itself stays Terraform-managed (ADR-0022, "Terraform from the start").
 
+## Rotate credentials
+
+The PAT in step 1 has an expiry. When you rotate it, `tofu apply` with the new `TF_VAR_github_token` value **will silently no-op** — `main.tf` has `lifecycle { ignore_changes = [secure_json_data_encoded] }` to keep the read-only Grafana SA token from 403-ing on update (see step 2 caveat), and that block also blocks the rotated value from flowing through.
+
+Three rotation paths, in increasing order of effort:
+
+1. **UI rotation (recommended for now).** Grafana Cloud → Connections → Data sources → `fleet-github` → edit → paste new PAT into the Access Token field → Save & test. Done. State will drift by one field (`secure_json_data_encoded`); ignore — that's the design.
+2. **Direct API.** `curl -X PUT -H "Authorization: Bearer <SA token>" -H "Content-Type: application/json" -d '{"secureJsonData":{"accessToken":"<new PAT>"}}' https://jaetill.grafana.net/api/datasources/uid/<uid>`. Same caveat as step 2 of prereqs — if the SA token lacks `datasources:write` you'll get 403 and have to fall back to UI.
+3. **Re-import.** Only if the data source needs to be rebuilt from scratch. `tofu state rm grafana_data_source.github`, recreate in UI (or anywhere with `datasources:create`), `tofu import grafana_data_source.github <new uid>`. Heavyweight; reserve for when the resource itself is broken, not for routine rotation.
+
+The Grafana SA token (step 2 of prereqs) rotates without TF involvement — it's read by the provider from the env var each apply, so a fresh value just works.
+
 ## Files
 
 | File | Purpose |
