@@ -26,10 +26,22 @@ on:
     # fire on a generous UTC band; the window-check job trims to the precise
     # America/Chicago window (DST-correct).
     #
-    # work-hours window = Mon-Fri 09:00-12:00 Chicago = 14:00-17:00 UTC (CDT)
-    - cron: '0,30 14-18 * * 1-5'
-    # overnight window = daily 01:00-04:00 Chicago = 06:00-09:00 UTC (CDT)
-    - cron: '0,30 6-10 * * *'
+    # The band must compensate for GitHub Actions cron drift, which is
+    # observed (2026-05-26..28) to delay fires by 2–3 hours and drop a
+    # significant fraction of slots during periods of platform load. The
+    # band therefore starts ~3 h BEFORE the earliest in-window UTC slot for
+    # the CDT/CST union, so even a delayed fire still lands inside the
+    # window — and runs at :00 / :30 to maximise the chance that at least
+    # one slot per window is delivered.
+    #
+    # work-hours window = Mon-Fri 09:00-12:00 Chicago
+    #   = 14:00-17:00 UTC (CDT) / 15:00-18:00 UTC (CST)
+    #   CDT/CST union = 14:00-18:00 UTC; band starts 11:00 UTC
+    - cron: '0,30 11-17 * * 1-5'
+    # overnight window = daily 01:00-04:00 Chicago
+    #   = 06:00-09:00 UTC (CDT) / 07:00-10:00 UTC (CST)
+    #   CDT/CST union = 06:00-10:00 UTC; band starts 03:00 UTC
+    - cron: '0,30 3-9 * * *'
   workflow_dispatch:
     inputs:
       reason:

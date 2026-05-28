@@ -37,8 +37,10 @@ All other time is quiet by design (ADR-0017, sub-decision 2).
 
 GitHub cron is UTC-only and cannot express a DST-aware local window. `triage-scan.yml` therefore fires on a **generous UTC band**, and a `window` job inside the workflow checks the real America/Chicago time and skips the work if it is out of window:
 
-- `0,30 14-18 * * 1-5` — covers `work-hours` across both CDT and CST
-- `0,30 6-10 * * *` — covers `overnight` across both CDT and CST
+- `0,30 11-17 * * 1-5` — covers `work-hours` across both CDT and CST, shifted ~3 h earlier to absorb GitHub cron drift
+- `0,30 3-9 * * *` — covers `overnight` across both CDT and CST, shifted ~3 h earlier to absorb GitHub cron drift
+
+The "shifted ~3 h earlier" matters: GitHub Actions cron is best-effort and can delay or drop fires under load. Observed drift on this account (2026-05-26..28) was 2–3 h late with ≥75 % of slots dropped — every delivered fire landed *after* the window had closed and the `window` job skipped the work. Starting the cron band 3 h before the earliest in-window UTC slot means a delayed fire still lands inside the window.
 
 So a scheduled `triage-scan` run shows `success` even when it did no work — the `window` job ran, decided "quiet," and skipped the `triage` job. **`success` + `triage` skipped = correct out-of-window behaviour.** Real work happened only when the `triage` job itself shows `success`.
 
