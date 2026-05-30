@@ -23,10 +23,13 @@ permissions:
   id-token: write   # required by anthropics/claude-code-action for OIDC
 
 jobs:
-  # detect-node — gates the npm-based test jobs (functional-test, e2e-test,
-  # test-writer) so they skip cleanly on a repo with no Node app, e.g. the
-  # platform repo itself. Subscribing projects have a package.json, so
-  # node='true' there and nothing changes for them.
+  # detect-node — reports whether the repo has a Node app surface (root
+  # package.json). The required test jobs (functional-test, e2e-test) read
+  # this to decide per-STEP whether to run the suite or pass by contract;
+  # they never skip the whole job, because a skipped REQUIRED check blocks
+  # the merge rather than satisfying it (ADR-0024). test-writer is not a
+  # required check, so it still job-skips on node=='false'. Subscribing app
+  # repos have a package.json, so node='true' and the suites run as before.
   detect-node:
     runs-on: ubuntu-latest
     outputs:
@@ -211,24 +214,30 @@ jobs:
 
   functional-test:
     needs: detect-node
-    if: needs.detect-node.outputs.node == 'true'
-    # Bot-skip guard intentionally removed per the autonomous-team
-    # architecture (ADR-0013). Implementer-authored PRs (actor: claude[bot])
-    # MUST be reviewed; otherwise branch protection's required checks
-    # report SKIPPED, which GitHub treats as satisfied, which would let
-    # bot-authored PRs bypass review entirely. The 3-attempt cap on the
-    # implementer's fix-iteration job is the real loop guard, not this.
+    # This is a REQUIRED status check. It must report `success`, never
+    # `skipped`, on a no-app repo — a skipped required check is NOT treated
+    # as satisfied by branch protection (it blocks the merge), even though
+    # the status rollup renders green. So the job always runs; the real
+    # steps are step-gated on node=='true', and a no-suite repo passes by
+    # contract via the first step. See ADR-0024. App repos (node=='true')
+    # are unchanged: the pass-by-contract step skips, the suite runs.
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
+      - name: No app surface — pass by contract
+        if: needs.detect-node.outputs.node != 'true'
+        run: echo "::notice::No root package.json — no functional suite to run. Required check passes by contract (ADR-0024)."
       - uses: actions/checkout@v4
+        if: needs.detect-node.outputs.node == 'true'
         with:
           fetch-depth: 0
       - uses: actions/setup-node@v4
+        if: needs.detect-node.outputs.node == 'true'
         with:
           node-version: 22
           cache: npm
       - name: Install dependencies
+        if: needs.detect-node.outputs.node == 'true'
         run: |
           npm ci
           # Guard the lambda install — repos without a backend lambda
@@ -237,6 +246,7 @@ jobs:
           # there (platform issue #32). Mirrors claude-implementer.yml.
           [ -f lambda/package-lock.json ] && npm ci --prefix lambda || echo "no lambda deps — skipping"
       - name: Run functional-tester agent
+        if: needs.detect-node.outputs.node == 'true'
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
@@ -372,35 +382,41 @@ jobs:
 
   e2e-test:
     needs: detect-node
-    if: needs.detect-node.outputs.node == 'true'
-    # Bot-skip guard intentionally removed per the autonomous-team
-    # architecture (ADR-0013). Implementer-authored PRs (actor: claude[bot])
-    # MUST be reviewed; otherwise branch protection's required checks
-    # report SKIPPED, which GitHub treats as satisfied, which would let
-    # bot-authored PRs bypass review entirely. The 3-attempt cap on the
-    # implementer's fix-iteration job is the real loop guard, not this.
+    # REQUIRED status check — see the functional-test header and ADR-0024.
+    # Always runs and concludes `success`; real steps are step-gated on
+    # node=='true', no-app repos pass by contract. A skipped required check
+    # blocks the merge, so this job must never skip.
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
+      - name: No app surface — pass by contract
+        if: needs.detect-node.outputs.node != 'true'
+        run: echo "::notice::No root package.json — no e2e suite to run. Required check passes by contract (ADR-0024)."
       - uses: actions/checkout@v4
+        if: needs.detect-node.outputs.node == 'true'
         with:
           fetch-depth: 0
       - uses: actions/setup-node@v4
+        if: needs.detect-node.outputs.node == 'true'
         with:
           node-version: 22
           cache: npm
       - name: Install dependencies
+        if: needs.detect-node.outputs.node == 'true'
         run: npm ci
       - name: Install Playwright browser + system deps
+        if: needs.detect-node.outputs.node == 'true'
         run: npx playwright install --with-deps chromium
       - name: Run e2e suite (captures output for agent)
         id: e2e
+        if: needs.detect-node.outputs.node == 'true'
         run: |
           set +e
           npx playwright test --reporter=list > /tmp/e2e-output.txt 2>&1
           echo "exit=$?" >> "$GITHUB_OUTPUT"
           cat /tmp/e2e-output.txt
       - name: Run e2e-tester agent
+        if: needs.detect-node.outputs.node == 'true'
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
