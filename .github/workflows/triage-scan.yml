@@ -48,11 +48,20 @@ on:
         description: 'Why this manual triage scan is being run'
         required: false
         type: string
+  # ADR-0030: trusted-origin events route through the promoter (no direct
+  # bypass to the implementer). On the platform repo these fire same-repo;
+  # app repos forward via repository_dispatch (model B — one central promoter).
+  issues:
+    types: [opened, labeled]
+  repository_dispatch:
+    types: [implementer-event]
 
 permissions:
   contents: read
-  issues: write       # file process-flaw issues on THIS repo (Pass 3)
-  id-token: write     # claude-code-action OIDC
+  issues: write         # label + comment on issues (event-dispatch, Pass 3)
+  pull-requests: read   # ADR-0030 throttle: count in-flight implementer PRs
+  actions: write        # ADR-0030: dispatch claude-implementer.yml
+  id-token: write       # claude-code-action OIDC
 
 concurrency:
   group: triage-scan-${{ github.repository }}
@@ -369,3 +378,92 @@ jobs:
           done
           echo "## Auto-merge — $merged merged, $held held" >> "$GITHUB_STEP_SUMMARY"
           echo "Auto-merge sweep complete: $merged merged, $held held."
+
+  # ── ADR-0030: deterministic, project-scoped event dispatch ──────────────
+  # Trusted-origin signals (severity:critical / source:sentry / source:cloudwatch
+  # / human-applied ready-for-implementer / owner-opened) route HERE instead of
+  # bypassing straight to the implementer. Deterministic — no LLM on this path:
+  # apply ready-for-implementer, throttle against FLEET_MAX_DISPATCH (fleet-wide
+  # in-flight implementer PRs), then dispatch. Model B (one central promoter):
+  # app repos forward their events via repository_dispatch; here on the platform
+  # repo they fire same-repo. The LLM cycle-fill is a Phase-2 follow-up.
+  # scope:iac is excluded (its path is unchanged for now — ADR-0030 §IaC path).
+  event-dispatch:
+    if: |
+      github.event_name == 'repository_dispatch'
+      || (
+        github.event_name == 'issues'
+        && !contains(github.event.issue.labels.*.name, 'scope:iac')
+        && (
+          (
+            github.event.action == 'labeled'
+            && (
+              contains(fromJSON('["source:sentry", "source:cloudwatch", "severity:critical"]'), github.event.label.name)
+              || (github.event.label.name == 'ready-for-implementer' && github.event.sender.type != 'Bot')
+            )
+          )
+          || (
+            github.event.action == 'opened'
+            && github.event.issue.user.type != 'Bot'
+            && github.event.issue.author_association == 'OWNER'
+            && (
+              contains(github.event.issue.labels.*.name, 'bug')
+              || contains(github.event.issue.labels.*.name, 'defect')
+              || contains(github.event.issue.labels.*.name, 'feature-request')
+            )
+          )
+        )
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Mint fleet App token
+        id: fleet-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.FLEET_APP_ID }}
+          private-key: ${{ secrets.FLEET_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+      - name: Promote and dispatch (deterministic, throttled)
+        env:
+          GH_TOKEN: ${{ steps.fleet-token.outputs.token }}
+          FLEET_MAX_DISPATCH: ${{ vars.FLEET_MAX_DISPATCH_PER_RUN || '6' }}
+        run: |
+          set -uo pipefail
+          # Resolve target repo + issue. `issues` events are same-repo; an app
+          # repo's repository_dispatch forwarder (model B) carries them in the
+          # client_payload.
+          if [[ "${{ github.event_name }}" == "repository_dispatch" ]]; then
+            repo="${{ github.event.client_payload.repo }}"
+            issue="${{ github.event.client_payload.issue }}"
+          else
+            repo="${{ github.repository }}"
+            issue="${{ github.event.issue.number }}"
+          fi
+          if [[ -z "${repo:-}" || -z "${issue:-}" ]]; then
+            echo "::warning::event-dispatch: missing repo/issue; nothing to do."; exit 0
+          fi
+          echo "Trusted-origin event for ${repo}#${issue}."
+          # Durable promotion state (idempotent).
+          gh issue edit "$issue" --repo "$repo" --add-label ready-for-implementer || true
+          # Throttle (ADR-0030): the cap is FLEET-WIDE — only a central counter
+          # bounds a multi-repo storm. Count open implementer-authored PRs across
+          # the fleet. FAIL OPEN: if the count can't be read, dispatch anyway —
+          # never drop urgent work on a transient API error.
+          REPOS="game-night-pwa meal-planner ai-teacher jaetill-portal splendor draft carto agentic-dev-environment"
+          inflight=0; counted=true
+          for r in $REPOS; do
+            n=$(gh pr list --repo "jaetill/$r" --state open --json author \
+                  --jq '[.[] | select(.author.login == "app/claude")] | length' 2>/dev/null) || { counted=false; break; }
+            inflight=$((inflight + n))
+          done
+          cap=${FLEET_MAX_DISPATCH:-6}
+          if [[ "$counted" == "true" && "$inflight" -ge "$cap" ]]; then
+            echo "::notice::In-flight implementer PRs ($inflight) >= cap ($cap). ${repo}#${issue} is labelled ready-for-implementer; the next promoter cycle will dispatch it. Not dispatching now."
+            gh issue comment "$issue" --repo "$repo" --body "Promoted (\`ready-for-implementer\`). Fleet at dispatch cap ($inflight/$cap in flight) — the next promoter cycle will dispatch this (ADR-0030)." || true
+            exit 0
+          fi
+          # Under cap (or fail-open): dispatch the implementer for this issue.
+          gh workflow run claude-implementer.yml --repo "$repo" -f issue_number="$issue"
+          echo "::notice::Dispatched implementer for ${repo}#${issue} (in-flight before dispatch: ${inflight}/${cap}, counted=${counted})."
+          gh issue comment "$issue" --repo "$repo" --body "Auto-promoted and dispatched via the promoter's event path (ADR-0030)." || true

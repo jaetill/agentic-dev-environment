@@ -47,6 +47,10 @@ Chosen option: **Option B.** The promoter becomes the **single dispatch authorit
 - **Event-triggered, not cron-gated.** A trusted-origin event dispatches the promoter *now* (via `workflow_dispatch`/`repository_dispatch`, which bypass the window gate exactly as manual dispatch does today). Urgent work is not delayed to the next window.
 - **Deterministic auto-promote of the trigger.** The LLM judgment never gates the issue that caused the run — only the extra work it scans for.
 
+**Dispatch topology — one central promoter, project-scoped.** The promoter stays single and platform-central; it is *not* copied per repo. App repos forward their trusted-origin events to it with a thin `repository_dispatch` stub (repo + issue + reason); the central promoter then runs **scoped to that one project** — promoting the trigger and filling only that project's slice, without a full fleet scan. This is what makes the `FLEET_MAX_DISPATCH` throttle real: only a single central actor can count in-flight work across the whole fleet, so a multi-repo storm is actually capped. Per-repo promoters were rejected — they would re-create the per-repo-copy drift (cf. [ADR-0018](0018-workflow-distribution.md)) *and* fragment the cap into per-repo limits, defeating the throttle.
+
+**Mechanism — deterministic dispatch, then LLM fill.** The trigger's auto-promote is a **deterministic** step (apply `ready-for-implementer`, throttle-check fleet-wide in-flight work, dispatch) — no LLM on the critical path of urgent dispatch. The cycle-fill is the existing LLM promoter scoped to that project, **staged after** the deterministic relocation (see rollout): urgent work becomes throttled-and-reliable first; opportunistic fill follows.
+
 Option A is rejected: it leaves the throttle gap and the five-front-door duplication in place.
 
 ## Consequences
@@ -79,15 +83,22 @@ Option A is rejected: it leaves the throttle gap and the five-front-door duplica
 | [ADR-0025](0025-owner-guard-on-platform-opened-pickup.md) | The `author_association == 'OWNER'` guard moves from the `opened` → *implementer* path to the `opened` → *promoter* path (same OWNER condition, new dispatch target). |
 | [ADR-0016](0016-finding-lifecycle-calibration-deferral.md) | Sentry-bug pickup is now a promoter trigger, not a direct implementer trigger. |
 
-## Implementation notes (staged rollout — pending separate go-ahead)
+## Implementation notes (staged rollout)
 
-1. **`triage-scan.yml`** — add event triggers (`repository_dispatch` for Sentry/CloudWatch; `issues: labeled`/`opened` for the label/owner paths) and a project-scoped **"auto-promote issue N, then fill this project's cycle"** mode beside the scheduled fleet scan. Carry the OWNER guard (ADR-0025) on the `opened` path here.
-2. **`claude-implementer.yml`** — remove the auto-pickup direct triggers (`source:sentry`, `severity:critical`, `source:cloudwatch`, owner-opened). Keep `ready-for-implementer` (non-bot) and the promoter's `workflow_dispatch`. (Mode B fix-iteration and Mode C cleanup-sweep unchanged.)
-3. **Integrations** — re-point the Sentry (and CloudWatch) GitHub automations to fire a `repository_dispatch` at the promoter instead of label→implementer.
-4. **Fleet propagation** — `claude-implementer.yml` is copied per repo (the ADR-0018 distribution gap), so steps 2 must propagate to all 8 fleet repos.
-5. **Loop diagram** — collapse the bypass edges; all entry points feed the promoter; the implementer has one inbound edge.
+**Phase 1 — platform repo (shipped):**
 
-**Rollout:** platform repo first, validate one event cycle end-to-end, then propagate to the app repos and re-point integrations. Keep the direct paths until each repo's promoter path is validated to avoid a dispatch gap.
+1. **`triage-scan.yml`** — add `issues: [opened, labeled]` + `repository_dispatch: [implementer-event]` triggers and a deterministic, project-scoped **`event-dispatch`** job: on a trusted-origin event it applies `ready-for-implementer`, **throttle-checks fleet-wide in-flight work against `FLEET_MAX_DISPATCH`** (fail-open for urgent work so a transient error never drops a critical), and dispatches the implementer via `workflow_dispatch`. The ADR-0025 OWNER guard sits on the `opened` path here. No LLM on this path (deterministic).
+2. **`claude-implementer.yml`** — the `initial` (non-IaC) job loses the bypass triggers (`source:sentry`, `severity:critical`, owner-opened, human `ready-for-implementer`); it keeps only the feature-continuation labels (`plan-approved`, `skip-plan`). The promoter's `workflow_dispatch` (`manual-dispatch` job) and Modes B/C are unchanged.
+
+**Phase 2+ (follow-ups):**
+
+3. **LLM cycle-fill** — after Phase 1 is validated, the `event-dispatch` job kicks the existing promoter (project-scoped) to opportunistically fill remaining capacity. Deferred so urgent dispatch is reliable first.
+4. **IaC path** — `initial-iac` is left on its current triggers for now; routing `scope:iac` dispatch through the promoter is a separate, low-volume follow-up.
+5. **Integrations** — re-point the Sentry/CloudWatch GitHub automations to fire `repository_dispatch` at the promoter instead of label→implementer.
+6. **Fleet propagation** — app repos get a thin `repository_dispatch` forwarder (event → central promoter, model B); `claude-implementer.yml`'s `initial` trim propagates to all 8 repos (the ADR-0018 per-repo-copy gap).
+7. **Loop diagram** — collapse the bypass edges; all entry points feed the promoter.
+
+**Rollout:** platform repo first (Phase 1), validate one live event end-to-end, then the fill, the integrations, and the app-repo propagation. Each app repo keeps its direct paths until its forwarder is validated, so there's never a dispatch gap.
 
 ## Links
 
