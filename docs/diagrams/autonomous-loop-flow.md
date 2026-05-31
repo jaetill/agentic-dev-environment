@@ -65,7 +65,12 @@ flowchart TD
         WIN{"In window?<br/>overnight 01–04 CT daily ·<br/>work-hours 09–12 CT Mon–Fri ·<br/>manual dispatch always passes"}
         WIN -->|no| WWAIT["Quiet — wait for next window"]
         WIN -->|yes| PROMO{"Promotion eligible? · Tier-2 judgement<br/>· agent-discovered<br/>· severity:med/high or triage:med<br/>· not already ready-for-implementer<br/>· survived at least one cycle (older than ~35 min)<br/>· well-specified, single bounded change"}
-        PROMO -->|"no — vague"| NOTPROMO["Leave unpromoted +<br/>comment what is missing<br/>re-evaluated next cycle"]
+        PROMO -->|"no — vague"| DISAMB{"Promoter can disambiguate<br/>from the code? · ADR-0031"}
+        DISAMB -->|"yes — enrich body"| ENRICH["Rewrite issue with missing<br/>repro/acceptance criteria · comment"]
+        ENRICH --> THR
+        DISAMB -->|no| CLOSEV["Auto-close vague issue · comment<br/>malformed agent finding — linked, not lost"]
+        CLOSEV --> AQUAL["File/append agent-quality issue · platform repo<br/>deduped per source agent · names missing field + spec file"]
+        AQUAL -->|"promoted same run · cycle-exempt"| THR
         PROMO -->|yes| THR{"Within FLEET_MAX_DISPATCH = 6?<br/>severity:high promoted first"}
         THR -->|"no — cap reached"| CAPWAIT["Rest wait for next window"]
         THR -->|yes| DISPATCH["+ ready-for-implementer ·<br/>dispatch the repo's implementer · comment"]
@@ -147,7 +152,8 @@ flowchart TD
 
     class CLOSED,DEPAUTO success;
     class ARCH,PLANWAIT,REFUSE,ESCAL,HADR,HCOMP,HHUM,HFAIL,PAUSED human;
-    class WWAIT,NOTPROMO,CAPWAIT,CONFWAIT,CAPM,DEFER,HCHK,INERT,OPTINWAIT,DIGSINK wait;
+    class WWAIT,CAPWAIT,CONFWAIT,CAPM,DEFER,HCHK,INERT,OPTINWAIT,DIGSINK wait;
+    class CLOSEV success;
     class SWEEP sweep;
 ```
 
@@ -167,6 +173,7 @@ flowchart TD
 | Paused | 🟧 | `AUTONOMOUS_MERGE=off`. |
 | Wait: window / cap / conflict / checks | ⬛ | Parked, re-evaluated next cycle or window. |
 | deferred-until-adjacent | ⬛ | Low/Nit finding — drained later by cleanup-sweep (ADR-0016). |
+| Auto-closed (malformed finding) | 🟩 | Promoter couldn't disambiguate a vague agent finding — closed, and a fix to the source agent's contract dispatched (ADR-0031). |
 
 ## Notes
 
@@ -175,5 +182,6 @@ flowchart TD
 - **Three safeguards against an external request weakening the app.** (1) It can't self-dispatch — needs a maintainer's opt-in label. (2) If it's a `feature-request`, the plan-gate still holds it for your `plan-approved`. (3) The auto-merge gate holds *every* human-origin issue for your manual merge (ADR-0023). A non-maintainer can file, but cannot make the loop build or land anything.
 - **Platform opened-path — now owner-gated.** The platform repo (`agentic-dev-environment`) is public and its templates auto-apply `bug` / `feature-request`. Its `opened` pickup (`initial` + `initial-iac`) is now guarded by `author_association == 'OWNER'` (ADR-0025) — the owner's own issues fast-path; anyone else's start *no* work until the owner applies `ready-for-implementer`. This puts the human-in-the-loop checkpoint ahead of implementation, not just merge, matching the app repos. So the "Other user" source above is inert across the whole fleet, platform repo included.
 - **The loop generates its own inputs.** The review battery files fresh defects (dashed edge back to sources) — this is why backlog can grow even while the loop runs; throughput, not correctness.
+- **The loop fixes its own labor (ADR-0031).** A vague finding can only originate from one of the loop's own agents — the promoter never evaluates human-authored issues. So when the promoter can't enrich a vague finding from the code, it auto-closes it and dispatches a fix to the *source agent's* contract, same run. Repeated vague output converges to one tracked improvement instead of an immortal, re-commented backlog issue.
 - **Repo abstraction.** The promoter, implementer, review, and merge stages are identical across all fleet repos. The only repo-shaped decisions are `scope:iac` (routes to `iac-implementer`) and app-vs-no-app inside the review battery (resolved by ADR-0024 so required checks always report, never skip).
 - **The merge gate is mechanical.** No agent judgement — every branch is decidable from labels, the linked issue's origin, and check state.

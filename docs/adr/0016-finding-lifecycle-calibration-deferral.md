@@ -7,6 +7,8 @@
 
 > **Amended by [ADR-0030](0030-all-dispatch-through-promoter.md):** dispatch routing changed — all implementer dispatch now goes through the promoter (no direct bypass). See the *Impacted ADRs* table in ADR-0030 for the specific change to this ADR.
 
+> **Amended by [ADR-0031](0031-promoter-disambiguates-or-closes-vague-findings.md):** a vague *agent-discovered* finding is no longer parked ("comment and leave"); the promoter either enriches it into a normal ticket or auto-closes it and dispatches a fix to the source agent's contract. The vague branch is a disposed lifecycle outcome, not a held one.
+
 ## Context and Problem Statement
 
 The platform's AI reviewer agents (`code-reviewer`, `security-reviewer`, `triage-bot`, `doc-keeper`) produce findings on every PR, log scan, and merge. Two failure modes have surfaced in practice across the first month of platform use:
