@@ -5,6 +5,8 @@
 - **Deciders:** Jason Tilley (with AI architectural review)
 - **Tags:** ai-workflows, ci-cd, orchestration, distribution
 
+> **Amended by [ADR-0030](0030-all-dispatch-through-promoter.md):** dispatch routing changed — all implementer dispatch now goes through the promoter (no direct bypass). See the *Impacted ADRs* table in ADR-0030 for the specific change to this ADR.
+
 > **Format:** MADR 4.x with the platform's three extensions. This is a **bundled-sub-decision** ADR — five coupled decisions about running one loop across many repos.
 
 ## Context and Problem Statement

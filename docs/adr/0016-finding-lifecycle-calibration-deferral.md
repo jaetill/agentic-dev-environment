@@ -5,6 +5,8 @@
 - **Deciders:** Jason Tilley
 - **Tags:** ai-workflows, governance, agents, signal-to-noise
 
+> **Amended by [ADR-0030](0030-all-dispatch-through-promoter.md):** dispatch routing changed — all implementer dispatch now goes through the promoter (no direct bypass). See the *Impacted ADRs* table in ADR-0030 for the specific change to this ADR.
+
 ## Context and Problem Statement
 
 The platform's AI reviewer agents (`code-reviewer`, `security-reviewer`, `triage-bot`, `doc-keeper`) produce findings on every PR, log scan, and merge. Two failure modes have surfaced in practice across the first month of platform use:

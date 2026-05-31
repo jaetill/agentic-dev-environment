@@ -5,6 +5,8 @@
 - **Deciders:** Jason Tilley
 - **Tags:** security, ai-workflows, governance, ci-cd
 
+> **Amended by [ADR-0030](0030-all-dispatch-through-promoter.md):** dispatch routing changed — all implementer dispatch now goes through the promoter (no direct bypass). See the *Impacted ADRs* table in ADR-0030 for the specific change to this ADR.
+
 > **Format:** MADR 4.x with the platform's three documented extensions. Single-decision ADR. Closes a concrete exposure in the Mode-A pickup model (ADR-0026, ADR-0017); does not reopen the trust model itself.
 
 ## Context and Problem Statement

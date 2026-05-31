@@ -5,6 +5,8 @@
 - **Deciders:** Jason Tilley
 - **Tags:** ai-workflows, governance, autonomy, ci-cd
 
+> **Amended by [ADR-0030](0030-all-dispatch-through-promoter.md):** dispatch routing changed — all implementer dispatch now goes through the promoter (no direct bypass). See the *Impacted ADRs* table in ADR-0030 for the specific change to this ADR.
+
 > **Format:** MADR 4.x with the platform's three documented extensions. Single-decision ADR. This is a *retroactive* record: the decision was made and shipped before it was filed. The Decision Outcome below describes the as-built implementation found in `plugins/ai-team/agents/implementer.md`, `plugins/ai-team/agents/iac-implementer.md`, and `.github/workflows/claude-implementer.yml`; the Context and Options reconstruct the frame that produced it.
 
 ## Context and Problem Statement
@@ -93,3 +95,5 @@ Option B was rejected because an unrestricted author breaks the separation prope
 - [ADR-0021](0021-autonomous-merge.md) — autonomous merge of implementer fix PRs.
 - [ADR-0023](0023-origin-based-autonomy-boundary.md) — the origin-based autonomy boundary governing which implementer PRs auto-merge.
 - [ADR-0025](0025-owner-guard-on-platform-opened-pickup.md) — owner-guard on the platform repo's Mode-A opened pickup.
+
+[bad](nope-does-not-exist.md)
