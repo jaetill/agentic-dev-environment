@@ -1,6 +1,6 @@
 # ADR-0030: All implementer dispatch routes through the promoter (no direct bypass)
 
-- **Status:** Accepted — design ratified 2026-05-31. **Implementation staged** (platform repo first, then fleet propagation + integration re-point). Until the re-plumb lands, the as-built direct-dispatch paths described in ADR-0026/0017/0023/0025 remain in effect; this ADR is the governing decision for dispatch routing going forward.
+- **Status:** Accepted — design ratified 2026-05-31. **Phases 1–2 shipped + live-validated 2026-05-31:** platform `event-dispatch` (Phase 1) and the central `urgent-poll.yml` (Phase 2) are live; all 7 app repos are trimmed to a local human-only `ready-for-implementer` trigger. Machine-detected urgent work (`severity:critical`/`source:sentry`/`source:cloudwatch`) now routes through the throttled central poll; human-approved work stays local and immediate. Phase 3 (LLM cycle-fill, `scope:iac` path) is optional/deferred. This ADR is the governing decision for dispatch routing.
 - **Date:** 2026-05-31
 - **Deciders:** Jason Tilley
 - **Tags:** ai-workflows, orchestration, autonomy, governance
@@ -105,7 +105,7 @@ Option A is rejected: it leaves the throttle gap and the five-front-door duplica
 
 **Phase 3 (optional follow-ups, not blocking):** the LLM cycle-fill and the `scope:iac` dispatch path.
 
-**Rollout:** platform repo first (Phase 1, done + validated). Phase 2: ship + validate the poll live, *then* trim the app repos (the poll must work before the trim, so machine-detected app work never has a gap). Until each app repo is trimmed it keeps its local bypass — a brief double-dispatch window for a *new* machine label is harmless (the second run aborts at its rebase pre-flight).
+**Rollout (complete):** Phase 1 (platform `event-dispatch`) shipped + validated; Phase 2 poll shipped, live-validated (run dispatched the 2 stuck urgent issues `splendor#29`/`game-night-pwa#81` at `0/6` active), *then* all 7 app repos trimmed (`game-night-pwa`, `meal-planner`, `ai-teacher`, `jaetill-portal`, `splendor`, `draft`, `carto`). The trim also restored the `sender != Bot` guard on `ai-teacher`/`splendor`, which had drifted to a `fromJSON` form lacking it. Order was deliberate — the poll had to work before the trim so machine-detected app work never had a gap.
 
 ## Links
 
