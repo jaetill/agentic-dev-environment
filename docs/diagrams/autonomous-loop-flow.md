@@ -27,7 +27,7 @@ flowchart TD
         S4["doc-keeper<br/>doc gap"]
         S5["ci-health<br/>fleet workflow failure"]
         S6["Sentry<br/>production error"]
-        S7["dep-watch<br/>weekly dependency report"]
+        S7["dep-watch<br/>reviews dependency PRs"]
         S8A["You / trusted maintainer<br/>filed issue"]
         S8B["Other user · app user / external<br/>feature request or bug"]
         PF["triage-scan Pass 3<br/>process-flaw markers pulled<br/>fleet-wide, refiled on platform repo"]
@@ -39,7 +39,11 @@ flowchart TD
     S4 --> LBL
     S5 --> CILBL["Issue filed<br/>labels: bug, triage:medium"]
     S6 --> SENT["Issue filed<br/>label: source:sentry"]
-    S7 --> DEPLBL["Report issue<br/>label: dep-watch (informational)"]
+    S7 --> DEPAUTO["Auto-merges safe bumps + CVE patches<br/>(patch/minor · tests green) → merged"]
+    S7 --> DEPFIND["Files work: major bumps · EOL/deprecation ·<br/>dead-package replacement<br/>severity:* + ready-for-implementer"]
+    S7 --> DEPDIGEST["Weekly digest<br/>label: dep-watch"]
+    DEPFIND -->|"ADR-0027 · no human gate"| QUEUE
+    DEPDIGEST --> DIGSINK["Human info sink ·<br/>read-only, never a gate"]
     S8A --> OPTIN
     S8B --> INERT["Sits inert — cannot self-dispatch<br/>non-maintainers cannot apply labels"]
     INERT --> OPTIN{"Trusted maintainer opts it in?<br/>applies ready-for-implementer / severity:critical<br/>permission-gated — write/triage only"}
@@ -51,7 +55,6 @@ flowchart TD
     LBL --> SEV{"Finding severity?"}
     SEV -->|"Low / Nit"| DEFER["deferred-until-adjacent<br/>(ADR-0016)"]
     SEV -->|"Med / High"| QUEUE["Agent-discovered queue<br/>awaits the promoter"]
-    DEPLBL --> HUMTRIAGE["No severity — not auto-eligible<br/>human reviews"]
 
     SENT --> FAST["Implementer auto-pickup<br/>label-triggered · bypasses promoter + window"]
     QUEUE -. "agent-applied severity:critical also auto-picks-up" .-> FAST
@@ -70,7 +73,6 @@ flowchart TD
     end
 
     QUEUE --> WIN
-    HUMTRIAGE -. "human may promote / dispatch" .-> WIN
     DEFER -. "drained later" .-> SWEEP
 
     %% ===================== ③ IMPLEMENTER =====================
@@ -141,9 +143,9 @@ flowchart TD
     classDef wait fill:#4a4a4a,stroke:#2a2a2a,color:#fff;
     classDef sweep fill:#264f78,stroke:#16324d,color:#fff;
 
-    class CLOSED success;
+    class CLOSED,DEPAUTO success;
     class ARCH,PLANWAIT,REFUSE,ESCAL,HADR,HCOMP,HHUM,HFAIL,PAUSED human;
-    class WWAIT,NOTPROMO,CAPWAIT,CONFWAIT,CAPM,DEFER,HCHK,HUMTRIAGE,INERT,OPTINWAIT wait;
+    class WWAIT,NOTPROMO,CAPWAIT,CONFWAIT,CAPM,DEFER,HCHK,INERT,OPTINWAIT,DIGSINK wait;
     class SWEEP sweep;
 ```
 
