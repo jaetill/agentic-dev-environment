@@ -1,6 +1,6 @@
 # ADR-0024: Required test checks pass (not skip) on no-app repos
 
-- **Status:** Proposed
+- **Status:** Accepted — implemented in #105 (merged 2026-05-31) and verified live: platform PRs that ran *after* the fix (#108, #109) report `functional-test` and `e2e-test` as `pass`, not `skip`. (#106/#107 retain pre-fix `skipping` runs and would re-pass on a re-run.)
 - **Date:** 2026-05-30
 - **Deciders:** Jason Tilley
 - **Tags:** ci-cd, testing, ai-workflows, governance
