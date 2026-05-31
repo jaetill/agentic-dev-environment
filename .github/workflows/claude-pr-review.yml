@@ -51,7 +51,7 @@ jobs:
     # runs with "Workflow initiated by non-human actor" — short-circuit at the
     # workflow level instead so PR status checks stay green.
     # Bot-skip guard intentionally removed per the autonomous-team
-    # architecture (ADR-0013). Implementer-authored PRs (actor: claude[bot])
+    # architecture (ADR-0026). Implementer-authored PRs (actor: claude[bot])
     # MUST be reviewed; otherwise branch protection's required checks
     # report SKIPPED, which GitHub treats as satisfied, which would let
     # bot-authored PRs bypass review entirely. The 3-attempt cap on the
@@ -113,7 +113,7 @@ jobs:
 
             For each Critical, High, or Medium finding, file a defect issue
             so it survives this PR's lifecycle and can be picked up by the
-            implementer agent (per ADR-0013).
+            implementer agent (per ADR-0026).
 
             Dedup: before filing, check existing open issues for one that
             already covers this exact file:line + finding category. Run:
@@ -149,7 +149,7 @@ jobs:
 
                 ---
 
-                *Auto-filed by code-reviewer per ADR-0013. Awaiting human
+                *Auto-filed by code-reviewer per ADR-0026. Awaiting human
                 dispatch — add label `ready-for-implementer` to dispatch
                 to the implementer agent.*
                 EOF
@@ -168,7 +168,7 @@ jobs:
             --allowed-tools Bash,Read,Glob,Grep
             --append-system-prompt "Follow the platform standards in docs/standards/."
       - name: "Enforce gate (hybrid VERDICT verification)"
-        # Defense in depth per ADR-0013 §4 decision:
+        # Defense in depth per ADR-0026 §4 decision:
         #   1. Parse the agent's self-declared VERDICT line
         #   2. INDEPENDENTLY scan the comment for ### Critical or ### High
         #      severity headers
@@ -286,7 +286,7 @@ jobs:
     needs: detect-node
     if: needs.detect-node.outputs.node == 'true'
     # Bot-skip guard intentionally removed per the autonomous-team
-    # architecture (ADR-0013). Implementer-authored PRs (actor: claude[bot])
+    # architecture (ADR-0026). Implementer-authored PRs (actor: claude[bot])
     # MUST be reviewed; otherwise branch protection's required checks
     # report SKIPPED, which GitHub treats as satisfied, which would let
     # bot-authored PRs bypass review entirely. The 3-attempt cap on the
@@ -326,7 +326,7 @@ jobs:
           allowed_bots: 'claude[bot]'
           prompt: |
             Act as the test-writer subagent defined in .claude/agents/test-writer.md
-            in **reviewer mode** (per issue #25 / ADR-0013 follow-up).
+            in **reviewer mode** (per issue #25 / ADR-0026 follow-up).
 
             ## Role at PR time
 
@@ -475,7 +475,7 @@ jobs:
     # human-reviewed PR flow as code.
     #
     # Bot-skip guard intentionally removed per the autonomous-team
-    # architecture (ADR-0013). Implementer-authored PRs (actor: claude[bot])
+    # architecture (ADR-0026). Implementer-authored PRs (actor: claude[bot])
     # MUST be reviewed; otherwise branch protection's required checks
     # report SKIPPED, which GitHub treats as satisfied, which would let
     # bot-authored PRs bypass review entirely. The 3-attempt cap on the
@@ -543,7 +543,7 @@ jobs:
 
   security-review:
     # Bot-skip guard intentionally removed per the autonomous-team
-    # architecture (ADR-0013). Implementer-authored PRs (actor: claude[bot])
+    # architecture (ADR-0026). Implementer-authored PRs (actor: claude[bot])
     # MUST be reviewed; otherwise branch protection's required checks
     # report SKIPPED, which GitHub treats as satisfied, which would let
     # bot-authored PRs bypass review entirely. The 3-attempt cap on the
@@ -621,7 +621,7 @@ jobs:
 
                 ---
 
-                *Auto-filed by security-reviewer per ADR-0013. Awaiting
+                *Auto-filed by security-reviewer per ADR-0026. Awaiting
                 human dispatch — add `ready-for-implementer` to dispatch
                 to the implementer agent.*
                 EOF
@@ -790,7 +790,7 @@ jobs:
             });
 
   ensure-labels:
-    # Pre-creates the ADR-0013 label taxonomy so the reviewers can apply
+    # Pre-creates the ADR-0026 label taxonomy so the reviewers can apply
     # them when filing defect issues. Idempotent — won't fail if labels
     # already exist. Runs in parallel with the reviewers; reviewers may
     # need to retry the first gh issue create if labels haven't landed
@@ -810,7 +810,7 @@ jobs:
           gh --repo "${{ github.repository }}" label create severity:medium      --color FBCA04 --description "Medium-severity issue — should fix soon" 2>/dev/null || true
           gh --repo "${{ github.repository }}" label create severity:low         --color 0E8A16 --description "Low-severity issue — nice to fix" 2>/dev/null || true
           gh --repo "${{ github.repository }}" label create severity:nit         --color BFD4F2 --description "Stylistic nit — author's discretion" 2>/dev/null || true
-          # Origin labels (per ADR-0013 trust tiers)
+          # Origin labels (per ADR-0026 trust tiers)
           gh --repo "${{ github.repository }}" label create origin:internal-review  --color 5319E7 --description "Filed by an internal-review agent (code-reviewer / security-reviewer / test-writer / doc-keeper)" 2>/dev/null || true
           gh --repo "${{ github.repository }}" label create origin:production-signal --color 1D76DB --description "Filed from a production signal (Sentry / drift / dep advisory)" 2>/dev/null || true
           gh --repo "${{ github.repository }}" label create origin:external-request --color C5DEF5 --description "Filed from an external request (feedback widget / human prompt)" 2>/dev/null || true
@@ -822,7 +822,7 @@ jobs:
 
   invoke-architect-if-gated:
     needs: destructive-change-check
-    # Bot-skip removed per ADR-0013 — implementer-authored PRs that
+    # Bot-skip removed per ADR-0026 — implementer-authored PRs that
     # trip destructive-change-detector still need an ADR drafted.
     if: needs.destructive-change-check.outputs.requires-adr == 'true'
     runs-on: ubuntu-latest

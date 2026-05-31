@@ -9,7 +9,7 @@
 
 ## Context and Problem Statement
 
-The reusable review workflow (`claude-pr-review.yml`, per [ADR-0018](0018-reusable-review-workflow.md)) gates its npm-based test jobs — `functional-test` and `e2e-test` — behind `detect-node`: a repo with no root `package.json` skips the whole job. The intent was that a meta/framework repo with no Node app surface (today, only the platform repo `agentic-dev-environment` itself) should not be asked to run an app test suite it doesn't have.
+The reusable review workflow (`claude-pr-review.yml`, per [ADR-0018](0018-workflow-distribution.md)) gates its npm-based test jobs — `functional-test` and `e2e-test` — behind `detect-node`: a repo with no root `package.json` skips the whole job. The intent was that a meta/framework repo with no Node app surface (today, only the platform repo `agentic-dev-environment` itself) should not be asked to run an app test suite it doesn't have.
 
 `functional-test` and `e2e-test` are also **required status checks** on `agentic-dev-environment/main`. The job comment asserted that a skipped required check "is treated as satisfied" by GitHub. **That is false.** GitHub's status rollup reports the PR green (it ignores skipped contexts), but branch protection evaluates each required context individually and a skipped required check is *not* a passing one. The result: every implementer PR against the platform repo sits `MERGEABLE`/`BLOCKED` forever, the auto-merger (ADR-0021) fails it with "base branch policy prohibits the merge," the fixed issue never closes, and the platform repo's backlog grows unbounded (52 of ~200+ fleet issues as of 2026-05-30) while looking green on every dashboard.
 
@@ -81,7 +81,7 @@ Option B was rejected because it diverges the platform repo's required-context l
 
 ## Links
 
-- [ADR-0018](0018-reusable-review-workflow.md) — the reusable review workflow this modifies.
+- [ADR-0018](0018-workflow-distribution.md) — the reusable review workflow this modifies.
 - [ADR-0021](0021-autonomous-merge.md) — the auto-merge gate whose "checks pass" assumption this repairs.
 - [ADR-0023](0023-origin-based-autonomy-boundary.md) — places platform-repo merge-gate changes on the human side of the autonomy boundary.
 - GitHub docs — "Troubleshooting required status checks": a required check that is skipped rather than reported successful leaves a PR unmergeable.
