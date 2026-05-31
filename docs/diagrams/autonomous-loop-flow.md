@@ -52,9 +52,8 @@ flowchart TD
     PF --> QUEUE
     CILBL --> QUEUE
 
-    LBL --> SEV{"Finding severity?"}
-    SEV -->|"Low / Nit"| DEFER["deferred-until-adjacent<br/>(ADR-0016)"]
-    SEV -->|"Med / High"| QUEUE["Agent-discovered queue<br/>awaits the promoter"]
+    LBL -->|"Med / High"| QUEUE["Agent-discovered queue<br/>awaits the promoter"]
+    LBL -->|"Low / Nit — reviewer files it already-deferred (ADR-0016)"| DEFER["deferred-until-adjacent<br/>(ADR-0016)"]
 
     SENT --> FAST["Implementer auto-pickup<br/>label-triggered · bypasses promoter + window"]
     QUEUE -. "agent-applied severity:critical also auto-picks-up" .-> FAST
