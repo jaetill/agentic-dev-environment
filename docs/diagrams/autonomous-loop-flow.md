@@ -78,7 +78,7 @@ flowchart TD
         RANK -->|"beyond cap"| CAPWAIT["Rest wait for next cycle ·<br/>re-ranked next pass — not dropped"]
         CAPWAIT -. "re-ranked next pass — re-enters eligibility" .-> PROMO
         AQUAL -. "cap-exempt · dedup-bounded · ADR-0031" .-> DISPATCH
-        RANK -. "spare slots, but only after ≥1 real promotion · ADR-0028" .-> SWEEP["Dispatch cleanup-sweep · Mode C<br/>to repo with most deferred nits<br/>skip zero-count repos"]
+        RANK -. "spare slots, but only after ≥1 real promotion · ADR-0028" .-> SWEEP["Promoter dispatches a cleanup-sweep (Mode C) ·<br/>spare slots only · to the repo with the most<br/>deferred nits · skip zero-count repos"]
     end
 
     QUEUE --> WIN
@@ -122,7 +122,8 @@ flowchart TD
     end
 
     OPENPR --> REVIEW
-    SWEEP --> REVIEW
+    SWEEP --> SWEEPIMPL["implementer · Mode C cleanup-sweep<br/>drains the repo's deferred nits · opens a PR"]
+    SWEEPIMPL --> REVIEW
     FIX --> REVIEW
     REVIEW -. "files new defects" .-> S1
 
@@ -171,7 +172,7 @@ flowchart TD
     class WWAIT,CAPWAIT,CONFWAIT,CAPM,DEFER,HCHK,INERT,OPTINWAIT,DIGSINK wait;
 
     class PF,EVENTDISP,WIN,EVALALL,PROMO,DISAMB,ENRICH,CLOSEV,AQUAL,PROMSET,RANK,DISPATCH,SWEEP promoter;
-    class IAC,IACIMPL,CG,PHASE,PLAN,PAPP,SCOPE,BUILD,CONF,OPENPR,FIX implementer;
+    class IAC,IACIMPL,CG,PHASE,PLAN,PAPP,SCOPE,BUILD,CONF,OPENPR,FIX,SWEEPIMPL implementer;
     class REVIEW,VERDICT,FIXIT reviewer;
     class MG0,MG1,MG2,MG3,MGGUARD,MG4,MG5,DOMERGE,MFAIL merger;
 ```
