@@ -7,7 +7,7 @@ fork shown is `scope:iac` (which agent builds it) and the no-app vs. app behavio
 folded into the review battery (ADR-0024). There is intentionally no per-repo split.
 
 Source of truth: `triage-scan.yml`, `claude-implementer.yml`, `claude-pr-review.yml`,
-and ADR-0016 / 0017 / 0019 / 0020 / 0021 / 0023 / 0024 / 0025 / 0026 / 0027 / 0028.
+and ADR-0016 / 0017 / 0019 / 0020 / 0021 / 0023 / 0024 / 0025 / 0026 / 0027 / 0028 / 0029.
 
 **Legend**
 
@@ -73,7 +73,7 @@ flowchart TD
     end
 
     QUEUE --> WIN
-    DEFER -. "bundled when a real fix touches its directory · ADR-0016 'While here'" .-> BUILD
+    DEFER -. "promoter selects same-file nits into the real dispatch · ADR-0029" .-> DISPATCH
     DEFER -. "or swept on an active cycle · ADR-0028" .-> SWEEP
 
     %% ===================== ③ IMPLEMENTER =====================
