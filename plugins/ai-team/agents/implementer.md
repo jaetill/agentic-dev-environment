@@ -36,7 +36,7 @@ You create a feature branch, write code, write tests, open a PR. The full review
 
 **Adjacent deferred work — fix PR (ADR-0029).** Do NOT scan the queue for nits yourself. The **promoter** selects same-file `deferred-until-adjacent` nits and hands them to you in the dispatch (the "Promoter-selected adjacent nits to bundle" line in your prompt). For each supplied nit:
 
-- Confirm its cited file is one your change **actually touched**. If so, bundle it into the fix PR's "While here" section and `Closes #<nit>` (cap mirrors ADR-0016: at most `min(floor(total / 2), 4)`, bounded and unambiguous only).
+- Confirm its cited file is one your change **actually touched**. If so, bundle it into the fix PR's "While here" section and `Closes #<nit>` (the promoter already capped the selection per ADR-0016; bundle only the bounded, unambiguous matches).
 - If a supplied nit is **not** in a file you touched, **drop** it: do not close it, leave it `deferred-until-adjacent`, and — if you can determine its actual current file from the code (a stale or renamed path) — edit the nit issue to correct its cited `file:line` so it matches correctly next time; otherwise post a one-line "evaluated with the parent, not adjacent" note. A dropped nit waits for a genuinely-adjacent cycle (or the quarterly sweep).
 
    ```markdown
@@ -46,7 +46,7 @@ You create a feature branch, write code, write tests, open a PR. The full review
    - Closes #51 — [severity:nit] move magic number to named constant in nudge.js
    ```
 
-**Sidecar cleanup PR** — a separate PR draining the repo's *other* deferred nits, since this run already paid for the checkout. Compute `total` via `gh issue list --label deferred-until-adjacent --state open --json number,title,body --limit 100`. Cap `max(floor(total / 2), 8)`, chunked at **12 issues per PR**, branch `cleanup/deferred-sweep-<issue-number>`, title `chore: drain deferred-until-adjacent nits`. NOTE (ADR-0029 follow-up): this sidecar is still implementer-driven queue-draining — the same coupling ADR-0029 removed from the fix-PR path, and it runs independent of the promoter's ADR-0028 active-cycle gate. Whether it stays or folds into the promoter's Mode-C cleanup-sweep is an open decision; unchanged for now.
+**No per-run sidecar.** You do NOT open a standalone cleanup PR off your own initiative during a fix run (ADR-0029). Standalone nit-draining is exclusively the promoter's **Mode-C cleanup-sweep**, dispatched only on active cycles with spare capacity (ADR-0028). In Mode A you touch only your parent issue plus the promoter-supplied adjacent nits — nothing else from the queue.
 
 ### Mode B — Fix iteration (review feedback → push to same PR)
 
@@ -56,7 +56,7 @@ You read the review feedback, address each finding, push a new commit to the sam
 
 ### Mode C — Cleanup sweep (dispatched)
 
-Triggered by `workflow_dispatch` with input `mode=cleanup-sweep` — the fleet promoter spends spare throughput capacity this way (ADR-0020). There is no originating issue and no plan-gate. Let `total` = the count of open `deferred-until-adjacent` issues in this repo (the same definition as Mode A). You open **sidecar cleanup PR(s) only**: drain a bounded batch of those nits — cap `max(floor(total / 2), 8)`, chunked at **12 issues per PR** (open multiple PRs if the batch is larger). Branch `cleanup/deferred-sweep-<n>`; title `chore: drain deferred-until-adjacent nits`. Each bundled fix must still be bounded and unambiguous — skip any that is not, exactly as in Mode A. The scope cap and the 3-iteration rule apply per cleanup PR.
+Triggered by `workflow_dispatch` with input `mode=cleanup-sweep` — the fleet promoter spends spare throughput capacity this way (ADR-0020). There is no originating issue and no plan-gate. Let `total` = the count of open `deferred-until-adjacent` issues in this repo (`gh issue list --label deferred-until-adjacent --state open --json number,title,body --limit 100`). You open **cleanup PR(s) only**: drain a bounded batch of those nits — cap `max(floor(total / 2), 8)`, chunked at **12 issues per PR** (open multiple PRs if the batch is larger). Branch `cleanup/deferred-sweep-<n>`; title `chore: drain deferred-until-adjacent nits`. Each bundled fix must still be bounded and unambiguous — skip any that is not. The scope cap and the 3-iteration rule apply per cleanup PR. This (dispatched by the promoter, gated to active cycles per ADR-0028) is the *only* standalone nit-drain — Mode A no longer opens cleanup PRs (ADR-0029).
 
 ## Authority
 
