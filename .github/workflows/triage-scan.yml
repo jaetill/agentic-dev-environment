@@ -447,19 +447,23 @@ jobs:
           # Durable promotion state (idempotent).
           gh issue edit "$issue" --repo "$repo" --add-label ready-for-implementer || true
           # Throttle (ADR-0030): the cap is FLEET-WIDE — only a central counter
-          # bounds a multi-repo storm. Count open implementer-authored PRs across
-          # the fleet. FAIL OPEN: if the count can't be read, dispatch anyway —
-          # never drop urgent work on a transient API error.
+          # bounds a multi-repo storm. Count ACTIVELY RUNNING implementer
+          # dispatches (in_progress + queued claude-implementer runs), NOT open
+          # PRs — an open PR is done-and-awaiting-merge and does not consume a
+          # dispatch slot, so counting PRs would chronically hold urgent work.
+          # FAIL OPEN: if the count can't be read, dispatch anyway — never drop
+          # urgent work on a transient API error.
           REPOS="game-night-pwa meal-planner ai-teacher jaetill-portal splendor draft carto agentic-dev-environment"
           inflight=0; counted=true
           for r in $REPOS; do
-            n=$(gh pr list --repo "jaetill/$r" --state open --json author \
-                  --jq '[.[] | select(.author.login == "app/claude")] | length' 2>/dev/null) || { counted=false; break; }
+            n=$(gh run list --repo "jaetill/$r" --workflow=claude-implementer.yml --limit 50 \
+                  --json status \
+                  --jq '[.[] | select(.status == "in_progress" or .status == "queued")] | length' 2>/dev/null) || { counted=false; break; }
             inflight=$((inflight + n))
           done
           cap=${FLEET_MAX_DISPATCH:-6}
           if [[ "$counted" == "true" && "$inflight" -ge "$cap" ]]; then
-            echo "::notice::In-flight implementer PRs ($inflight) >= cap ($cap). ${repo}#${issue} is labelled ready-for-implementer; the next promoter cycle will dispatch it. Not dispatching now."
+            echo "::notice::Active implementer runs ($inflight) >= cap ($cap). ${repo}#${issue} is labelled ready-for-implementer; the next promoter cycle will dispatch it. Not dispatching now."
             gh issue comment "$issue" --repo "$repo" --body "Promoted (\`ready-for-implementer\`). Fleet at dispatch cap ($inflight/$cap in flight) — the next promoter cycle will dispatch this (ADR-0030)." || true
             exit 0
           fi
