@@ -47,9 +47,10 @@ Chosen option: **promoter selects into the same dispatch; implementer validates 
 
 - The dropped-nit backstop is unchanged: a nit never organically touched is still caught by the quarterly sweep / 180-day re-triage (ADR-0016).
 
-### Out of scope (flagged)
+### Sidecar removal (resolved)
 
-- The implementer's Mode-A **sidecar cleanup PR** (ADR-0016/0020) is a *second* self-driven nit-drain — it opens a standalone cleanup PR on every dispatch, independent of the promoter and of the ADR-0028 active-cycle gate. It is the same worker-picks-the-queue coupling as the fix-PR path. It is left unchanged here pending a decision on whether to fold standalone nit-draining entirely into the promoter's Mode-C cleanup-sweep (ADR-0028). Until then the implementer still self-drains via the sidecar.
+- The implementer's Mode-A **sidecar cleanup PR** — a standalone nit-drain it opened on *every* dispatch, independent of the promoter and the ADR-0028 active-cycle gate — is **removed**. Standalone nit-draining is now exclusively the promoter's **Mode-C cleanup-sweep** (gated to active cycles, ADR-0028). The implementer no longer drains the queue off its own initiative at all: in Mode A it touches only its parent issue plus the promoter-supplied adjacent nits. This supersedes the two-PR (fix + sidecar) behaviour of ADR-0020.
+- **Tradeoff:** non-adjacent nits in untouched code drain more slowly — via Mode-C and the quarterly sweep — which matches ADR-0016's deferred-until-adjacent intent (don't fix nits in isolation). Mode-C is now the *sole* standalone release valve, so its cadence and the quarterly sweep / 180-day re-triage are the levers if nits accumulate.
 
 ## Pros and Cons of the Options
 
