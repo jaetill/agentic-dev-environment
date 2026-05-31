@@ -63,6 +63,32 @@ for adr_file in "$PLATFORM_DIR"/docs/adr/[0-9]*.md; do
 done
 
 # ============================================================
+# ADR cross-reference integrity
+# ============================================================
+echo "ADR cross-reference integrity..."
+adr_cross_ref_errors=0
+while IFS= read -r adr_ref; do
+  adr_num="${adr_ref#ADR-}"
+  if ! compgen -G "$PLATFORM_DIR/docs/adr/${adr_num}-*.md" > /dev/null 2>&1; then
+    echo "  ⚠️  $adr_ref referenced but docs/adr/${adr_num}-*.md does not exist" >&2
+    errors=$((errors + 1))
+    adr_cross_ref_errors=$((adr_cross_ref_errors + 1))
+  fi
+done < <(
+  grep -rhoE 'ADR-[0-9]{4}' \
+    "$PLATFORM_DIR/docs" \
+    "$PLATFORM_DIR/plugins" \
+    "$PLATFORM_DIR/.github/workflows" \
+    "$PLATFORM_DIR/scripts" \
+    "$PLATFORM_DIR/CLAUDE.md" \
+    2>/dev/null \
+  | sort -u
+)
+if [[ $adr_cross_ref_errors -eq 0 ]]; then
+  echo "  ✅ All ADR cross-references resolve"
+fi
+
+# ============================================================
 # Agent definitions
 # ============================================================
 echo "Agent definitions..."
