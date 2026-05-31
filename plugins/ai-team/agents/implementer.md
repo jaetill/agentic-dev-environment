@@ -34,27 +34,19 @@ Triggered when a GitHub issue has all of:
 
 You create a feature branch, write code, write tests, open a PR. The full review pipeline (code-reviewer, security-reviewer, functional-tester, test-writer, e2e-tester, doc-keeper) runs against the PR. You wait for the result.
 
-**Before opening the PR, handle adjacent deferred work** (per ADR-0016, as amended by ADR-0020). Let `total` = the count of open `deferred-until-adjacent` issues in this repo:
+**Adjacent deferred work — fix PR (ADR-0029).** Do NOT scan the queue for nits yourself. The **promoter** selects same-file `deferred-until-adjacent` nits and hands them to you in the dispatch (the "Promoter-selected adjacent nits to bundle" line in your prompt). For each supplied nit:
 
-```bash
-gh issue list --label deferred-until-adjacent --state open \
-  --json number,title,body --limit 100
-```
-
-You produce **two PRs**, not one (ADR-0020) — the functional fix stays reviewable while nits still drain on every dispatched run:
-
-1. **The fix PR** — your primary work plus directory-*adjacent* deferred nits. For each deferred issue, parse the body for cited file paths; if it cites a file in the same directory as your current work AND the fix is bounded (≤30 lines) and unambiguous, bundle it. Cap: **`min(floor(total / 2), 4)`**. Bundled fixes go in a "While here" section:
+- Confirm its cited file is one your change **actually touched**. If so, bundle it into the fix PR's "While here" section and `Closes #<nit>` (cap mirrors ADR-0016: at most `min(floor(total / 2), 4)`, bounded and unambiguous only).
+- If a supplied nit is **not** in a file you touched, **drop** it: do not close it, leave it `deferred-until-adjacent`, and — if you can determine its actual current file from the code (a stale or renamed path) — edit the nit issue to correct its cited `file:line` so it matches correctly next time; otherwise post a one-line "evaluated with the parent, not adjacent" note. A dropped nit waits for a genuinely-adjacent cycle (or the quarterly sweep).
 
    ```markdown
-   ## While here (per ADR-0016 / ADR-0020 deferral policy)
+   ## While here (per ADR-0016 / ADR-0029 deferral policy)
 
    - Closes #42 — [severity:low] consistent error message format in nudge.js
    - Closes #51 — [severity:nit] move magic number to named constant in nudge.js
    ```
 
-2. **The sidecar cleanup PR** — a separate PR draining the repo's *other* deferred nits (those not adjacent to your primary work), since this run already paid for the checkout and context. Cap: **`max(floor(total / 2), 8)`**, split into chunks of **at most 12 issues per PR** — if the batch exceeds 12, open multiple cleanup PRs. Branch `cleanup/deferred-sweep-<issue-number>`. Keeping it separate from the fix PR means one bad nit-fix cannot block the real fix.
-
-The fix PR's title describes the primary work. Each cleanup PR's title is `chore: drain deferred-until-adjacent nits`.
+**Sidecar cleanup PR** — a separate PR draining the repo's *other* deferred nits, since this run already paid for the checkout. Compute `total` via `gh issue list --label deferred-until-adjacent --state open --json number,title,body --limit 100`. Cap `max(floor(total / 2), 8)`, chunked at **12 issues per PR**, branch `cleanup/deferred-sweep-<issue-number>`, title `chore: drain deferred-until-adjacent nits`. NOTE (ADR-0029 follow-up): this sidecar is still implementer-driven queue-draining — the same coupling ADR-0029 removed from the fix-PR path, and it runs independent of the promoter's ADR-0028 active-cycle gate. Whether it stays or folds into the promoter's Mode-C cleanup-sweep is an open decision; unchanged for now.
 
 ### Mode B — Fix iteration (review feedback → push to same PR)
 

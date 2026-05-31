@@ -47,6 +47,10 @@ on:
         description: 'cleanup-sweep = drain deferred nits only (fleet promoter spare-capacity, ADR-0020)'
         required: false
         type: string
+      bundle_issues:
+        description: 'Comma-separated deferred-until-adjacent nit issue numbers the promoter selected to ride along with issue_number (same-file, ADR-0029)'
+        required: false
+        type: string
 
 permissions:
   contents: write       # branch creation + push
@@ -529,8 +533,21 @@ jobs:
             or manual smoke test. Issue number from the workflow_dispatch input.
 
             Issue number: ${{ inputs.issue_number }}
+            Promoter-selected adjacent nits to bundle: ${{ inputs.bundle_issues }}
 
             Follow the Mode A process from .claude/agents/implementer.md.
+
+            ADJACENCY BUNDLE (ADR-0029): the promoter pre-selected the nit
+            issue(s) listed above (same-file matches). Do NOT scan the queue
+            for nits yourself. For each supplied nit, confirm its cited file is
+            one your change ACTUALLY touched; if so, bundle it into this PR's
+            "While here" section and `Closes #<nit>`. If a supplied nit is NOT
+            in a file you touched, DROP it: do not close it, leave it
+            `deferred-until-adjacent`, and — if you can determine the nit's
+            actual current file from the code (e.g. a stale or renamed path) —
+            edit that nit issue to correct its cited file:line so it is matched
+            correctly next time; otherwise post a one-line note that it was
+            evaluated with #${{ inputs.issue_number }} and was not adjacent.
           claude_args: |
             --model claude-sonnet-4-6
             --permission-mode bypassPermissions

@@ -186,12 +186,21 @@ jobs:
             For each eligible issue, within the cap:
               1. GH_TOKEN=$FLEET_TOKEN gh issue edit <n> --repo jaetill/<repo> \
                    --add-label ready-for-implementer
-              2. Dispatch that repo's implementer. Per ADR-0020 the label is
+              2. ADJACENCY BUNDLE (ADR-0029): if this issue is a finding that
+                 cites a file F (e.g. a `[code-review] F:line — …` title or a
+                 file path in the body), collect open `deferred-until-adjacent`
+                 nits in the SAME repo that cite the SAME file F — up to
+                 min(floor(total/2), 4). They ride along in this dispatch and do
+                 NOT consume a FLEET_MAX_DISPATCH slot. NEVER dispatch a nit on
+                 its own. (You own workload selection; the implementer no longer
+                 hunts the queue — it executes what you hand it.)
+              3. Dispatch that repo's implementer. Per ADR-0020 the label is
                  durable state; THIS dispatch is the trigger:
                    GH_TOKEN=$FLEET_TOKEN gh workflow run claude-implementer.yml \
-                     --repo jaetill/<repo> -f issue_number=<n>
-              3. GH_TOKEN=$FLEET_TOKEN gh issue comment <n> --repo jaetill/<repo> \
-                   --body "Auto-promoted and dispatched by the fleet promoter (ADR-0020)."
+                     --repo jaetill/<repo> -f issue_number=<n> \
+                     -f bundle_issues="<comma-separated nit numbers, or omit if none>"
+              4. GH_TOKEN=$FLEET_TOKEN gh issue comment <n> --repo jaetill/<repo> \
+                   --body "Auto-promoted and dispatched by the fleet promoter (ADR-0020). Adjacent nits bundled: <list or none> (ADR-0029)."
             Confirm each `gh workflow run` exited 0 — a failed dispatch is a
             real failure; name it in the summary.
 
