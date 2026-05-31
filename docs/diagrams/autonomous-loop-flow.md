@@ -7,7 +7,7 @@ fork shown is `scope:iac` (which agent builds it) and the no-app vs. app behavio
 folded into the review battery (ADR-0024). There is intentionally no per-repo split.
 
 Source of truth: `triage-scan.yml`, `claude-implementer.yml`, `claude-pr-review.yml`,
-and ADR-0016 / 0017 / 0019 / 0020 / 0021 / 0023 / 0024 / 0025 / 0026.
+and ADR-0016 / 0017 / 0019 / 0020 / 0021 / 0023 / 0024 / 0025 / 0026 / 0027 / 0028.
 
 **Legend**
 
@@ -69,11 +69,12 @@ flowchart TD
         PROMO -->|yes| THR{"Within FLEET_MAX_DISPATCH = 6?<br/>severity:high promoted first"}
         THR -->|"no — cap reached"| CAPWAIT["Rest wait for next window"]
         THR -->|yes| DISPATCH["+ ready-for-implementer ·<br/>dispatch the repo's implementer · comment"]
-        THR -. "spare slots · fewer than 6 used" .-> SWEEP["Dispatch cleanup-sweep · Mode C<br/>to repo with most deferred nits<br/>skip zero-count repos"]
+        THR -. "spare slots, but only after ≥1 real promotion · ADR-0028" .-> SWEEP["Dispatch cleanup-sweep · Mode C<br/>to repo with most deferred nits<br/>skip zero-count repos"]
     end
 
     QUEUE --> WIN
-    DEFER -. "drained later" .-> SWEEP
+    DEFER -. "bundled when a real fix touches its directory · ADR-0016 'While here'" .-> BUILD
+    DEFER -. "or swept on an active cycle · ADR-0028" .-> SWEEP
 
     %% ===================== ③ IMPLEMENTER =====================
     subgraph IMPL["③ Implementer · Mode A · repo-type-abstracted"]
