@@ -11,12 +11,13 @@ and ADR-0016 / 0017 / 0019 / 0020 / 0021 / 0023 / 0024 / 0025 / 0026 / 0027 / 00
 
 > **Dispatch routing (ADR-0030):** machine-detected work (severity:critical, source:sentry/cloudwatch) flows through the promoter's deterministic, throttled dispatch — **event-dispatch** on the platform repo (immediate), a **central `*/15` urgent-poll** for app repos (they hold no cross-repo credential to be pushed). Human-approved work (`ready-for-implementer`) stays on each repo's **local** trigger — immediate, no throttle needed (humans don't storm). The fleet-wide `FLEET_MAX_DISPATCH` throttle is enforced centrally.
 
-**Legend**
+**Legend — outcome palette** (terminal & parked end-states)
 
 - 🟩 green — work completed (issue closed)
 - 🟧 amber — handed to the human (a deliberate checkpoint, not a failure)
 - ⬛ grey — parked, re-evaluated on a later cycle/window
-- 🟦 blue — cleanup-sweep (spare-capacity nit draining)
+
+**Agent palette** — every *action/choice* node is coloured by the agent that owns it, inside or outside the stage boxes (so the promoter's `EVENTDISP` and sweep dispatch read as promoter even though they sit outside the ② loop box): **teal** = promoter (`triage-bot`), **indigo** = implementer, **purple** = reviewer agents, **steel-blue** = merger (auto-merge gate). See *Agent ownership* below.
 
 ```mermaid
 flowchart TD
@@ -153,19 +154,24 @@ flowchart TD
     classDef success fill:#1f7a3d,stroke:#0d4d24,color:#fff;
     classDef human fill:#b06f00,stroke:#7a4d00,color:#fff;
     classDef wait fill:#4a4a4a,stroke:#2a2a2a,color:#fff;
-    classDef sweep fill:#264f78,stroke:#16324d,color:#fff;
+
+    %% Agent ownership — every action/choice node carries its OWNING agent's
+    %% colour, inside or outside the stage boxes. So the promoter's EVENTDISP
+    %% and sweep dispatch read as promoter even though they sit outside ②.
+    %% Terminal end-states keep the outcome palette above.
+    classDef promoter fill:#0e5057,stroke:#1fa3bf,color:#eaffff;
+    classDef implementer fill:#2e2f70,stroke:#5560c8,color:#eaeeff;
+    classDef reviewer fill:#5e2a6e,stroke:#9a5bb5,color:#f7eaff;
+    classDef merger fill:#2b5b8a,stroke:#5a9fd4,color:#eaf6ff;
 
     class CLOSED,DEPAUTO success;
     class ARCH,PLANWAIT,REFUSE,ESCAL,HADR,HCOMP,HHUM,HFAIL,HSELF,PAUSED human;
     class WWAIT,CAPWAIT,CONFWAIT,CAPM,DEFER,HCHK,INERT,OPTINWAIT,DIGSINK wait;
-    class CLOSEV success;
-    class SWEEP sweep;
 
-    %% === agent ownership — stage tint per owning agent (outcome colors stay on the nodes) ===
-    style LOOP fill:#102a33,stroke:#2a6f7f,color:#cfeaf2;
-    style IMPL fill:#1a1f3a,stroke:#4a55a0,color:#d6dbff;
-    style REV fill:#2a1a33,stroke:#7a4a8f,color:#efd9f7;
-    style MERGE fill:#16302a,stroke:#2f7f63,color:#cfeede;
+    class PF,EVENTDISP,WIN,EVALALL,PROMO,DISAMB,ENRICH,CLOSEV,AQUAL,PROMSET,RANK,DISPATCH,SWEEP promoter;
+    class IAC,IACIMPL,CG,PHASE,PLAN,PAPP,SCOPE,BUILD,CONF,OPENPR,FIX implementer;
+    class REVIEW,VERDICT,FIXIT reviewer;
+    class MG0,MG1,MG2,MG3,MGGUARD,MG4,MG5,DOMERGE,MFAIL merger;
 ```
 
 ## Terminal states
@@ -186,18 +192,18 @@ flowchart TD
 | deferred-until-adjacent | ⬛ | Low/Nit finding — drained later by cleanup-sweep (ADR-0016). |
 | Auto-closed (malformed finding) | 🟩 | Promoter couldn't disambiguate a vague agent finding — closed, and a fix to the source agent's contract dispatched (ADR-0031). |
 
-## Agent ownership (stage tints)
+## Agent ownership (node colours)
 
-Each pipeline stage is tinted by the agent that owns it, so "is the right agent doing the right job" is a glance, not a label-read. Outcome colors (🟩/🟧/⬛) stay on the individual nodes; the tint is the stage background.
+Every **action/choice** node is coloured by the agent that owns it — so "is the right agent doing the right job" is a glance, and an agent's work is one colour *wherever it sits*, not confined to a stage box. The promoter's `EVENTDISP` (deterministic dispatch) and its sweep dispatch live outside the ② box but read promoter-teal like the rest of its nodes. Terminal/parked end-states keep the outcome palette (🟩/🟧/⬛).
 
-| Stage | Owning agent | Tint |
+| Agent | Colour | Owns (action/choice nodes) |
 |---|---|---|
-| ② triage-scan loop | `triage-bot` (promoter, Tier-2) | teal |
-| ③ implementer | `implementer` (+ `iac-implementer`; `architect` on a gated self-change) | indigo |
-| ④ review battery | the reviewer agents (`code-review`, `security-review`, testers, `doc-keeper`, …) | purple |
-| ⑤ auto-merge gate | the fleet App (merger), per ADR-0021 | green |
+| promoter (`triage-bot`) | teal | the ② loop (window, triage, rank, dispatch, vague-handling) **+** `EVENTDISP` & the sweep dispatch outside it **+** the Pass-3 process-flaw scan |
+| implementer (+ `iac-implementer`) | indigo | the ③ build flow + the Mode-B fix node |
+| reviewer agents | purple | the ④ review-battery decisions |
+| merger (fleet App) | steel-blue | the ⑤ auto-merge gate, incl. the ADR-0032 self-change guard |
 
-Sources (①) are deliberately untinted — they're many different agents plus humans. *(First cut at color-by-agent; a full per-agent swimlane redraw is noted for later.)*
+The **source agents** (① — code-reviewer, ci-health, Sentry, dep-watch, …) and the queue/filing nodes keep the default fill for now; colouring those by agent (and a full per-agent swimlane redraw) is the remaining increment.
 
 ## Notes
 
