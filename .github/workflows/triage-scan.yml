@@ -195,9 +195,16 @@ jobs:
             Confirm each `gh workflow run` exited 0 — a failed dispatch is a
             real failure; name it in the summary.
 
-            SPARE-CAPACITY SWEEP: if you dispatched fewer than
-            $FLEET_MAX_DISPATCH real promotions, spend each remaining slot
-            draining nits. Pick the fleet repo with the most open
+            SPARE-CAPACITY SWEEP: only if you dispatched AT LEAST ONE real
+            promotion this cycle AND fewer than $FLEET_MAX_DISPATCH total,
+            spend each remaining slot draining nits (ADR-0028). On a cycle
+            with ZERO real promotions, do NOT sweep — nits ride along only
+            when the loop is already doing real work; they wait for a cycle
+            that has real work. (Rationale: nothing exploitable is ever a
+            nit — security findings with a realistic attack path are
+            High+ and auto-pick-up — so deferring nit-only cycles delays no
+            real fix, and it cuts the self-collision churn from nit-only runs.)
+            When the sweep is eligible: pick the fleet repo with the most open
             `deferred-until-adjacent` issues — skip any repo whose count is
             zero, a cleanup-sweep there is a wasted run — and dispatch one
             cleanup-only run:
