@@ -89,6 +89,37 @@ if [[ $adr_cross_ref_errors -eq 0 ]]; then
 fi
 
 # ============================================================
+# Markdown link-path integrity (ADR-0026 follow-up)
+# ============================================================
+# The ADR cross-reference check above validates that an ADR *number*
+# resolves to a file; it cannot catch a markdown link whose *path* is
+# wrong — e.g. [ADR-0018](0018-reusable-review-workflow.md) when the file
+# is actually 0018-workflow-distribution.md. This validates that every
+# relative .md link target under docs/ resolves, relative to its file.
+echo "Markdown link-path integrity..."
+link_path_errors=0
+while IFS= read -r entry; do
+  link_src="${entry%%::*}"
+  link_target="${entry##*::}"
+  case "$link_target" in http*|mailto:*|"#"*|"") continue ;; esac
+  link_target="${link_target%%#*}"
+  [ -z "$link_target" ] && continue
+  if [ ! -f "$(dirname "$PLATFORM_DIR/$link_src")/$link_target" ]; then
+    echo "  ⚠️  $link_src links to '$link_target' which does not resolve" >&2
+    errors=$((errors + 1))
+    link_path_errors=$((link_path_errors + 1))
+  fi
+done < <(
+  while IFS= read -r f; do
+    { grep -aoE '\]\([^)]+\.md[^)]*\)' "$PLATFORM_DIR/$f" 2>/dev/null \
+      | sed -E 's/^\]\(//; s/\)$//' \
+      | while IFS= read -r t; do printf '%s::%s\n' "$f" "$t"; done ; } || true
+  done < <(cd "$PLATFORM_DIR" && git ls-files -- docs | grep '\.md$' || true)
+)
+if [[ $link_path_errors -eq 0 ]]; then
+  echo "  ✅ All markdown link paths resolve"
+fi
+# ============================================================
 # Agent definitions
 # ============================================================
 echo "Agent definitions..."
