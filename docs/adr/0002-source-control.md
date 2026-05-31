@@ -112,7 +112,7 @@ The bundle is internally consistent: squash merge requires Conventional Commits 
 | **Standard** | PR + status checks + no force-push. Doesn't enforce signing or linear history; weaker portfolio signal. |
 | **Loose** (no protection) | Friction-free; defeats the entire purpose of the platform. |
 
-> **Amended by [ADR-0023](0023-origin-based-autonomy-boundary.md) (2026-05-25).** "Strict" bundled no-admin-bypass and signed commits in with the load-bearing parts (PR required, status checks, linear history). ADR-0023 reclassifies `enforce_admins` and `required_signatures` as plumbing rather than human-control gates, and turns `required_conversation_resolution` off (it blocks autonomous merge). The required status *checks* — the CI + AI-review battery — remain. See ADR-0023 and Standard 01 §6.
+> **Amended by [ADR-0023](0023-origin-based-autonomy-boundary.md) (2026-05-25).** "Strict" bundled no-admin-bypass and signed commits in with the load-bearing parts (PR required, status checks, linear history). ADR-0023 turns `required_conversation_resolution` off fleet-wide (it blocks autonomous merge) but **retains `enforce_admins` and `required_signatures` as independent security controls** — removing both simultaneously would open a direct-push gap for the fleet admin token (see security finding #76). The required status *checks* — the CI + AI-review battery — remain. See ADR-0023 and Standard 01 §6.
 
 ## Implementation notes
 

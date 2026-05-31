@@ -89,7 +89,7 @@ function New-ProtectionBody {
       strict = $false
       checks = @($canonical | ForEach-Object { @{ context = $_ } })
     }
-    enforce_admins = $false
+    enforce_admins = $true
     required_pull_request_reviews = @{
       dismiss_stale_reviews          = $true
       require_code_owner_reviews     = $false
