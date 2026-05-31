@@ -7,7 +7,9 @@ fork shown is `scope:iac` (which agent builds it) and the no-app vs. app behavio
 folded into the review battery (ADR-0024). There is intentionally no per-repo split.
 
 Source of truth: `triage-scan.yml`, `claude-implementer.yml`, `claude-pr-review.yml`,
-and ADR-0016 / 0017 / 0019 / 0020 / 0021 / 0023 / 0024 / 0025 / 0026 / 0027 / 0028 / 0029.
+and ADR-0016 / 0017 / 0019 / 0020 / 0021 / 0023 / 0024 / 0025 / 0026 / 0027 / 0028 / 0029 / 0030.
+
+> **Dispatch routing (ADR-0030):** all dispatch flows through the promoter — the trusted-origin signals (severity:critical, source:sentry/cloudwatch, human opt-in, owner-opened) go through the promoter's deterministic, throttled **event-dispatch**, not a direct bypass. Shipped platform-repo-first; app-repo forwarders are a staged follow-up.
 
 **Legend**
 
@@ -47,15 +49,15 @@ flowchart TD
     S8A --> OPTIN
     S8B --> INERT["Sits inert — cannot self-dispatch<br/>non-maintainers cannot apply labels"]
     INERT --> OPTIN{"Trusted maintainer opts it in?<br/>applies ready-for-implementer / severity:critical<br/>permission-gated — write/triage only"}
-    OPTIN -->|yes| FAST
+    OPTIN -->|yes| EVENTDISP
     OPTIN -->|"no — not yet"| OPTINWAIT["Never auto-acted on ·<br/>waits for your review"]
     PF --> QUEUE
     CILBL --> QUEUE
 
     LBL --> QUEUE["Agent-discovered queue<br/>awaits the promoter"]
 
-    SENT --> FAST["Implementer auto-pickup<br/>label-triggered · bypasses promoter + window"]
-    QUEUE -. "agent-applied severity:critical also auto-picks-up" .-> FAST
+    SENT --> EVENTDISP["Promoter event-dispatch · ADR-0030<br/>deterministic · throttled to FLEET_MAX_DISPATCH<br/>no LLM · no window wait"]
+    QUEUE -. "agent-applied severity:critical" .-> EVENTDISP
 
     %% ===================== ② TRIAGE-SCAN LOOP =====================
     subgraph LOOP["② triage-scan loop · cron-driven · platform-central · fleet-wide"]
@@ -95,7 +97,7 @@ flowchart TD
         CONF -->|yes| OPENPR["Push + open PR · Closes #n"]
     end
 
-    FAST --> IAC
+    EVENTDISP --> IAC
     DISPATCH --> IAC
     IACIMPL --> OPENPR
 

@@ -65,41 +65,24 @@ concurrency:
   cancel-in-progress: false   # don't kill mid-implementation
 
 jobs:
-  # ── Mode A: initial implementation ──────────────────────────────────────
-  # ADR-0020 sender guard: a `ready-for-implementer` label triggers this job
-  # ONLY when a human applied it. A bot (the fleet promoter, App identity)
-  # applies the label as state and dispatches separately — guarding on
-  # `sender.type != 'Bot'` here prevents that label+dispatch double-trigger.
-  # `source:sentry` / `severity:critical` auto-pickup is unaffected.
-  # ADR-0025 owner guard: the `opened` path requires `author_association ==
-  # 'OWNER'`. This repo is PUBLIC and its bug-report/feature-request templates
-  # auto-apply `bug`/`feature-request`, so without the guard any GitHub user
-  # could trip an implementer run here. Non-owner requests start NO work until
-  # the owner opts them in with `ready-for-implementer` — the human-in-the-loop
-  # checkpoint precedes implementation, not just merge.
+  # ── Mode A: initial implementation (feature plan-gate continuation only) ──
+  # Per ADR-0030 the bypass triggers moved to the promoter's event-dispatch
+  # (triage-scan.yml). The ADR-0025 OWNER guard and the source:sentry /
+  # severity:critical / human ready-for-implementer triggers now live there.
   initial:
+    # ADR-0030: all initial dispatch now routes through the promoter's
+    # event-dispatch (triage-scan.yml). The bypass triggers — source:sentry,
+    # severity:critical, human-applied ready-for-implementer, and owner-opened
+    # bug/defect/feature-request — were REMOVED from here and moved there
+    # (deterministic, throttled). What remains is the feature plan-gate
+    # continuation: a human applying plan-approved/skip-plan re-enters the
+    # BUILD phase for an already-planned feature. The promoter dispatches all
+    # other Mode-A work via workflow_dispatch (the manual-dispatch job).
     if: |
       github.event_name == 'issues'
+      && github.event.action == 'labeled'
       && !contains(github.event.issue.labels.*.name, 'scope:iac')
-      && (
-        (
-          github.event.action == 'labeled'
-          && (
-            contains(fromJSON('["source:sentry", "severity:critical", "plan-approved", "skip-plan"]'), github.event.label.name)
-            || (github.event.label.name == 'ready-for-implementer' && github.event.sender.type != 'Bot')
-          )
-        )
-        || (
-          github.event.action == 'opened'
-          && github.event.issue.user.type != 'Bot'
-          && github.event.issue.author_association == 'OWNER'
-          && (
-            contains(github.event.issue.labels.*.name, 'bug')
-            || contains(github.event.issue.labels.*.name, 'defect')
-            || contains(github.event.issue.labels.*.name, 'feature-request')
-          )
-        )
-      )
+      && contains(fromJSON('["plan-approved", "skip-plan"]'), github.event.label.name)
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
