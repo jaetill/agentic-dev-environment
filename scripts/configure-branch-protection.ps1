@@ -131,8 +131,12 @@ foreach ($repo in $repos.Keys) {
     if (-not $Apply) { Write-Host "  [DRY RUN] not applied" -ForegroundColor DarkGray; continue }
 
     $exit = Invoke-GhJson 'PUT' "repos/jaetill/$repo/branches/$branch/protection" (New-ProtectionBody)
-    if ($exit -eq 0) { Write-Host "  CREATED" -ForegroundColor Green }
-    else             { Write-Host "  FAILED (gh api exit $exit)" -ForegroundColor Red }
+    if ($exit -eq 0) {
+      Write-Host "  CREATED" -ForegroundColor Green
+      $sigExit = Invoke-GhJson 'PUT' "repos/jaetill/$repo/branches/$branch/protection/required_signatures" @{}
+      if ($sigExit -eq 0) { Write-Host "  required_signatures enabled" -ForegroundColor Green }
+      else                { Write-Host "  required_signatures FAILED (gh api exit $sigExit)" -ForegroundColor Red }
+    } else           { Write-Host "  FAILED (gh api exit $exit)" -ForegroundColor Red }
     continue
   }
 
@@ -162,17 +166,31 @@ foreach ($repo in $repos.Keys) {
   # strict = true must still be PATCHed, so do not skip on contexts alone.
   $strictDrift = [bool]$rsc.strict
   if ($strictDrift) { Write-Host "    ~ strict: true -> false (ADR-0021)" -ForegroundColor Yellow }
-  if (-not $added -and -not $removed -and -not $strictDrift) {
+  $sigJson = gh api "repos/jaetill/$repo/branches/$branch/protection/required_signatures" 2>$null
+  $sigEnabled = $false
+  if ($LASTEXITCODE -eq 0) {
+    try { $sigEnabled = ($sigJson | ConvertFrom-Json).enabled } catch {}
+  }
+  $sigDrift = -not $sigEnabled
+  if ($sigDrift) { Write-Host "    ~ required_signatures: not enabled -> enabled" -ForegroundColor Yellow }
+  if (-not $added -and -not $removed -and -not $strictDrift -and -not $sigDrift) {
     Write-Host "  already uniform - no change" -ForegroundColor DarkGray
     continue
   }
   if (-not $Apply) { Write-Host "  [DRY RUN] not applied" -ForegroundColor DarkGray; continue }
 
-  # strict forced false (see header) — never preserve a drifted strict = true.
-  $payload = @{ strict = $false; checks = @($final | ForEach-Object { @{ context = $_ } }) }
-  $exit = Invoke-GhJson 'PATCH' "repos/jaetill/$repo/branches/$branch/protection/required_status_checks" $payload
-  if ($exit -eq 0) { Write-Host "  APPLIED" -ForegroundColor Green }
-  else             { Write-Host "  FAILED (gh api exit $exit)" -ForegroundColor Red }
+  if ($added -or $removed -or $strictDrift) {
+    # strict forced false (see header) — never preserve a drifted strict = true.
+    $payload = @{ strict = $false; checks = @($final | ForEach-Object { @{ context = $_ } }) }
+    $exit = Invoke-GhJson 'PATCH' "repos/jaetill/$repo/branches/$branch/protection/required_status_checks" $payload
+    if ($exit -eq 0) { Write-Host "  APPLIED" -ForegroundColor Green }
+    else             { Write-Host "  FAILED (gh api exit $exit)" -ForegroundColor Red }
+  }
+  if ($sigDrift) {
+    $sigExit = Invoke-GhJson 'PUT' "repos/jaetill/$repo/branches/$branch/protection/required_signatures" @{}
+    if ($sigExit -eq 0) { Write-Host "  required_signatures enabled" -ForegroundColor Green }
+    else                { Write-Host "  required_signatures FAILED (gh api exit $sigExit)" -ForegroundColor Red }
+  }
 }
 
 Write-Host ""
