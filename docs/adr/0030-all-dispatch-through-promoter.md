@@ -85,7 +85,9 @@ Option A is rejected: it leaves the throttle gap and the five-front-door duplica
 
 ## Implementation notes (staged rollout)
 
-**Phase 1 — platform repo (shipped):**
+**Status (2026-05-31): Phase 1 shipped + live-validated** on the platform repo — a `severity:critical` test issue exercised both the throttle-hold path (held at 6/6) and, after the throttle was corrected, the dispatch path (dispatched at 0/6). The validation fixed one bug: the throttle counts **active implementer runs** (`in_progress`/`queued`), not open PRs (open PRs are the awaiting-merge backlog and would chronically hold urgent dispatch). Loop-safety confirmed: a bot-applied `ready-for-implementer` does not re-trigger event-dispatch.
+
+**Phase 1 — platform repo (shipped + validated):**
 
 1. **`triage-scan.yml`** — add `issues: [opened, labeled]` + `repository_dispatch: [implementer-event]` triggers and a deterministic, project-scoped **`event-dispatch`** job: on a trusted-origin event it applies `ready-for-implementer`, **throttle-checks fleet-wide in-flight work against `FLEET_MAX_DISPATCH`** (fail-open for urgent work so a transient error never drops a critical), and dispatches the implementer via `workflow_dispatch`. The ADR-0025 OWNER guard sits on the `opened` path here. No LLM on this path (deterministic).
 2. **`claude-implementer.yml`** — the `initial` (non-IaC) job loses the bypass triggers (`source:sentry`, `severity:critical`, owner-opened, human `ready-for-implementer`); it keeps only the feature-continuation labels (`plan-approved`, `skip-plan`). The promoter's `workflow_dispatch` (`manual-dispatch` job) and Modes B/C are unchanged.
@@ -95,7 +97,7 @@ Option A is rejected: it leaves the throttle gap and the five-front-door duplica
 3. **LLM cycle-fill** — after Phase 1 is validated, the `event-dispatch` job kicks the existing promoter (project-scoped) to opportunistically fill remaining capacity. Deferred so urgent dispatch is reliable first.
 4. **IaC path** — `initial-iac` is left on its current triggers for now; routing `scope:iac` dispatch through the promoter is a separate, low-volume follow-up.
 5. **Integrations** — re-point the Sentry/CloudWatch GitHub automations to fire `repository_dispatch` at the promoter instead of label→implementer.
-6. **Fleet propagation** — app repos get a thin `repository_dispatch` forwarder (event → central promoter, model B); `claude-implementer.yml`'s `initial` trim propagates to all 8 repos (the ADR-0018 per-repo-copy gap).
+6. **Fleet propagation — BLOCKED on a credential (needs Jason).** Each app repo needs a thin `repository_dispatch` forwarder (trusted-origin event → `implementer-event` at the platform promoter, model B), then its `claude-implementer.yml` `initial` trim. **Blocker found 2026-05-31:** the app repos have *no* credential that can `repository_dispatch` cross-repo to the platform — only the platform repo holds `FLEET_APP_ID`/`FLEET_APP_PRIVATE_KEY`, and a repo's scoped `GITHUB_TOKEN` can't dispatch to another repo. Provision a credential in each of the 7 app repos (preferably a **fine-grained PAT scoped to `repository_dispatch` on `agentic-dev-environment` only** — safer than replicating the powerful fleet app key everywhere), then the forwarder + trim can land. Until then the app repos stay on their **current working bypass model** — *do not trim them without a working forwarder*, because the scheduled promoter does not promote `severity:critical`/`source:sentry` (they "auto-pickup"), so trim-without-forwarder = a dispatch gap.
 7. **Loop diagram** — collapse the bypass edges; all entry points feed the promoter.
 
 **Rollout:** platform repo first (Phase 1), validate one live event end-to-end, then the fill, the integrations, and the app-repo propagation. Each app repo keeps its direct paths until its forwarder is validated, so there's never a dispatch gap.
