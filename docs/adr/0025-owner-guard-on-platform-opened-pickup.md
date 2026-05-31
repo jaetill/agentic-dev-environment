@@ -5,7 +5,7 @@
 - **Deciders:** Jason Tilley
 - **Tags:** security, ai-workflows, governance, ci-cd
 
-> **Format:** MADR 4.x with the platform's three documented extensions. Single-decision ADR. Closes a concrete exposure in the ADR-0013/0017 pickup model; does not reopen the trust model itself.
+> **Format:** MADR 4.x with the platform's three documented extensions. Single-decision ADR. Closes a concrete exposure in the Mode-A pickup model (ADR-0026, ADR-0017); does not reopen the trust model itself.
 
 ## Context and Problem Statement
 
@@ -78,7 +78,7 @@ Option A over B because the owner's self-filed fast-path on the platform repo is
 
 ## Links
 
-- [ADR-0013](0013-agentic-implementer.md) — the Mode A pickup model this guards.
+- [ADR-0026](0026-agentic-implementer.md) — the implementer (Mode A) this guards.
 - [ADR-0017](0017-async-orchestration.md) — the promoter/window gate and the owner fast-path it bypasses.
 - [ADR-0023](0023-origin-based-autonomy-boundary.md) — the merge-time human-origin hold this complements by moving the checkpoint earlier.
 - GitHub docs — `author_association` values (OWNER / MEMBER / COLLABORATOR / CONTRIBUTOR / NONE) on issue/PR payloads.

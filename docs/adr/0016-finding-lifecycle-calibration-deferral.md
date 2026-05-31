@@ -128,7 +128,7 @@ A finding that has been fixed and then reverted before is not a finding to re-fi
 
 - [ADR-0005 — code quality enforcement gap](0005-quality-gates.md)
 - [ADR-0011 — AI workflows](0011-ai-workflows.md)
-- [ADR-0013 — autonomous-team architecture](0013-grafana-cloudwatch-pull.md) (informal ref; ADR number reused for autonomous-team if/when re-numbered)
+- [ADR-0026 — agentic implementer](0026-agentic-implementer.md) (the autonomous-team / implementer architecture; formerly an informal "ADR-0013" reference that collided with the Grafana ADR — resolved 2026-05-31)
 - [Standard 10 — AI workflows](../standards/10-ai-workflows.md)
 - Empirical examples that drove this decision:
   - game-night-pwa PR #82 (migration PR) — code-reviewer's BLOCK on local-Windows-path was a category error
