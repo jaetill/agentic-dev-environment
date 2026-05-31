@@ -52,8 +52,7 @@ flowchart TD
     PF --> QUEUE
     CILBL --> QUEUE
 
-    LBL -->|"Med / High"| QUEUE["Agent-discovered queue<br/>awaits the promoter"]
-    LBL -->|"Low / Nit — reviewer files it already-deferred (ADR-0016)"| DEFER["deferred-until-adjacent<br/>(ADR-0016)"]
+    LBL --> QUEUE["Agent-discovered queue<br/>awaits the promoter"]
 
     SENT --> FAST["Implementer auto-pickup<br/>label-triggered · bypasses promoter + window"]
     QUEUE -. "agent-applied severity:critical also auto-picks-up" .-> FAST
@@ -72,6 +71,7 @@ flowchart TD
     end
 
     QUEUE --> WIN
+    PROMO -->|"Low / Nit — deferred-until-adjacent (ADR-0016)"| DEFER["deferred pool ·<br/>deferred-until-adjacent (ADR-0016)"]
     DEFER -. "promoter selects same-file nits into the real dispatch · ADR-0029" .-> DISPATCH
     DEFER -. "or swept on an active cycle · ADR-0028" .-> SWEEP
 
