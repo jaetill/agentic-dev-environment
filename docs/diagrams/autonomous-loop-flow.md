@@ -9,7 +9,7 @@ folded into the review battery (ADR-0024). There is intentionally no per-repo sp
 Source of truth: `triage-scan.yml`, `claude-implementer.yml`, `claude-pr-review.yml`,
 and ADR-0016 / 0017 / 0019 / 0020 / 0021 / 0023 / 0024 / 0025 / 0026 / 0027 / 0028 / 0029 / 0030.
 
-> **Dispatch routing (ADR-0030):** all dispatch flows through the promoter — the trusted-origin signals (severity:critical, source:sentry/cloudwatch, human opt-in, owner-opened) go through the promoter's deterministic, throttled **event-dispatch**, not a direct bypass. Shipped platform-repo-first; app-repo forwarders are a staged follow-up.
+> **Dispatch routing (ADR-0030):** machine-detected work (severity:critical, source:sentry/cloudwatch) flows through the promoter's deterministic, throttled dispatch — **event-dispatch** on the platform repo (immediate), a **central `*/15` urgent-poll** for app repos (they hold no cross-repo credential to be pushed). Human-approved work (`ready-for-implementer`) stays on each repo's **local** trigger — immediate, no throttle needed (humans don't storm). The fleet-wide `FLEET_MAX_DISPATCH` throttle is enforced centrally.
 
 **Legend**
 
@@ -56,7 +56,7 @@ flowchart TD
 
     LBL --> QUEUE["Agent-discovered queue<br/>awaits the promoter"]
 
-    SENT --> EVENTDISP["Promoter event-dispatch · ADR-0030<br/>deterministic · throttled to FLEET_MAX_DISPATCH<br/>no LLM · no window wait"]
+    SENT --> EVENTDISP["Promoter deterministic dispatch · ADR-0030<br/>machine work: event-dispatch (platform) · urgent-poll (app repos)<br/>throttled to FLEET_MAX_DISPATCH · no LLM"]
     QUEUE -. "agent-applied severity:critical" .-> EVENTDISP
 
     %% ===================== ② TRIAGE-SCAN LOOP =====================

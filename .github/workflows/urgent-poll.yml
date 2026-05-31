@@ -1,0 +1,108 @@
+name: urgent-dispatch-poll
+# ADR-0030 (model B). App repos cannot event-push to the central promoter —
+# they hold no credential that can reach the platform repo, and a repo's
+# scoped GITHUB_TOKEN can't cross repos. So instead of being pushed, the
+# central promoter POLLS the fleet on a short cron and deterministically
+# dispatches MACHINE-DETECTED urgent work (severity:critical / source:sentry /
+# source:cloudwatch) that isn't yet promoted. Runs from the platform repo with
+# the fleet App token (the only place that credential lives). Throttled
+# fleet-wide. Latency is the poll interval (minutes) — fine for autonomous
+# fixes that take ~30 min through review+merge anyway.
+#
+# Human-approved work (ready-for-implementer applied by a person) is NOT
+# handled here: it stays on each repo's local implementer trigger, because a
+# human applying labels is inherently rate-limited (no storm), needs no
+# central throttle, and dispatches immediately. (The platform repo's own
+# trusted-origin events are handled immediately by triage-scan.yml's
+# event-dispatch; the poll re-covers them harmlessly, deduped below.)
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'   # every 15 min; urgent work shouldn't wait for a window
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  id-token: write   # claude-code-action OIDC / app-token mint
+
+concurrency:
+  group: urgent-dispatch-poll
+  cancel-in-progress: false
+
+jobs:
+  poll:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Mint fleet App token
+        id: fleet-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.FLEET_APP_ID }}
+          private-key: ${{ secrets.FLEET_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+      - name: Scan + dispatch machine-detected urgent work
+        env:
+          GH_TOKEN: ${{ steps.fleet-token.outputs.token }}
+          OWNER: ${{ github.repository_owner }}
+          FLEET_MAX_DISPATCH: ${{ vars.FLEET_MAX_DISPATCH_PER_RUN || '6' }}
+        run: |
+          set -uo pipefail
+          REPOS="game-night-pwa meal-planner ai-teacher jaetill-portal splendor draft carto agentic-dev-environment"
+
+          # Candidates = open issues carrying a machine-detected urgent label and
+          # NOT yet `ready-for-implementer`. The label-absence IS the dedup: once
+          # we promote an issue (on dispatch) it won't be re-caught. scope:iac is
+          # excluded (its dispatch path is unchanged for now — ADR-0030 §IaC).
+          tmp="$(mktemp)"
+          for lbl in "severity:critical" "source:sentry" "source:cloudwatch"; do
+            gh search issues --owner "$OWNER" --state open --label "$lbl" \
+              --json repository,number,labels --limit 100 2>/dev/null \
+              | jq -r '.[]
+                       | select([.labels[].name] | (index("ready-for-implementer") | not) and (index("scope:iac") | not))
+                       | "\(.repository.nameWithOwner)#\(.number)"' >> "$tmp" || true
+          done
+          sort -u "$tmp" -o "$tmp"
+          candidates="$(grep -c . "$tmp" || true)"
+          if [[ "${candidates:-0}" -eq 0 ]]; then
+            echo "No un-promoted machine-detected urgent work."; exit 0
+          fi
+          echo "Candidates ($candidates):"; cat "$tmp"
+
+          # Throttle (fleet-wide): count actively running implementer dispatches
+          # (in_progress + queued), NOT open PRs. FAIL OPEN on read error — never
+          # drop urgent work on a transient API error.
+          active=0; counted=true
+          for r in $REPOS; do
+            n="$(gh run list --repo "jaetill/$r" --workflow=claude-implementer.yml --limit 50 \
+                   --json status \
+                   --jq '[.[] | select(.status=="in_progress" or .status=="queued")] | length' 2>/dev/null)" \
+              || { counted=false; break; }
+            active=$((active + n))
+          done
+          cap="${FLEET_MAX_DISPATCH:-6}"
+          echo "Active implementer runs: ${active}/${cap} (counted=${counted})."
+
+          dispatched=0
+          while IFS= read -r item; do
+            [[ -z "$item" ]] && continue
+            repo="${item%#*}"; num="${item#*#}"
+            if [[ "$counted" == "true" && $((active + dispatched)) -ge "$cap" ]]; then
+              echo "  ${repo}#${num} — at cap (${active}+${dispatched}/${cap}); leaving un-promoted for the next poll."
+              continue
+            fi
+            # Promote (durable) + dispatch together, so an issue is only marked
+            # ready once it is actually being worked (a failed-dispatch issue is
+            # rare and surfaces to a human rather than silently stranding).
+            gh issue edit "$num" --repo "$repo" --add-label ready-for-implementer || true
+            if gh workflow run claude-implementer.yml --repo "$repo" -f issue_number="$num"; then
+              dispatched=$((dispatched + 1))
+              echo "::notice::Dispatched ${repo}#${num} (urgent poll)."
+              gh issue comment "$num" --repo "$repo" \
+                --body "Auto-promoted and dispatched by the central urgent-dispatch poll (ADR-0030)." || true
+            else
+              echo "::warning::Dispatch failed for ${repo}#${num}."
+            fi
+          done < "$tmp"
+          echo "## Urgent poll — $candidates candidate(s), $dispatched dispatched" >> "$GITHUB_STEP_SUMMARY"
+          echo "Poll complete: $candidates candidate(s), $dispatched dispatched (active before: ${active}/${cap})."
