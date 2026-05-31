@@ -7,6 +7,8 @@
 
 > **Format:** MADR 4.x with the platform's three extensions. This is a **bundled-sub-decision** ADR — six coupled decisions about how the team modifies its own process and how flaws reach it from the field.
 
+> **Amended by [ADR-0032](0032-additive-self-change-auto-lane.md):** introduces a narrow, deterministically-gated exception to human-ratified self-change — additive agent output-contract tightenings (one non-rail-enforcer agent file, size-capped, no guardrail vocabulary, `agent-quality` origin) auto-merge without ratification; everything else still routes here for human ratification.
+
 ## Context and Problem Statement
 
 [ADR-0017](0017-async-orchestration.md) defined how autonomous work is scheduled and routed *within* a repo. It did not address a structural fact: the platform repo (`agentic-dev-environment`) is not a project — it is the team's own definition. The agents, their roles, the gates, the workflows: that is `ai-team`, and it lives here. Every other repo is a *project* the team works on.

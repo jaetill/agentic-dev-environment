@@ -280,6 +280,9 @@ jobs:
           private-key: ${{ secrets.FLEET_APP_PRIVATE_KEY }}
           owner: ${{ github.repository_owner }}
 
+      - name: Check out platform repo (self-change guard script — ADR-0032)
+        uses: actions/checkout@v4
+
       - name: Merge qualifying implementer fix PRs
         env:
           GH_TOKEN: ${{ steps.fleet-token.outputs.token }}
@@ -353,6 +356,23 @@ jobs:
               if [[ "$is_machine_origin" != "true" ]]; then
                 echo "  $slug#$pr — issue #$issue is human-origin; hold for human merge (ADR-0023)"; held=$((held+1)); continue
               fi
+              # ADR-0032 additive self-change lane. If this PR touches the loop's
+              # own agent definitions, it may auto-merge ONLY if the deterministic
+              # guard classifies it IN_LANE: exactly one non-rail-enforcer agent
+              # file, within the size cap, no guardrail vocabulary on any changed
+              # line, agent-quality origin. OUT_OF_LANE agent edits are held for
+              # human ratification (the self-change firewall — ADR-0019/0023).
+              # Non-agent PRs classify NOT_SELF_CHANGE and pass through unaffected.
+              has_aq=$(echo "$issue_meta" | jq -r '[.labels[].name] | any(. == "agent-quality")' 2>/dev/null || echo false)
+              guard=$(CHANGED_FILES="$(gh pr view "$pr" --repo "$slug" --json files --jq '.files[].path' 2>/dev/null || true)" \
+                      DIFF="$(gh pr diff "$pr" --repo "$slug" 2>/dev/null || true)" \
+                      HAS_AGENT_QUALITY="$has_aq" \
+                      bash "${GITHUB_WORKSPACE}/scripts/additive-self-change-guard.sh" 2>/dev/null || echo "OUT_OF_LANE: guard error")
+              case "$guard" in
+                NOT_SELF_CHANGE) ;;
+                IN_LANE*) echo "  $slug#$pr — additive self-change, $guard (ADR-0032)";;
+                *) echo "  $slug#$pr — self-change held for human ($guard)"; held=$((held+1)); continue;;
+              esac
               # ADR-0021 cond. 2 — every check green. `gh pr checks` exits 0
               # for "all passed" but ALSO for "no checks at all" (vacuously
               # true) — guard that so a repo with CI disabled cannot slip the
@@ -370,6 +390,22 @@ jobs:
               if gh pr merge "$pr" --repo "$slug" --squash --delete-branch; then
                 echo "::notice::Auto-merged $slug#$pr (fix for #$issue) per ADR-0021."
                 merged=$((merged+1))
+                # ADR-0032 self-change digest — log auto-merged agent self-edits
+                # to a standing issue for after-the-fact visibility. Fully
+                # isolated (subshell + || true): a digest failure can never
+                # affect the merge loop, and runs only after the merge succeeded.
+                if [[ "${has_aq:-false}" == "true" ]]; then ( set +e
+                  log=$(gh issue list --repo jaetill/agentic-dev-environment --state open \
+                          --search "Agent self-change log in:title" --json number --jq '.[0].number')
+                  if [[ -z "$log" ]]; then
+                    url=$(gh issue create --repo jaetill/agentic-dev-environment \
+                            --title "Agent self-change log (ADR-0032)" \
+                            --body "Running log of additive agent self-edits the loop auto-merged without human review (ADR-0032). Each entry links the merged PR.")
+                    log="${url##*/}"
+                  fi
+                  [[ -n "$log" ]] && gh issue comment "$log" --repo jaetill/agentic-dev-environment \
+                    --body "Auto-merged self-edit: ${slug}#${pr} (agent-quality fix for #${issue})."
+                ) || true; fi
               else
                 echo "::warning::$slug#$pr qualified but the merge failed; left for a human."
                 held=$((held+1))

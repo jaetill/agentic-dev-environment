@@ -81,7 +81,8 @@ flowchart TD
 
     QUEUE --> WIN
     PROMO -->|"Low / Nit — deferred-until-adjacent (ADR-0016)"| DEFER["deferred pool ·<br/>deferred-until-adjacent (ADR-0016)"]
-    DEFER -. "promoter selects same-file nits into the real dispatch · ADR-0029" .-> DISPATCH
+    DEFER -. "reconsidered every pass — re-enters eligibility (guarded self-loop)" .-> PROMO
+    DEFER -. "pulled into a real dispatch only on an adjacent same-file change · ADR-0029" .-> DISPATCH
     DEFER -. "or swept on an active cycle · ADR-0028" .-> SWEEP
 
     %% ===================== ③ IMPLEMENTER =====================
@@ -90,8 +91,8 @@ flowchart TD
         IAC{"scope:iac?"}
         IAC -->|yes| IACIMPL["iac-implementer<br/>tofu plan only · no apply · cap 5 resources"]
         IAC -->|no| CG{"Self-change?<br/>process-flaw / changes to ai-team"}
-        CG -->|"compositional · standards · security<br/>or n=1 generality"| ARCH["STOP — route to architect<br/>propose ADR · human ratifies"]
-        CG -->|"mechanical · or not a self-change"| PHASE{"feature-request without<br/>plan-approved or skip-plan?"}
+        CG -->|"compositional · standards · security ·<br/>rail-enforcer agent · or n=1 generality"| ARCH["STOP — route to architect<br/>propose ADR · human ratifies"]
+        CG -->|"mechanical · additive agent-output<br/>tightening (ADR-0032) · or not a self-change"| PHASE{"feature-request without<br/>plan-approved or skip-plan?"}
         PHASE -->|yes| PLAN["PLAN PHASE: post approach,<br/>label awaiting-plan-approval, STOP"]
         PLAN --> PAPP{"Human applies plan-approved?"}
         PAPP -->|"not yet"| PLANWAIT["Waits for human"]
@@ -134,7 +135,9 @@ flowchart TD
         MG2 -->|yes| HCOMP["Hold for human · ADR-0023"]
         MG2 -->|no| MG3{"Linked issue present and machine-origin?<br/>bot author · source:sentry ·<br/>source:cloudwatch · origin:internal-review"}
         MG3 -->|"no — human-origin or none"| HHUM["Hold for human merge"]
-        MG3 -->|yes| MG4{"All required checks green?"}
+        MG3 -->|yes| MGGUARD{"additive-self-change-guard · ADR-0032<br/>touches an agent definition?"}
+        MGGUARD -->|"out-of-lane agent edit"| HSELF["Hold for human ratification ·<br/>self-change firewall (ADR-0019/0023)"]
+        MGGUARD -->|"in-lane additive · or not a self-change"| MG4{"All required checks green?"}
         MG4 -->|"no · or none reported"| HCHK["Hold — needs green battery"]
         MG4 -->|yes| MG5{"Within per-run cap = 10?"}
         MG5 -->|no| CAPM["Rest wait for next window"]
@@ -153,10 +156,16 @@ flowchart TD
     classDef sweep fill:#264f78,stroke:#16324d,color:#fff;
 
     class CLOSED,DEPAUTO success;
-    class ARCH,PLANWAIT,REFUSE,ESCAL,HADR,HCOMP,HHUM,HFAIL,PAUSED human;
+    class ARCH,PLANWAIT,REFUSE,ESCAL,HADR,HCOMP,HHUM,HFAIL,HSELF,PAUSED human;
     class WWAIT,CAPWAIT,CONFWAIT,CAPM,DEFER,HCHK,INERT,OPTINWAIT,DIGSINK wait;
     class CLOSEV success;
     class SWEEP sweep;
+
+    %% === agent ownership — stage tint per owning agent (outcome colors stay on the nodes) ===
+    style LOOP fill:#102a33,stroke:#2a6f7f,color:#cfeaf2;
+    style IMPL fill:#1a1f3a,stroke:#4a55a0,color:#d6dbff;
+    style REV fill:#2a1a33,stroke:#7a4a8f,color:#efd9f7;
+    style MERGE fill:#16302a,stroke:#2f7f63,color:#cfeede;
 ```
 
 ## Terminal states
@@ -176,6 +185,19 @@ flowchart TD
 | Wait: window / cap / conflict / checks | ⬛ | Parked, re-evaluated next cycle or window. |
 | deferred-until-adjacent | ⬛ | Low/Nit finding — drained later by cleanup-sweep (ADR-0016). |
 | Auto-closed (malformed finding) | 🟩 | Promoter couldn't disambiguate a vague agent finding — closed, and a fix to the source agent's contract dispatched (ADR-0031). |
+
+## Agent ownership (stage tints)
+
+Each pipeline stage is tinted by the agent that owns it, so "is the right agent doing the right job" is a glance, not a label-read. Outcome colors (🟩/🟧/⬛) stay on the individual nodes; the tint is the stage background.
+
+| Stage | Owning agent | Tint |
+|---|---|---|
+| ② triage-scan loop | `triage-bot` (promoter, Tier-2) | teal |
+| ③ implementer | `implementer` (+ `iac-implementer`; `architect` on a gated self-change) | indigo |
+| ④ review battery | the reviewer agents (`code-review`, `security-review`, testers, `doc-keeper`, …) | purple |
+| ⑤ auto-merge gate | the fleet App (merger), per ADR-0021 | green |
+
+Sources (①) are deliberately untinted — they're many different agents plus humans. *(First cut at color-by-agent; a full per-agent swimlane redraw is noted for later.)*
 
 ## Notes
 

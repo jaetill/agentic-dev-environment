@@ -7,6 +7,8 @@
 
 > **Amended by [ADR-0030](0030-all-dispatch-through-promoter.md):** dispatch routing changed — all implementer dispatch now goes through the promoter (no direct bypass). See the *Impacted ADRs* table in ADR-0030 for the specific change to this ADR.
 
+> **Amended by [ADR-0032](0032-additive-self-change-auto-lane.md):** the compositional-self-change human checkpoint gains a deterministically-gated exception — additive agent output-contract tightenings auto-merge via the `additive-self-change-guard` inside the auto-merge gate; out-of-lane agent edits are still held for human ratification.
+
 > **Format:** MADR 4.x with the platform's three extensions. Single-decision ADR. It re-decides the *axis* of the autonomy boundary and, in doing so, amends ADR-0017, ADR-0019, and ADR-0021; the amendments are enumerated in Implementation notes.
 
 ## Context and Problem Statement
