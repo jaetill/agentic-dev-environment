@@ -7,6 +7,8 @@
 
 > **Amended by [ADR-0030](0030-all-dispatch-through-promoter.md):** dispatch routing changed — all implementer dispatch now goes through the promoter (no direct bypass). See the *Impacted ADRs* table in ADR-0030 for the specific change to this ADR.
 
+> **Amended by [ADR-0033](0033-opted-in-features-build-without-plan-gate.md):** the feature plan-gate (sub-decision 4) is no longer the default — an opted-in `feature-request` builds directly like a defect; the plan phase runs only when the human applies the `plan-first` label. `skip-plan` is retired.
+
 > **Format:** MADR 4.x with the platform's three extensions. This is a **bundled-sub-decision** ADR — five tightly-coupled decisions about how autonomous work is scheduled, serialized, and routed.
 
 ## Context and Problem Statement

@@ -8,12 +8,11 @@ name: claude-implementer
 #   PUBLIC and ships templates that auto-apply those labels, so without it any
 #   GitHub user could start an implementer run on the platform repo — ADR-0025), or
 #   when an issue gains a pickup label (`ready-for-implementer`,
-#   `source:sentry`, `severity:critical`, `plan-approved`, `skip-plan`).
-#   For `feature-request`
-#   issues this runs a two-phase plan-gate (ADR-0017): a PLAN PHASE that
-#   posts an approach and waits for the human's `plan-approved`, then a
-#   BUILD PHASE that writes code + tests and opens a PR. `defect`/`bug`
-#   issues skip the plan phase and go straight to build.
+#   `source:sentry`, `severity:critical`, `plan-approved`).
+#   Features build by default (ADR-0033): a `feature-request` goes straight to
+#   the BUILD PHASE like a `defect`/`bug`. The two-phase plan-gate (PLAN PHASE
+#   posts an approach and waits for the human's `plan-approved`, then BUILD)
+#   runs only when the human opts in with the `plan-first` label.
 #
 # Mode B (fix iteration): triggered when a PR authored by claude[bot]
 #   receives a review with state REQUEST_CHANGES from code-reviewer or
@@ -75,14 +74,14 @@ jobs:
     # severity:critical, human-applied ready-for-implementer, and owner-opened
     # bug/defect/feature-request — were REMOVED from here and moved there
     # (deterministic, throttled). What remains is the feature plan-gate
-    # continuation: a human applying plan-approved/skip-plan re-enters the
-    # BUILD phase for an already-planned feature. The promoter dispatches all
+    # continuation: a human applying plan-approved re-enters the BUILD phase
+    # for a plan-first feature (ADR-0033). The promoter dispatches all
     # other Mode-A work via workflow_dispatch (the manual-dispatch job).
     if: |
       github.event_name == 'issues'
       && github.event.action == 'labeled'
       && !contains(github.event.issue.labels.*.name, 'scope:iac')
-      && contains(fromJSON('["plan-approved", "skip-plan"]'), github.event.label.name)
+      && github.event.label.name == 'plan-approved'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -168,10 +167,12 @@ jobs:
 
             Inspect the labels:
 
-            - If the issue has `feature-request` AND has NEITHER `plan-approved`
-              NOR `skip-plan` → you are in the **PLAN PHASE**.
-            - Otherwise (it is a `defect`/`bug`, OR it already has
-              `plan-approved` / `skip-plan`) → you are in the **BUILD PHASE**.
+            - If the issue has `feature-request` AND `plan-first` AND not yet
+              `plan-approved` → you are in the **PLAN PHASE** (ADR-0033 opt-in).
+            - Otherwise (a `defect`/`bug`, a `feature-request` WITHOUT
+              `plan-first`, or a `plan-first` feature that now has
+              `plan-approved`) → you are in the **BUILD PHASE**. Features build
+              by default; the plan phase is opt-in via `plan-first`.
 
             ### PLAN PHASE — do this and nothing else:
               1. Read the issue body in full; read enough surrounding code to

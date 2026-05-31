@@ -94,12 +94,12 @@ flowchart TD
         IAC -->|yes| IACIMPL["iac-implementer<br/>tofu plan only · no apply · cap 5 resources"]
         IAC -->|no| CG{"Self-change?<br/>process-flaw / changes to ai-team"}
         CG -->|"compositional · standards · security ·<br/>rail-enforcer agent · or n=1 generality"| ARCH["STOP — route to architect<br/>propose ADR · human ratifies"]
-        CG -->|"mechanical · additive agent-output<br/>tightening (ADR-0032) · or not a self-change"| PHASE{"feature-request without<br/>plan-approved or skip-plan?"}
-        PHASE -->|yes| PLAN["PLAN PHASE: post approach,<br/>label awaiting-plan-approval, STOP"]
+        CG -->|"mechanical · additive agent-output<br/>tightening (ADR-0032) · or not a self-change"| PHASE{"feature-request WITH<br/>plan-first label? · ADR-0033"}
+        PHASE -->|"yes — opt-in plan review"| PLAN["PLAN PHASE: post approach,<br/>label awaiting-plan-approval, STOP"]
         PLAN --> PAPP{"Human applies plan-approved?"}
         PAPP -->|"not yet"| PLANWAIT["Waits for human"]
         PAPP -->|yes| SCOPE
-        PHASE -->|"no — defect/bug or already approved"| SCOPE{"Within scope cap?<br/>50 LOC · 3 files · 1 component"}
+        PHASE -->|"no — defect/bug, or feature builds by default"| SCOPE{"Within scope cap?<br/>50 LOC · 3 files · 1 component"}
         SCOPE -->|no| REFUSE["Refuse + stop<br/>needs split or human"]
         SCOPE -->|yes| BUILD["Build: branch impl/* ·<br/>code + tests · lint · typecheck · commit"]
         BUILD --> CONF{"Pre-flight rebase clean?"}
