@@ -1,9 +1,12 @@
 name: claude-implementer
 # Phase B of ADR-0013 — invokes the implementer agent in one of two modes:
 #
-# Mode A (initial implementation): triggered either when a human opens an
-#   issue labelled `bug`/`defect`/`feature-request` (human-filed work —
-#   picked up at once, bypassing the promoter and window per ADR-0017), or
+# Mode A (initial implementation): triggered either when the repo OWNER opens
+#   an issue labelled `bug`/`defect`/`feature-request` (the owner's own work —
+#   picked up at once, bypassing the promoter and window per ADR-0017; the
+#   `author_association == 'OWNER'` guard is required because this repo is
+#   PUBLIC and ships templates that auto-apply those labels, so without it any
+#   GitHub user could start an implementer run on the platform repo — ADR-0025), or
 #   when an issue gains a pickup label (`ready-for-implementer`,
 #   `source:sentry`, `severity:critical`, `plan-approved`, `skip-plan`).
 #   For `feature-request`
@@ -64,6 +67,12 @@ jobs:
   # applies the label as state and dispatches separately — guarding on
   # `sender.type != 'Bot'` here prevents that label+dispatch double-trigger.
   # `source:sentry` / `severity:critical` auto-pickup is unaffected.
+  # ADR-0025 owner guard: the `opened` path requires `author_association ==
+  # 'OWNER'`. This repo is PUBLIC and its bug-report/feature-request templates
+  # auto-apply `bug`/`feature-request`, so without the guard any GitHub user
+  # could trip an implementer run here. Non-owner requests start NO work until
+  # the owner opts them in with `ready-for-implementer` — the human-in-the-loop
+  # checkpoint precedes implementation, not just merge.
   initial:
     if: |
       github.event_name == 'issues'
@@ -79,6 +88,7 @@ jobs:
         || (
           github.event.action == 'opened'
           && github.event.issue.user.type != 'Bot'
+          && github.event.issue.author_association == 'OWNER'
           && (
             contains(github.event.issue.labels.*.name, 'bug')
             || contains(github.event.issue.labels.*.name, 'defect')
@@ -247,6 +257,7 @@ jobs:
         || (
           github.event.action == 'opened'
           && github.event.issue.user.type != 'Bot'
+          && github.event.issue.author_association == 'OWNER'
           && (
             contains(github.event.issue.labels.*.name, 'bug')
             || contains(github.event.issue.labels.*.name, 'defect')
