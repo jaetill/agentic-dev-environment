@@ -76,6 +76,7 @@ flowchart TD
         PROMSET --> RANK{"③·rank the set by severity, then dispatch<br/>top N within FLEET_MAX_DISPATCH = 6<br/>severity:high before any medium"}
         RANK -->|"top N"| DISPATCH["+ ready-for-implementer ·<br/>dispatch the repo's implementer · comment"]
         RANK -->|"beyond cap"| CAPWAIT["Rest wait for next cycle ·<br/>re-ranked next pass — not dropped"]
+        CAPWAIT -. "re-ranked next pass — re-enters eligibility" .-> PROMO
         AQUAL -. "cap-exempt · dedup-bounded · ADR-0031" .-> DISPATCH
         RANK -. "spare slots, but only after ≥1 real promotion · ADR-0028" .-> SWEEP["Dispatch cleanup-sweep · Mode C<br/>to repo with most deferred nits<br/>skip zero-count repos"]
     end
@@ -141,7 +142,8 @@ flowchart TD
         MGGUARD -->|"in-lane additive · or not a self-change"| MG4{"All required checks green?"}
         MG4 -->|"no · or none reported"| HCHK["Hold — needs green battery"]
         MG4 -->|yes| MG5{"Within per-run cap = 10?"}
-        MG5 -->|no| CAPM["Rest wait for next window"]
+        MG5 -->|no| CAPM["Rest wait for next window ·<br/>re-considered next pass — not dropped"]
+        CAPM -. "re-considered next window" .-> MG0
         MG5 -->|yes| DOMERGE["Squash-merge + delete branch<br/>cascades release-please + deploy"]
         DOMERGE --> MFAIL{"Merge succeeded?"}
         MFAIL -->|no| HFAIL["Merge failed — left for human"]
