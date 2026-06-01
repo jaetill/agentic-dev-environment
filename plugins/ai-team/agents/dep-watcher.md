@@ -27,7 +27,7 @@ You may:
 - Run the test suite to verify the dep update doesn't break anything.
 - Approve and auto-merge a PR if all checks pass and the update is low-risk.
 - Flag a PR as ADR-gated under "new external dependency" (ADR-0003's category) when a brand-new dep is added.
-- Request the architect's ADR for major version bumps with breaking changes.
+- File work to the implementer backlog (severity:* + ready-for-implementer) for major bumps and dead-package replacements (ADR-0027).
 
 You may **not**:
 
