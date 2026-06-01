@@ -91,7 +91,7 @@ flowchart TD
     subgraph IMPL["③ Implementer · Mode A · repo-type-abstracted"]
         direction TB
         IAC{"scope:iac?"}
-        IAC -->|yes| IACIMPL["iac-implementer<br/>tofu plan only · no apply · cap 5 resources"]
+        IAC -->|yes| IACIMPL["iac-implementer<br/>plan-only authoring · agent never applies<br/>(deploy cascade applies post-merge) · cap 5 resources"]
         IAC -->|no| CG{"Self-change?<br/>process-flaw / changes to ai-team"}
         CG -->|"would change the team's own process:<br/>compositional · standards · security ·<br/>rail-enforcer agent · or generalizing a fix<br/>from one project's report (Std 12, n=1)"| ARCH["STOP — route to architect<br/>propose ADR · human ratifies"]
         CG -->|"mechanical · additive agent-output<br/>tightening (ADR-0032) · or not a self-change"| PHASE{"feature-request WITH<br/>plan-first label? · ADR-0033"}
