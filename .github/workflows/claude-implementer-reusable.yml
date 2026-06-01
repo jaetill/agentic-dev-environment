@@ -300,8 +300,10 @@ jobs:
                 for a paired Accepted ADR; if none, post a comment and stop.
               - Scope cap: max 5 resources per PR.
 
-            After opening the PR, stop. A human runs `tofu apply` after
-            merge.
+            After opening the PR, stop. You never apply. Apply happens via the
+            deploy cascade after merge (auto on dev under the ADR-0035 guard if
+            the plan is safe-additive; otherwise a human merges). Keep the change
+            genuinely minimal and additive so the iac-additive-guard can clear it.
           claude_args: |
             --model claude-sonnet-4-6
             --permission-mode bypassPermissions

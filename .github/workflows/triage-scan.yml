@@ -373,6 +373,23 @@ jobs:
                 IN_LANE*) echo "  $slug#$pr — additive self-change, $guard (ADR-0032)";;
                 *) echo "  $slug#$pr — self-change held for human ($guard)"; held=$((held+1)); continue;;
               esac
+              # ADR-0035 — scope:iac PRs auto-merge (== auto-apply on dev via the
+              # push:[main] deploy cascade) ONLY behind an affirmative deterministic
+              # plan guard. The unexercised human-merge checkpoint is not a control;
+              # safety lives in the iac-additive-guard check (iac-guard.yml), which
+              # classifies `tofu show -json` output as safe-additive or holds.
+              # Absent or non-passing check -> hold (closed conservatively before
+              # the per-repo guard caller is propagated — no auto-merge regression).
+              is_iac=$(echo "$issue_meta" | jq -e '[.labels[].name] | any(. == "scope:iac")' >/dev/null 2>&1 && echo true || echo false)
+              if [[ "$is_iac" == "true" ]]; then
+                iac_buckets=$(gh pr checks "$pr" --repo "$slug" --json name,bucket \
+                                --jq '[.[] | select(.name | test("iac-additive-guard")) | .bucket]' 2>/dev/null || echo '[]')
+                if ! echo "$iac_buckets" | jq -e 'length > 0 and all(.[]; . == "pass")' >/dev/null 2>&1; then
+                  echo "  $slug#$pr — scope:iac requires a passing iac-additive-guard check (ADR-0035); hold"
+                  held=$((held+1)); continue
+                fi
+                echo "  $slug#$pr — iac-additive-guard passed (ADR-0035)"
+              fi
               # ADR-0021 cond. 2 — every check green. `gh pr checks` exits 0
               # for "all passed" but ALSO for "no checks at all" (vacuously
               # true) — guard that so a repo with CI disabled cannot slip the

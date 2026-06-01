@@ -1,0 +1,66 @@
+name: iac-additive-guard (reusable)
+# ADR-0035: the deterministic safe-additive IaC guard, run as an independent PR
+# check. A caller in an app repo wires this on `pull_request` for scope:iac PRs;
+# the central auto-merge gate (triage-scan.yml) requires this check passing before
+# an IaC PR may auto-merge (and thus auto-apply on dev). Writer != approver: the
+# verdict is a script over machine-emitted `tofu show -json` output, never the
+# implementer agent's self-assessment.
+on:
+  workflow_call:
+    inputs:
+      tf-dir:
+        type: string
+        required: false
+        default: terraform/envs/prod  # the env the iac-implementer plans
+      platform-ref:
+        type: string
+        required: false
+        default: main                 # pin the guard script version
+      aws-region:
+        type: string
+        required: false
+        default: us-east-2
+    secrets:
+      aws-role-arn:
+        required: true                # read-only role; the guard only plans
+
+permissions:
+  contents: read
+  id-token: write   # AWS OIDC
+  checks: read
+
+jobs:
+  iac-additive-guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout PR head (caller repo)
+        uses: actions/checkout@v4
+
+      - name: Checkout platform guard script
+        uses: actions/checkout@v4
+        with:
+          repository: jaetill/agentic-dev-environment
+          ref: ${{ inputs.platform-ref }}
+          path: .platform
+          sparse-checkout: scripts/iac-auto-merge-guard.sh
+          sparse-checkout-cone-mode: false
+
+      - uses: opentofu/setup-opentofu@v1
+
+      - name: Configure AWS credentials (read-only)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.aws-role-arn }}
+          aws-region: ${{ inputs.aws-region }}
+
+      - name: Plan and classify
+        # Any failure to produce or classify a plan -> non-zero -> red check ->
+        # the gate holds the PR for a human. Fail-safe by construction.
+        run: |
+          set -euo pipefail
+          cd "${{ inputs.tf-dir }}"
+          tofu init -input=false
+          tofu plan -input=false -lock=false -out=tfplan
+          tofu show -json tfplan > plan.json
+          bash "${GITHUB_WORKSPACE}/.platform/scripts/iac-auto-merge-guard.sh" plan.json
