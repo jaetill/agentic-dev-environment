@@ -294,13 +294,13 @@ Reviewer-style agents (`code-reviewer`, `security-reviewer`, `triage-bot`, `doc-
 
 ### Deferral policy
 
-Low and nit findings get filed as GitHub issues with the **`deferred-until-adjacent`** label. The implementer does NOT pick them up in isolation. Instead — per **[ADR-0020](../adr/0020-fleet-orchestration.md)**, which amends ADR-0016's flat cap of 2 — every dispatched implementer run drains nits across two PRs. The **fix PR** bundles directory-adjacent deferred nits, cap `min(floor(total / 2), 4)`. A separate **sidecar cleanup PR** drains the rest, cap `max(floor(total / 2), 8)`, chunked at 12 issues per PR. `total` is the repo's open `deferred-until-adjacent` count. The promoter's spare-capacity `mode=cleanup-sweep` dispatch drains repos that get no qualifying work — so cold-code nits no longer wait on coincidental adjacency.
+Low and nit findings get filed as GitHub issues with the **`deferred-until-adjacent`** label. The implementer does NOT pick them up in isolation. Instead — per **[ADR-0029](../adr/0029-promoter-owns-nit-adjacency.md)**, which supersedes ADR-0016's implementer-side discovery — the **promoter** selects same-file deferred nits at dispatch time and passes them to the implementer in the same dispatch. The implementer confirms each against its actual diff and bundles the matches into the fix PR's "While here" section (cap `min(floor(total / 2), 4)`); nits not in a file it actually touched are dropped (and their cited `file:line` corrected if stale). The implementer does not open a standalone nit-drain PR on its own initiative. Standalone nit-draining is exclusively the promoter's **Mode-C cleanup-sweep** ([ADR-0028](../adr/0028-nit-sweep-only-on-active-cycles.md)), dispatched on active cycles with spare capacity — so cold-code nits no longer wait on coincidental adjacency.
 
 Medium findings default to non-deferred; defense-in-depth Mediums and prose-quality Mediums may carry the deferral label sparingly.
 
 ### Sentry-bug auto-pickup
 
-Issues labeled `source:sentry` (auto-applied by Sentry's GitHub integration when its alert rules create an issue) or `severity:critical` trigger the implementer **immediately**, regardless of whether `ready-for-implementer` is set. Sentry-reported bugs are pre-validated production work; they don't need a triage gate. Fixing a Sentry bug also triggers the deferral-bundling scan in the same directory.
+Issues labeled `source:sentry` (auto-applied by Sentry's GitHub integration when its alert rules create an issue) or `severity:critical` trigger the implementer **immediately**, regardless of whether `ready-for-implementer` is set. Sentry-reported bugs are pre-validated production work; they don't need a triage gate. When a Sentry-bug dispatch routes through the promoter, same-file nits are bundled by the promoter the same way as any other Mode-A dispatch (ADR-0029).
 
 ### Backlog finalization
 
