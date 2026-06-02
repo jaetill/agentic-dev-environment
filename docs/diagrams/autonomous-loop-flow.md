@@ -99,8 +99,10 @@ flowchart TD
         PLAN --> PAPP{"Human applies plan-approved?"}
         PAPP -->|"not yet"| PLANWAIT["Waits for human"]
         PAPP -->|yes| SCOPE
-        PHASE -->|"no — defect/bug, or feature builds by default"| SCOPE{"Within scope cap?<br/>50 LOC · 3 files · 1 component"}
-        SCOPE -->|no| REFUSE["Refuse + stop<br/>needs split or human"]
+        PHASE -->|"no — defect/bug, or feature builds by default"| SCOPE{"Fits one slice?<br/>50 LOC · 3 files · 1 component"}
+        SCOPE -->|"no — too big"| SLICE["Decompose (ADR-0026 amend) ·<br/>re-scope to smallest coherent slice ·<br/>file remainder follow-up · Refs #n not Closes"]
+        SLICE --> BUILD
+        SLICE -. "remainder = follow-up issue, re-dispatched next cycle" .-> QUEUE
         SCOPE -->|yes| BUILD["Build: branch impl/* ·<br/>code + tests · lint · typecheck · commit"]
         BUILD --> CONF{"Pre-flight rebase clean?"}
         CONF -->|"no — conflict"| CONFWAIT["Abort + comment +<br/>exit without push · retry next dispatch"]
@@ -173,11 +175,11 @@ flowchart TD
     classDef merger fill:#2b5b8a,stroke:#5a9fd4,color:#eaf6ff;
 
     class CLOSED,DEPAUTO success;
-    class ARCH,PLANWAIT,REFUSE,ESCAL,HADR,HCOMP,HHUM,HIAC,HFAIL,HSELF,PAUSED human;
+    class ARCH,PLANWAIT,ESCAL,HADR,HCOMP,HHUM,HIAC,HFAIL,HSELF,PAUSED human;
     class WWAIT,CAPWAIT,CONFWAIT,CAPM,DEFER,HCHK,INERT,OPTINWAIT,DIGSINK wait;
 
     class PF,EVENTDISP,WIN,EVALALL,PROMO,DISAMB,ENRICH,CLOSEV,AQUAL,PROMSET,RANK,DISPATCH,SWEEP promoter;
-    class IAC,IACIMPL,CG,PHASE,PLAN,PAPP,SCOPE,BUILD,CONF,OPENPR,FIX,SWEEPIMPL implementer;
+    class IAC,IACIMPL,CG,PHASE,PLAN,PAPP,SCOPE,SLICE,BUILD,CONF,OPENPR,FIX,SWEEPIMPL implementer;
     class REVIEW,VERDICT,FIXIT reviewer;
     class MG0,MG1,MG2,MG3,MGIAC,IACGUARD,MGGUARD,MG4,MG5,DOMERGE,MFAIL,APPLY merger;
 ```
@@ -189,7 +191,7 @@ flowchart TD
 | Issue closed | 🟩 | Fix merged; the loop did its job end-to-end. |
 | Route to architect | 🟧 | Competence gate caught a compositional/standards/security self-change — ADR + human ratify (ADR-0019). |
 | Plan waiting | 🟧 | feature-request paused for human `plan-approved` (ADR-0017 plan-gate). |
-| Refuse (scope cap) | 🟧 | Change exceeds 50 LOC / 3 files / 1 component — needs a split or human. |
+| Decompose (scope cap) | — | Change exceeds one slice — the implementer ships the smallest coherent slice and files a follow-up for the remainder; not a terminal, not a human hand-off (ADR-0026 amended). |
 | Escalate (3 attempts) | 🟧 | Mode B couldn't converge in 3 fix iterations (ADR-0026). |
 | Hold: ADR-gated | 🟧 | `requires-adr:*` label — one of the five gated categories. |
 | Hold: compositional | 🟧 | `compositional-self-change` label (ADR-0023). |
