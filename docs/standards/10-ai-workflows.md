@@ -300,7 +300,7 @@ Medium findings default to non-deferred; defense-in-depth Mediums and prose-qual
 
 ### Sentry-bug auto-pickup
 
-Issues labeled `source:sentry` (auto-applied by Sentry's GitHub integration when its alert rules create an issue) or `severity:critical` trigger the implementer **immediately**, regardless of whether `ready-for-implementer` is set. Sentry-reported bugs are pre-validated production work; they don't need a triage gate. Fixing a Sentry bug also triggers the deferral-bundling scan in the same directory.
+Issues labeled `source:sentry` (auto-applied by Sentry's GitHub integration) or `severity:critical` trigger the **promoter** immediately — event-triggered, bypassing the cron window (per ADR-0030). The promoter auto-promotes the triggering issue unconditionally (no Tier-2 eligibility judgment) and dispatches the implementer via `ready-for-implementer`. Sentry-reported bugs are pre-validated production work; they don't need a triage gate. Fixing a Sentry bug also triggers the deferral-bundling scan in the same directory.
 
 ### Backlog finalization
 
