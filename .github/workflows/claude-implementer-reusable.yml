@@ -241,6 +241,10 @@ jobs:
             --append-system-prompt "Follow the platform standards in docs/standards/. Adhere strictly to the implementer agent's scope cap and authority rules per .claude/agents/implementer.md."
 
   # ── Mode A: IaC implementation (separate agent) ─────────────────────────
+  # ADR-0036: owner-`opened` auto-dispatch is bug/defect ONLY here too. An IaC
+  # feature-request awaits formulation; because scope:iac bypasses the promoter
+  # (ADR-0030), an approved IaC feature dispatches via a human
+  # `ready-for-implementer` fast-track, not the promoter's medium tier.
   initial-iac:
     if: |
       github.event_name == 'issues'
@@ -258,7 +262,6 @@ jobs:
           && (
             contains(github.event.issue.labels.*.name, 'bug')
             || contains(github.event.issue.labels.*.name, 'defect')
-            || contains(github.event.issue.labels.*.name, 'feature-request')
           )
         )
       )

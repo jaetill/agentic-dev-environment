@@ -17,7 +17,7 @@ and ADR-0016 / 0017 / 0019 / 0020 / 0021 / 0023 / 0024 / 0025 / 0026 / 0027 / 00
 - 🟧 amber — handed to the human (a deliberate checkpoint, not a failure)
 - ⬛ grey — parked, re-evaluated on a later cycle/window
 
-**Agent palette** — every *action/choice* node is coloured by the agent that owns it, inside or outside the stage boxes (so the promoter's `EVENTDISP` and sweep dispatch read as promoter even though they sit outside the ② loop box): **teal** = promoter (`triage-bot`), **indigo** = implementer, **purple** = reviewer agents, **steel-blue** = merger (auto-merge gate). See *Agent ownership* below.
+**Agent palette** — every *action/choice* node is coloured by the agent that owns it, inside or outside the stage boxes (so the promoter's `EVENTDISP` and sweep dispatch read as promoter even though they sit outside the ② loop box): **teal** = promoter (`triage-bot`), **indigo** = implementer, **purple** = reviewer agents, **steel-blue** = merger (auto-merge gate). **Gold** = the human intake lane (`Ⓗ`, ADR-0036) — the human's own territory, distinct from the amber human-checkpoints the machine hands back to. See *Agent ownership* below.
 
 ```mermaid
 flowchart TD
@@ -47,15 +47,25 @@ flowchart TD
     S7 --> DEPDIGEST["Weekly digest<br/>label: dep-watch"]
     DEPFIND -->|"ADR-0027 · no human gate"| QUEUE
     DEPDIGEST --> DIGSINK["Human info sink ·<br/>read-only, never a gate"]
-    S8A --> OPTIN
-    S8B --> INERT["Sits inert — cannot self-dispatch<br/>non-maintainers cannot apply labels"]
-    INERT --> OPTIN{"Trusted maintainer opts it in?<br/>applies ready-for-implementer / severity:critical<br/>permission-gated — write/triage only"}
-    OPTIN -->|yes| EVENTDISP
-    OPTIN -->|"no — not yet"| OPTINWAIT["Never auto-acted on ·<br/>waits for your review"]
+    subgraph INTAKE["Ⓗ Human intake · GitHub backlog — you own the &quot;what&quot; (ADR-0036)"]
+        direction TB
+        CAPTURE["Capture · label: needs-formulation<br/>non-maintainers file · cannot dispatch"]
+        FORM{"Formulation — scope + discern<br/>you + Claude · grooming ritual TBD (placeholder)"}
+        APPROVED["Approved · label: approved<br/>feature → promoter @ medium tier<br/>(confirmed bug rides its real severity)"]
+        PARKED["Parked · closed + label · saved, reopenable"]
+        CAPTURE --> FORM
+        FORM -->|"approve"| APPROVED
+        FORM -->|"reject"| PARKED
+        PARKED -. "re-request / 2nd thoughts reopen" .-> FORM
+    end
+    S8A --> FORM
+    S8B --> CAPTURE
+    APPROVED --> QUEUE
+    APPROVED -. "optional fast-track · you apply ready-for-implementer" .-> EVENTDISP
     PF --> QUEUE
     CILBL --> QUEUE
 
-    LBL --> QUEUE["Agent-discovered queue<br/>awaits the promoter"]
+    LBL --> QUEUE["Promoter consideration queue<br/>agent findings + approved features<br/>awaits the promoter"]
 
     SENT --> EVENTDISP["Promoter deterministic dispatch · ADR-0030<br/>machine work: event-dispatch (platform) · urgent-poll (app repos)<br/>throttled to FLEET_MAX_DISPATCH · no LLM"]
     QUEUE -. "agent-applied severity:critical" .-> EVENTDISP
@@ -66,7 +76,7 @@ flowchart TD
         WIN{"In window?<br/>overnight 01–04 CT daily ·<br/>work-hours 09–12 CT Mon–Fri ·<br/>manual dispatch always passes"}
         WIN -->|no| WWAIT["Quiet — wait for next window"]
         WIN -->|yes| EVALALL["①·triage EVERY open finding · full pass<br/>exhaustive — the cap does NOT gate evaluation"]
-        EVALALL --> PROMO{"per finding: promotion eligible? · Tier-2 judgement<br/>· agent-discovered<br/>· severity:med/high or triage:med<br/>· not already ready-for-implementer<br/>· survived at least one cycle (older than ~35 min)<br/>· well-specified, single bounded change"}
+        EVALALL --> PROMO{"per item: promotion eligible? · Tier-2 judgement<br/>· agent-discovered finding (severity:med/high · triage:med)<br/>· OR an approved feature → ranks medium (ADR-0036)<br/>· not already ready-for-implementer<br/>· survived at least one cycle (older than ~35 min)<br/>· well-specified, single bounded change"}
         PROMO -->|"no — vague"| DISAMB{"Promoter can disambiguate<br/>from the code? · ADR-0031"}
         DISAMB -->|"yes — enrich body"| ENRICH["Rewrite issue with missing<br/>repro/acceptance criteria · comment"]
         ENRICH --> PROMSET
@@ -163,6 +173,7 @@ flowchart TD
     %% ===================== terminal styling =====================
     classDef success fill:#1f7a3d,stroke:#0d4d24,color:#fff;
     classDef human fill:#b06f00,stroke:#7a4d00,color:#fff;
+    classDef intake fill:#5f5326,stroke:#b9a14a,color:#fdf6d8;
     classDef wait fill:#4a4a4a,stroke:#2a2a2a,color:#fff;
 
     %% Agent ownership — every action/choice node carries its OWNING agent's
@@ -176,7 +187,8 @@ flowchart TD
 
     class CLOSED,DEPAUTO success;
     class ARCH,PLANWAIT,ESCAL,HADR,HCOMP,HHUM,HIAC,HFAIL,HSELF,PAUSED human;
-    class WWAIT,CAPWAIT,CONFWAIT,CAPM,DEFER,HCHK,INERT,OPTINWAIT,DIGSINK wait;
+    class CAPTURE,FORM,APPROVED,PARKED intake;
+    class WWAIT,CAPWAIT,CONFWAIT,CAPM,DEFER,HCHK,DIGSINK wait;
 
     class PF,EVENTDISP,WIN,EVALALL,PROMO,DISAMB,ENRICH,CLOSEV,AQUAL,PROMSET,RANK,DISPATCH,SWEEP promoter;
     class IAC,IACIMPL,CG,PHASE,PLAN,PAPP,SCOPE,SLICE,BUILD,CONF,OPENPR,FIX,SWEEPIMPL implementer;
@@ -201,6 +213,7 @@ flowchart TD
 | Paused | 🟧 | `AUTONOMOUS_MERGE=off`. |
 | Wait: window / cap / conflict / checks | ⬛ | Parked, re-evaluated next cycle or window. |
 | deferred-until-adjacent | ⬛ | Low/Nit finding — drained later by cleanup-sweep (ADR-0016). |
+| Parked (rejected idea) | 🟡 | A formulated idea the human rejected — closed + `parked` label, saved and reopenable on a re-request or second thoughts (ADR-0036). Not a failure, not deleted. |
 | Auto-closed (malformed finding) | 🟩 | Promoter couldn't disambiguate a vague agent finding — closed, and a fix to the source agent's contract dispatched (ADR-0031). |
 
 ## Agent ownership (node colours)

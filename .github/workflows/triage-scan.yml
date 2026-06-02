@@ -193,21 +193,28 @@ jobs:
                 --state open --json number,title,labels,createdAt,author,comments --limit 100
 
             An issue is eligible for promotion when ALL hold:
-              - AGENT-discovered: the author is a bot, OR it carries a
-                `source:*` or `triage:*` label. Human-authored issues are
-                NEVER promoted here — filing them was their triage; the
-                implementer picks those up directly on `issues: opened`.
-              - It carries `severity:medium`, `severity:high`, or
-                `triage:medium`. ADR-0020 folds `severity:high` in — it
-                previously had no automatic path. Do NOT promote
-                `severity:critical` or `source:sentry`: those auto-pick-up at
-                the implementer already.
+              - It is EITHER (a) AGENT-discovered — the author is a bot, OR it
+                carries a `source:*` or `triage:*` label — OR (b) a human
+                feature carrying the `approved` label (ADR-0036). Other
+                human-authored issues are NOT promoted here: a raw
+                `feature-request` is still in formulation (the human owns the
+                `what`); only `approved` signals intake is done.
+              - TIER: an agent finding ranks by its `severity:*` / `triage:*`.
+                An `approved` feature ranks at the **medium** tier — above
+                low/nits, below `severity:high`/`critical`, equal footing with
+                `severity:medium` / `triage:medium` (ADR-0036). A human-confirmed
+                BUG carries its real `severity:*`, NOT `approved`.
+              - For an AGENT finding the tier must be `severity:medium`,
+                `severity:high`, or `triage:medium`. ADR-0020 folds
+                `severity:high` in. Do NOT promote `severity:critical` or
+                `source:sentry`: those auto-pick-up at the implementer already.
               - It does NOT already carry `ready-for-implementer`.
               - It has survived at least one full triage-scan cycle — do NOT
                 promote an issue created in the last ~35 minutes.
               - It is well-specified: a clear repro or acceptance criteria, a
                 single bounded change. Judgement call — when vague, leave it
-                unpromoted and comment exactly what is missing.
+                unpromoted and comment exactly what is missing. (An `approved`
+                feature carries its human-written functional spec — trust it.)
 
             THROTTLE: dispatch at most $AVAILABLE implementer runs this run.
             $AVAILABLE is your HARD budget — it already accounts for implementer
@@ -215,9 +222,11 @@ jobs:
             $FLEET_MAX_DISPATCH minus what is already running), so you never
             dispatch on top of work the event-dispatch or urgent-poll paths
             already started. If $AVAILABLE is 0, promote and dispatch NOTHING this
-            pass — still run Pass 1 and Pass 3. Order by severity — promote every
-            eligible `severity:high` before any `severity:medium`. When the budget
-            is reached, stop; the next cycle takes the rest.
+            pass — still run Pass 1 and Pass 3. Order by tier — every eligible
+            `severity:high` before any medium, where the medium tier is
+            `severity:medium` / `triage:medium` findings AND `approved` features
+            together (ADR-0036). When the budget is reached, stop; the next cycle
+            takes the rest.
 
             For each eligible issue, within the $AVAILABLE budget:
               1. GH_TOKEN=$FLEET_TOKEN gh issue edit <n> --repo jaetill/<repo> \
@@ -468,6 +477,10 @@ jobs:
   # app repos forward their events via repository_dispatch; here on the platform
   # repo they fire same-repo. The LLM cycle-fill is a Phase-2 follow-up.
   # scope:iac is excluded (its path is unchanged for now — ADR-0030 §IaC path).
+  # ADR-0036: owner-`opened` auto-dispatch is bug/defect ONLY. A raw
+  # feature-request is NOT dispatched on open — it awaits human formulation →
+  # `approved` (promoter, medium tier) or a human `ready-for-implementer`
+  # fast-track. `feature-request` was therefore dropped from the opened branch.
   event-dispatch:
     if: |
       github.event_name == 'repository_dispatch'
@@ -489,7 +502,6 @@ jobs:
             && (
               contains(github.event.issue.labels.*.name, 'bug')
               || contains(github.event.issue.labels.*.name, 'defect')
-              || contains(github.event.issue.labels.*.name, 'feature-request')
             )
           )
         )
