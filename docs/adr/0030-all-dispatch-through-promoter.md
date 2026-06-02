@@ -74,6 +74,21 @@ Option A is rejected: it leaves the throttle gap and the five-front-door duplica
 - Human-approved work (`ready-for-implementer` / owner-opened) is *already* a promotion decision; routing it through the promoter to "auto-promote" is redundant there — its only added value is the cycle-fill. Acceptable.
 - The auto-merge **machine-origin** check (ADR-0023) is unchanged — that governs *merge*, not *dispatch*.
 
+## Pros and Cons of the Options
+
+### Option A: keep the direct bypasses; wire `source:cloudwatch` into the implementer trigger
+
+- ✅ Pro: Smallest possible change — one trigger line to match the spec.
+- ❌ Con: Leaves the `FLEET_MAX_DISPATCH` throttle gap — urgent work (the Sentry-storm case) still bypasses the only central in-flight counter.
+- ❌ Con: Keeps the five-front-door duplication and the per-signal trigger tangle in the implementer.
+
+### Option B: route everything through the promoter (chosen)
+
+- ✅ Pro: One dispatch authority; the implementer keeps a single `ready-for-implementer` entry point.
+- ✅ Pro: Throttle + dedup finally cover urgent work — only the central promoter can count fleet-wide in-flight work, so a multi-repo storm is actually capped.
+- ✅ Pro: The CloudWatch inconsistency dissolves, and an urgent event opportunistically drains other eligible work for that project in the same run.
+- ❌ Con: The LLM promoter becomes the single front door for all dispatch — a SPOF. Mitigated by the deterministic auto-promote of the trigger (no LLM veto on the urgent issue) and the small, project-scoped per-event run.
+
 ## Impacted ADRs (consolidated, so consistency lives in one place)
 
 | ADR | What changes |
