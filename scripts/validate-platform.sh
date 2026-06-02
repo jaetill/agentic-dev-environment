@@ -111,7 +111,8 @@ while IFS= read -r entry; do
   fi
 done < <(
   while IFS= read -r f; do
-    { grep -aoE '\]\([^)]+\.md[^)]*\)' "$PLATFORM_DIR/$f" 2>/dev/null \
+    { sed '/^```/,/^```/d' "$PLATFORM_DIR/$f" \
+      | grep -aoE '\]\([^)]+\.md[^)]*\)' 2>/dev/null \
       | sed -E 's/^\]\(//; s/\)$//' \
       | while IFS= read -r t; do printf '%s::%s\n' "$f" "$t"; done ; } || true
   done < <(cd "$PLATFORM_DIR" && git ls-files -- docs | grep '\.md$' || true)
