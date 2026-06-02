@@ -103,7 +103,14 @@ jobs:
   # ── triage-bot: scan + fleet promoter + flaw pull ───────────────────────
   triage:
     needs: window
-    if: needs.window.outputs.in_window == 'true'
+    # The full LLM fleet-scan runs only on the schedule and manual dispatch.
+    # Issues / repository_dispatch events are handled deterministically by
+    # event-dispatch (ADR-0030); running the scan on them is redundant AND fails
+    # when a bot filed the triggering issue (claude-code-action rejects a Bot
+    # actor: "Workflow initiated by non-human actor").
+    if: |
+      needs.window.outputs.in_window == 'true'
+      && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
