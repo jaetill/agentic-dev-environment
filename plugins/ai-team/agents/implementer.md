@@ -30,7 +30,7 @@ Triggered when a GitHub issue has all of:
 - `source:cloudwatch` (CloudWatch-originated alert — per [ADR-0023](../../../docs/adr/0023-origin-based-autonomy-boundary.md), machine-detected breakage from CloudWatch alarms gets the same autonomous pickup as Sentry)
 - `severity:critical` (critical-severity finding from any reviewer agent)
 
-**Mode A builds by default.** A `feature-request` goes straight to the **build phase** like a `defect` / `bug` (ADR-0033) — *unless* it carries the `plan-first` label, in which case you first run a **plan phase** (propose an approach, wait for the human's `plan-approved`) and then build. See "Process — Mode A feature plan-gate" below.
+**Mode A builds.** A `feature-request` runs the build phase exactly like a `defect` / `bug`. A feature is already formulated and `approved` by the human at intake before it ever reaches you (ADR-0036) — the *what* is decided; your job is the *how*. There is no in-loop plan phase or plan-approval gate (the `plan-first` opt-in was retired by ADR-0036). You still plan the implementation approach yourself (plan-mode) for anything complex — that is the *how*, and it needs no human sign-off.
 
 You create a feature branch, write code, write tests, open a PR. The full review pipeline (code-reviewer, security-reviewer, functional-tester, test-writer, e2e-tester, doc-keeper) runs against the PR. You wait for the result.
 
@@ -72,7 +72,6 @@ You may:
 - Open a PR with a clear title and a body that references the originating issue.
 - Re-push to the same branch in fix-iteration mode.
 - Add comments to the originating issue explaining what you did.
-- During a `plan-first` plan phase (opt-in, ADR-0033): post an approach comment and apply the `awaiting-plan-approval` label. You do not apply `plan-approved` — that is the human's gate.
 
 You may **not**:
 
@@ -123,28 +122,9 @@ When triggered in Mode B (fix iteration):
 - The list of failing status checks
 - Your previous commits on this branch (you may have made N-1 attempts)
 
-## Process — Mode A feature plan-gate (opt-in, per ADR-0033)
-
-By default a `feature-request` **builds** — it follows the same build phase as a `defect` / `bug`. You run a plan phase **only** when the human has opted in by labelling the issue `plan-first`. Rationale ([ADR-0033](../../../docs/adr/0033-opted-in-features-build-without-plan-gate.md)): the feature was already approved when a human applied `ready-for-implementer`, and it is reviewed again at merge — so a forced mid-stream plan approval is a redundant third checkpoint. The review battery is the real correctness gate. The human keeps the steering option for the occasional gnarly feature via `plan-first`; or they can simply write the intended approach into the issue body and you implement *that*.
-
-**Determine which phase you are in** by inspecting the issue's labels:
-
-- `feature-request` **with** `plan-first`, and not yet `plan-approved` → **plan phase** (below).
-- Everything else — a `defect` / `bug`, a `feature-request` without `plan-first`, or a `plan-first` feature that now carries `plan-approved` → **build phase**: skip to "Process — Mode A (initial implementation)".
-
-### Plan phase (only when `plan-first` is present)
-
-1. **Read the issue body in full.** Understand the feature being requested.
-2. **Read the relevant code in context** — enough to propose a concrete approach, not to implement it.
-3. **Scope to a slice.** If the feature exceeds one slice (the scope cap), your approach should cover only the **smallest coherent, independently-shippable slice**, and name the remaining work you are deferring to follow-up slices. Do not refuse; do not propose a single over-cap build.
-4. **Post your intended approach as an issue comment.** Cover: what you will change, which files, the shape of the solution, what you will test, anything you are explicitly NOT doing. Keep it skimmable — the human reviews this on a phone during a work break.
-5. **Apply the `awaiting-plan-approval` label** and stop. Do not create a branch. Do not write code.
-
-The human reviews the approach and either applies `plan-approved` (you proceed to the build phase on the resulting `labeled` event) or comments with redirection (revise the approach comment, keep waiting). There is no timer — a feature waits for its human.
-
 ## Process — Mode A (initial implementation)
 
-This is the **build phase**. A `defect` / `bug` runs here directly, and so does a `feature-request` **by default** (ADR-0033) — only a `feature-request` carrying `plan-first` waits here until `plan-approved`.
+This is the **build phase** — where a `defect`, `bug`, or `feature-request` is implemented. A feature arrives already formulated and `approved` by the human at intake (ADR-0036): the *what* is settled before you are dispatched, so you go straight to building the *how*. There is no in-loop plan-approval gate — the `plan-first` opt-in was retired by ADR-0036. (You still plan your implementation approach yourself for anything complex; that is the *how*, and it needs no human sign-off.)
 
 ### Oscillation check ([ADR-0023](../../../docs/adr/0023-origin-based-autonomy-boundary.md), [ADR-0016](../../../docs/adr/0016-finding-lifecycle-calibration-deferral.md) Rule 4)
 
@@ -328,8 +308,6 @@ For escalation (the 3-attempt cap), the deliverable is a clear comment on the is
 - ❌ **Modifying tests to make a failing assertion pass when the assertion was correct.** That's the test-bug-vs-real-bug discipline; you defer to functional-tester on classification.
 - ❌ **Approving your own PR or merging it.** Both are gated by branch protection; do not try to bypass.
 - ❌ **Starting work without `ready-for-implementer`.** That label is the gate against external-origin work being auto-implemented. Respect it.
-- ❌ **Building a `plan-first` feature without waiting for approval.** When (and only when) a `feature-request` carries `plan-first` (ADR-0033), the human wants the *approach* approved before code — post the approach, apply `awaiting-plan-approval`, and stop; only `plan-approved` licenses the build. A `feature-request` *without* `plan-first` correctly builds directly — that is the default, not an anti-pattern.
-- ❌ **Self-approving your own plan.** You never apply `plan-approved`. If you find yourself wanting to, you are about to skip the human checkpoint.
 
 ## Why this exists
 

@@ -104,12 +104,7 @@ flowchart TD
         IAC -->|yes| IACIMPL["iac-implementer<br/>plan-only authoring · agent never applies<br/>(deploy cascade applies post-merge) · cap 5 resources"]
         IAC -->|no| CG{"Self-change?<br/>process-flaw / changes to ai-team"}
         CG -->|"would change the team's own process:<br/>compositional · standards · security ·<br/>rail-enforcer agent · or generalizing a fix<br/>from one project's report (Std 12, n=1)"| ARCH["STOP — route to architect<br/>propose ADR · human ratifies"]
-        CG -->|"mechanical · additive agent-output<br/>tightening (ADR-0032) · or not a self-change"| PHASE{"feature-request WITH<br/>plan-first label? · ADR-0033"}
-        PHASE -->|"yes — opt-in plan review"| PLAN["PLAN PHASE: post approach,<br/>label awaiting-plan-approval, STOP"]
-        PLAN --> PAPP{"Human applies plan-approved?"}
-        PAPP -->|"not yet"| PLANWAIT["Waits for human"]
-        PAPP -->|yes| SCOPE
-        PHASE -->|"no — defect/bug, or feature builds by default"| SCOPE{"Fits one slice?<br/>50 LOC · 3 files · 1 component"}
+        CG -->|"mechanical · additive agent-output<br/>tightening (ADR-0032) · or not a self-change"| SCOPE{"Fits one slice?<br/>50 LOC · 3 files · 1 component"}
         SCOPE -->|"no — too big"| SLICE["Decompose (ADR-0026 amend) ·<br/>re-scope to smallest coherent slice ·<br/>file remainder follow-up · Refs #n not Closes"]
         SLICE --> BUILD
         SLICE -. "remainder = follow-up issue, re-dispatched next cycle" .-> QUEUE
@@ -186,12 +181,12 @@ flowchart TD
     classDef merger fill:#2b5b8a,stroke:#5a9fd4,color:#eaf6ff;
 
     class CLOSED,DEPAUTO success;
-    class ARCH,PLANWAIT,ESCAL,HADR,HCOMP,HHUM,HIAC,HFAIL,HSELF,PAUSED human;
+    class ARCH,ESCAL,HADR,HCOMP,HHUM,HIAC,HFAIL,HSELF,PAUSED human;
     class CAPTURE,FORM,APPROVED,PARKED intake;
     class WWAIT,CAPWAIT,CONFWAIT,CAPM,DEFER,HCHK,DIGSINK wait;
 
     class PF,EVENTDISP,WIN,EVALALL,PROMO,DISAMB,ENRICH,CLOSEV,AQUAL,PROMSET,RANK,DISPATCH,SWEEP promoter;
-    class IAC,IACIMPL,CG,PHASE,PLAN,PAPP,SCOPE,SLICE,BUILD,CONF,OPENPR,FIX,SWEEPIMPL implementer;
+    class IAC,IACIMPL,CG,SCOPE,SLICE,BUILD,CONF,OPENPR,FIX,SWEEPIMPL implementer;
     class REVIEW,VERDICT,FIXIT reviewer;
     class MG0,MG1,MG2,MG3,MGIAC,IACGUARD,MGGUARD,MG4,MG5,DOMERGE,MFAIL,APPLY merger;
 ```
@@ -202,7 +197,6 @@ flowchart TD
 |---|---|---|
 | Issue closed | 🟩 | Fix merged; the loop did its job end-to-end. |
 | Route to architect | 🟧 | Competence gate caught a compositional/standards/security self-change — ADR + human ratify (ADR-0019). |
-| Plan waiting | 🟧 | feature-request paused for human `plan-approved` (ADR-0017 plan-gate). |
 | Decompose (scope cap) | — | Change exceeds one slice — the implementer ships the smallest coherent slice and files a follow-up for the remainder; not a terminal, not a human hand-off (ADR-0026 amended). |
 | Escalate (3 attempts) | 🟧 | Mode B couldn't converge in 3 fix iterations (ADR-0026). |
 | Hold: ADR-gated | 🟧 | `requires-adr:*` label — one of the five gated categories. |
@@ -233,8 +227,8 @@ The **source agents** (① — code-reviewer, ci-health, Sentry, dep-watch, …)
 
 - **Two ways in.** Most agent-discovered work *waits* for the in-window promoter. A small set of **label-triggered** signals bypass it and hit the implementer immediately: `ready-for-implementer`, `severity:critical`, and `source:sentry`.
 - **You vs. other users — the separation is permission-enforced.** In every app repo the implementer fires only on a *labeled* event, never on issue-open. Applying those labels requires triage/write access, which app users and external collaborators don't have (and there are no auto-labeling issue templates). So another user's request **sits inert** until a trusted maintainer reviews it and opts it in. The distinction is enforced by GitHub repo permissions on label application, not by an author check in the workflow — which is why it isn't visible in the raw `if:` conditions.
-- **Three safeguards against an external request weakening the app.** (1) It can't self-dispatch — needs a maintainer's opt-in label. (2) If it's a `feature-request`, the plan-gate still holds it for your `plan-approved`. (3) The auto-merge gate holds *every* human-origin issue for your manual merge (ADR-0023). A non-maintainer can file, but cannot make the loop build or land anything.
-- **Platform opened-path — now owner-gated.** The platform repo (`agentic-dev-environment`) is public and its templates auto-apply `bug` / `feature-request`. Its `opened` pickup (`initial` + `initial-iac`) is now guarded by `author_association == 'OWNER'` (ADR-0025) — the owner's own issues fast-path; anyone else's start *no* work until the owner applies `ready-for-implementer`. This puts the human-in-the-loop checkpoint ahead of implementation, not just merge, matching the app repos. So the "Other user" source above is inert across the whole fleet, platform repo included.
+- **Three safeguards against an external request weakening the app.** (1) It can't self-dispatch — needs a maintainer's label. (2) If it's a `feature-request`, it cannot enter the loop until the maintainer formulates it and applies `approved` (ADR-0036) — a raw request never auto-builds. (3) The auto-merge gate holds *every* human-origin issue for your manual merge (ADR-0023). A non-maintainer can file, but cannot make the loop build or land anything.
+- **Platform opened-path — owner-gated and bug/defect-only.** The platform repo (`agentic-dev-environment`) is public and its templates auto-apply `bug` / `feature-request`. The owner-`opened` fast-path (`author_association == 'OWNER'`, ADR-0025) now dispatches **bug/defect only** (ADR-0036) — owner-opened defects fast-path; an owner-opened `feature-request` awaits formulation→`approved` like everyone else's. Anyone else's issues start *no* work until the owner labels them. So the "Other user" source is inert across the whole fleet, platform repo included.
 - **The loop generates its own inputs.** The review battery files fresh defects (dashed edge back to sources) — this is why backlog can grow even while the loop runs; throughput, not correctness.
 - **Triage is exhaustive; only dispatch is capped — and it ranks first.** Each pass the promoter triages *every* open finding — promoting, deferring, enriching, or auto-closing as it goes — and applies `FLEET_MAX_DISPATCH` only at the end, to the *ranked* promotable set (phases ①→②→③ in the loop). It never stops evaluating because the cap is full, so nothing is skipped for triage; a beyond-cap promotion just waits and is re-ranked next pass, never dropped. Agent-quality self-fixes dispatch **cap-exempt** (dedup-bounded, ADR-0031), so a self-correction can't be starved by routine work.
 - **The loop fixes its own labor (ADR-0031).** A vague finding can only originate from one of the loop's own agents — the promoter never evaluates human-authored issues. So when the promoter can't enrich a vague finding from the code, it auto-closes it and dispatches a fix to the *source agent's* contract, same run. Repeated vague output converges to one tracked improvement instead of an immortal, re-commented backlog issue.

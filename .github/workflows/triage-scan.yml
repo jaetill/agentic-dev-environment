@@ -375,9 +375,10 @@ jobs:
               # be MACHINE-ORIGIN. Machine-origin = the issue author is a bot,
               # OR the issue carries `source:sentry`, `source:cloudwatch`, or
               # `origin:internal-review`. Human-origin issues (any type,
-              # including a bug filed by a person) take a human-merge checkpoint
-              # and are held here. The feature plan-gate still keeps features
-              # out of this path entirely (ADR-0017).
+              # including a bug filed by a person, or an `approved` feature) take
+              # a human-merge checkpoint and are held here (ADR-0023). (Dropping
+              # this human-merge gate for approved features is teed up but not yet
+              # done.)
               issue=$(echo "$meta" | jq -r '.body // ""' \
                         | grep -ioE '(close[sd]?|fix(e[sd])?|resolve[sd]?) +#[0-9]+' \
                         | grep -oE '[0-9]+' | head -1 || true)

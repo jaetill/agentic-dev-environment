@@ -344,7 +344,7 @@ Per **[ADR-0021](../adr/0021-autonomous-merge.md)**, the fleet loop closes itsel
 
 The job merges an implementer fix PR when, and only when, **all four** conditions hold. The gate is deterministic — decidable from labels and check state, with no agent judgement at merge time:
 
-1. **Implementer-authored, fixing a defect.** The PR's author is the implementer agent (`gh pr list --json author` renders the App bot as `app/claude`) and it closes an issue labelled `defect` or `bug`. A `feature-request` is excluded — features keep ADR-0017's plan-gate, where the human approves the approach first.
+1. **Implementer-authored, fixing a defect.** The PR's author is the implementer agent (`gh pr list --json author` renders the App bot as `app/claude`) and it closes an issue labelled `defect` or `bug`. A `feature-request` is excluded — a feature is human-origin (formulated and `approved` by a maintainer at intake, ADR-0036) and is held for human merge.
 2. **Every check green.** The full AI review battery (§9, ADR-0003) passed; `code-review` and `security-review` are hard gates. A PR with *zero* checks does not qualify — the gate requires a non-empty green battery, not a vacuous pass.
 3. **No `requires-adr:*` label.** The five ADR-gated categories (ADR-0003) route to the human, unchanged.
 4. **A project repo.** The platform repo is excluded — its PRs are self-modifications, human-merged per [ADR-0019](../adr/0019-team-self-modification.md) / Standard 12.
@@ -358,7 +358,7 @@ The job merges an implementer fix PR when, and only when, **all four** condition
 
 The job lives in the central `triage-scan` promoter, not the per-repo `claude-pr-review` reusable, and merges with the fleet App token — not `GITHUB_TOKEN`. A `GITHUB_TOKEN` merge triggers nothing downstream (ADR-0018): release-please would never see it, so nothing would deploy. The fleet App's events cascade, and its installation credential lives only on the platform repo — so the merge must run centrally. This is why the fleet App also carries `Contents` + `Pull requests` write (see §9b).
 
-This is the operational form of *commander's intent*: a `defect`/`bug` fix inside the implementer's scope cap is routine and ships; anything that redefines scope arrives as a `feature-request` (→ plan-gate) or trips `requires-adr` (→ human).
+This is the operational form of *commander's intent*: a `defect`/`bug` fix inside the implementer's scope cap is routine and ships; anything that redefines scope arrives as a `feature-request` (→ human formulation + `approved`, ADR-0036) or trips `requires-adr` (→ human).
 
 ## 10. Setup checklist
 

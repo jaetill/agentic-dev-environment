@@ -93,6 +93,7 @@ A prior look considered JIRA as the backlog and rejected it as overkill — the 
 - Diagram: `docs/diagrams/autonomous-loop-flow.md` — the intake lane.
 - The formulation/grooming ritual is intentionally **not** specified here (placeholder).
 - **IaC caveat:** `scope:iac` bypasses the promoter (ADR-0030), so an `approved` IaC feature does **not** get the medium-tier auto-promotion — it dispatches via a human `ready-for-implementer` fast-track after formulation. Owner-`opened` IaC bug/defect still build by default; IaC `feature-request` was dropped from `initial-iac`'s opened branch for the same reason.
+- **Plan-gate retired.** Moving the *what* to intake makes the in-loop plan-gate redundant, so it is removed: the `initial` job (its only remaining trigger was `plan-approved`), the PLAN PHASE prompt/spec sections, and the `plan-first` / `awaiting-plan-approval` / `plan-approved` labels are all gone. The implementer plans the *how* itself (plan-mode), ungated. **Impacted ADRs** (plan-gate references now historical): [ADR-0017](0017-async-orchestration.md) sub-decision 4, [ADR-0033](0033-opted-in-features-build-without-plan-gate.md) (superseded), and the passing references in [ADR-0021](0021-autonomous-merge.md) / [ADR-0023](0023-origin-based-autonomy-boundary.md) / [ADR-0026](0026-agentic-implementer.md) — the *substance* there (human-origin features are gated by the human) holds; the gate just moved from a mid-stream plan-approval to intake formulation + the existing human-merge checkpoint.
 
 ## Links
 

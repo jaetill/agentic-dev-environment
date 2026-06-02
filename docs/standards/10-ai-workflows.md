@@ -344,7 +344,7 @@ Per **[ADR-0021](../adr/0021-autonomous-merge.md)**, the fleet loop closes itsel
 
 The job merges an implementer fix PR when, and only when, **all** of the following hold. The gate is deterministic — decidable from labels and check state, with no agent judgement at merge time. Per [ADR-0023](../adr/0023-origin-based-autonomy-boundary.md), the conditions are keyed to work **origin**, not work type.
 
-1. **Implementer-authored, machine-origin fix.** The PR's author is the implementer agent (`gh pr list --json author` renders the App bot as `app/claude`) and it closes an issue whose origin is **machine** — the issue's author is a bot, OR the issue carries `source:sentry`, `source:cloudwatch`, or `origin:internal-review`. Human-origin issues (any type, including a bug filed by a person) take a human-merge checkpoint and are held. Features (whether human-filed or otherwise) keep ADR-0017's plan-gate and never reach this job.
+1. **Implementer-authored, machine-origin fix.** The PR's author is the implementer agent (`gh pr list --json author` renders the App bot as `app/claude`) and it closes an issue whose origin is **machine** — the issue's author is a bot, OR the issue carries `source:sentry`, `source:cloudwatch`, or `origin:internal-review`. Human-origin issues (any type, including a bug filed by a person, or an `approved` feature) take a human-merge checkpoint and are held. Features are human-origin — formulated and `approved` by a maintainer at intake (ADR-0036) — so they are held at this human-merge checkpoint like any human-origin work.
 2. **Every check green.** The full AI review battery (§9, ADR-0003) passed; `code-review` and `security-review` are hard gates. A PR with *zero* checks does not qualify — the gate requires a non-empty green battery, not a vacuous pass.
 3. **No `requires-adr:*` label.** The five ADR-gated categories (ADR-0003) route to the human, unchanged — regardless of origin.
 4. **No `compositional-self-change` label.** Per ADR-0023, routine/mechanical platform-repo fixes are eligible like any project fix; only **compositional** self-changes — changes to the team's gates, agent roster, standards, or security posture — keep a human checkpoint. The implementer/architect applies this label when the change is classified compositional. (This replaces the old "project repo only" exclusion.)
@@ -358,7 +358,7 @@ The job merges an implementer fix PR when, and only when, **all** of the followi
 
 The job lives in the central `triage-scan` promoter, not the per-repo `claude-pr-review` reusable, and merges with the fleet App token — not `GITHUB_TOKEN`. A `GITHUB_TOKEN` merge triggers nothing downstream (ADR-0018): release-please would never see it, so nothing would deploy. The fleet App's events cascade, and its installation credential lives only on the platform repo — so the merge must run centrally. This is why the fleet App also carries `Contents` + `Pull requests` write (see §9b).
 
-This is the operational form of *commander's intent*: a `defect`/`bug` fix inside the implementer's scope cap is routine and ships; anything that redefines scope arrives as a `feature-request` (→ plan-gate) or trips `requires-adr` (→ human).
+This is the operational form of *commander's intent*: a `defect`/`bug` fix inside the implementer's scope cap is routine and ships; anything that redefines scope arrives as a `feature-request` (→ human formulation + `approved`, ADR-0036) or trips `requires-adr` (→ human).
 
 ## 10. Setup checklist
 
