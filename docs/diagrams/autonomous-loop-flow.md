@@ -104,7 +104,7 @@ flowchart TD
         IAC -->|yes| IACIMPL["iac-implementer<br/>plan-only authoring · agent never applies<br/>(deploy cascade applies post-merge) · cap 5 resources"]
         IAC -->|no| CG{"Self-change?<br/>process-flaw / changes to ai-team"}
         CG -->|"would change the team's own process:<br/>compositional · standards · security ·<br/>rail-enforcer agent · or generalizing a fix<br/>from one project's report (Std 12, n=1)"| ARCH["STOP — route to architect<br/>propose ADR · human ratifies"]
-        CG -->|"mechanical · additive agent-output<br/>tightening (ADR-0032) · or not a self-change"| SCOPE{"Fits one slice?<br/>50 LOC · 3 files · 1 component"}
+        CG -->|"mechanical · additive agent-output<br/>tightening (ADR-0032) · or not a self-change"| SCOPE{"Fits one slice?<br/>400 LOC · 8 files · 3 components"}
         SCOPE -->|"no — too big"| SLICE["Decompose (ADR-0026 amend) ·<br/>re-scope to smallest coherent slice ·<br/>file remainder follow-up · Refs #n not Closes"]
         SLICE --> BUILD
         SLICE -. "remainder = follow-up issue, re-dispatched next cycle" .-> QUEUE

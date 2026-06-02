@@ -44,7 +44,7 @@ Chosen option: **Option A.** A job in the `triage-scan` promoter — the platfor
 
 Conditions 2 and 3 are not new — they are ADR-0003's existing mechanism. Condition 1 defers to ADR-0017's feature plan-gate; condition 4 defers to ADR-0019. What this ADR genuinely adds is the conditions-as-a-job for the implementer path, and the explicit acceptance of the closed loop.
 
-This is the operational form of commander's intent: a `defect`/`bug` fix within the implementer's inherent scope cap (50 LOC / 3 files / 1 component) is routine and ships; anything that redefines scope arrives as a `feature-request` (→ plan-gate) or trips `requires-adr` (→ human). The "ai-teacher should add financial planning" case reaches the human by a path that already exists.
+This is the operational form of commander's intent: a `defect`/`bug` fix within the implementer's inherent scope cap (per [ADR-0026](0026-agentic-implementer.md)) is routine and ships; anything that redefines scope arrives as a `feature-request` (→ plan-gate) or trips `requires-adr` (→ human). The "ai-teacher should add financial planning" case reaches the human by a path that already exists.
 
 **Pause control.** The job reads a repo/org variable `AUTONOMOUS_MERGE` (default `on`); setting it `off` halts auto-merge fleet-wide with no code change.
 

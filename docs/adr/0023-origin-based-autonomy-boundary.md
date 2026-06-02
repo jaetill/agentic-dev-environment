@@ -59,7 +59,7 @@ The governing principle: **the human's checkpoint sits where their judgment is i
 
 ### Negative
 
-- A machine-origin change merging unseen is now the explicit norm, not the exception. ADR-0021 already accepted this for `defect`/`bug`; this ADR widens it to all machine-origin work and to routine platform fixes. Bounded by: the review battery, the implementer scope cap (50 LOC / 3 files / 1 component), `requires-adr` routing, every change being a revertable PR, and `AUTONOMOUS_MERGE=off` as a one-flip stop.
+- A machine-origin change merging unseen is now the explicit norm, not the exception. ADR-0021 already accepted this for `defect`/`bug`; this ADR widens it to all machine-origin work and to routine platform fixes. Bounded by: the review battery, the implementer scope cap (per [ADR-0026](0026-agentic-implementer.md)), `requires-adr` routing, every change being a revertable PR, and `AUTONOMOUS_MERGE=off` as a one-flip stop.
 - Loop-churn safety now rests on agent logic that must actually work. If oscillation detection is weak, churn runs unchecked — there is no gate behind it by design. Accepted, and the reason oscillation detection is a hard requirement of this ADR, not a nice-to-have.
 - A human-filed bug is now slower — it waits for a human merge — than it was under the type axis. Accepted: that wait *is* the control the human asked for.
 

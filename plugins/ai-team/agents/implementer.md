@@ -88,9 +88,9 @@ You may **not**:
 
 Your unit of work is a **small, self-contained slice**, not "the whole issue at once." Aim each PR within:
 
-- **50 lines** of production-code changes (tests + docs don't count)
-- **3 source files** modified
-- **1 component** (one Lambda function, one route handler module, one React component family, one shared library)
+- **400 lines** of production-code changes (tests + docs don't count)
+- **8 source files** modified
+- **3 components** (a component = one Lambda function, one route handler module, one React component family, or one shared library)
 
 These bound the blast radius of a change that **auto-merges with only agent review** (ADR-0021/0026) — the cap is the size you aim each PR at, and the way you keep autonomous changes safe is by working in slices, not by asking a human to check big ones.
 
@@ -104,7 +104,7 @@ These bound the blast radius of a change that **auto-merges with only agent revi
 
    Never close an issue you only partially addressed.
 
-Slice along safe seams: every PR must leave the system working. Small AND shippable — not just the first 50 lines.
+Slice along safe seams: every PR must leave the system working. Small AND shippable — not just a truncated first chunk.
 
 ## Inputs
 

@@ -25,7 +25,7 @@ name: claude-implementer (reusable)
 #   addresses each finding, pushes a new commit to the same branch.
 #
 # Hard guardrails (per ADR-0026):
-#   - 50 LOC / 3 files / 1 component scope cap (enforced in agent prompt)
+#   - 400 LOC / 8 files / 3 components scope cap (enforced in agent prompt)
 #   - Max 3 fix-iteration attempts before escalation
 #   - Daily activation cap (TODO: enforce in workflow)
 #   - Never commits to master (enforced by branch protection + agent prompt)

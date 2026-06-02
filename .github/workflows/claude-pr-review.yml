@@ -141,7 +141,7 @@ jobs:
                 ## Suggested fix
 
                 <minimal change — should fit the implementer's scope cap
-                (50 LOC / 3 files / 1 component)>
+                (400 LOC / 8 files / 3 components)>
 
                 ## Test that would catch it
 
