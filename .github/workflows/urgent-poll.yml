@@ -34,6 +34,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      - uses: actions/checkout@v4   # for scripts/fleet-inflight.sh
       - name: Mint fleet App token
         id: fleet-token
         uses: actions/create-github-app-token@v1
@@ -48,7 +49,6 @@ jobs:
           FLEET_MAX_DISPATCH: ${{ vars.FLEET_MAX_DISPATCH_PER_RUN || '6' }}
         run: |
           set -uo pipefail
-          REPOS="game-night-pwa meal-planner ai-teacher jaetill-portal splendor draft carto agentic-dev-environment"
 
           # Candidates = open issues carrying a machine-detected urgent label and
           # NOT yet `ready-for-implementer`. The label-absence IS the dedup: once
@@ -70,16 +70,14 @@ jobs:
           echo "Candidates ($candidates):"; cat "$tmp"
 
           # Throttle (fleet-wide): count actively running implementer dispatches
-          # (in_progress + queued), NOT open PRs. FAIL OPEN on read error — never
-          # drop urgent work on a transient API error.
-          active=0; counted=true
-          for r in $REPOS; do
-            n="$(gh run list --repo "jaetill/$r" --workflow=claude-implementer.yml --limit 50 \
-                   --json status \
-                   --jq '[.[] | select(.status=="in_progress" or .status=="queued")] | length' 2>/dev/null)" \
-              || { counted=false; break; }
-            active=$((active + n))
-          done
+          # via the shared source of truth (scripts/fleet-inflight.sh) so all
+          # three dispatch paths share ONE budget. FAIL OPEN on a read error —
+          # never drop urgent work on a transient API error.
+          if active=$(bash "$GITHUB_WORKSPACE/scripts/fleet-inflight.sh"); then
+            counted=true
+          else
+            counted=false
+          fi
           cap="${FLEET_MAX_DISPATCH:-6}"
           echo "Active implementer runs: ${active}/${cap} (counted=${counted})."
 

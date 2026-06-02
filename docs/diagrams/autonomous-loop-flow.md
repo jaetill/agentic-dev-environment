@@ -9,7 +9,7 @@ folded into the review battery (ADR-0024). There is intentionally no per-repo sp
 Source of truth: `triage-scan.yml`, `claude-implementer.yml`, `claude-pr-review.yml`,
 and ADR-0016 / 0017 / 0019 / 0020 / 0021 / 0023 / 0024 / 0025 / 0026 / 0027 / 0028 / 0029 / 0030 / 0032 / 0035.
 
-> **Dispatch routing (ADR-0030):** machine-detected work (severity:critical, source:sentry/cloudwatch) flows through the promoter's deterministic, throttled dispatch — **event-dispatch** on the platform repo (immediate), a **central `*/15` urgent-poll** for app repos (they hold no cross-repo credential to be pushed). Human-approved work (`ready-for-implementer`) stays on each repo's **local** trigger — immediate, no throttle needed (humans don't storm). The fleet-wide `FLEET_MAX_DISPATCH` throttle is enforced centrally.
+> **Dispatch routing (ADR-0030):** machine-detected work (severity:critical, source:sentry/cloudwatch) flows through the promoter's deterministic, throttled dispatch — **event-dispatch** on the platform repo (immediate), a **central `*/15` urgent-poll** for app repos (they hold no cross-repo credential to be pushed). Human-approved work (`ready-for-implementer`) stays on each repo's **local** trigger — immediate, no throttle needed (humans don't storm). The fleet-wide `FLEET_MAX_DISPATCH` throttle is enforced centrally as a shared **in-flight ceiling** — all three dispatch paths (windowed promoter, event-dispatch, urgent-poll) count concurrent implementer runs through one source of truth (`scripts/fleet-inflight.sh`), so none can dispatch on top of the others' in-flight work.
 
 **Legend — outcome palette** (terminal & parked end-states)
 
@@ -73,7 +73,7 @@ flowchart TD
         DISAMB -->|no| CLOSEV["Auto-close vague issue · comment<br/>malformed agent finding — linked, not lost"]
         CLOSEV --> AQUAL["File/append agent-quality issue · platform repo<br/>deduped per source agent · names missing field + spec file"]
         PROMO -->|yes| PROMSET["②·promotable set ·<br/>collected across the whole pass"]
-        PROMSET --> RANK{"③·rank the set by severity, then dispatch<br/>top N within FLEET_MAX_DISPATCH = 6<br/>severity:high before any medium"}
+        PROMSET --> RANK{"③·rank the set by severity, then dispatch<br/>top N within AVAILABLE = max(0, 6 − fleet in-flight)<br/>shared FLEET_MAX_DISPATCH ceiling · severity:high before any medium"}
         RANK -->|"top N"| DISPATCH["+ ready-for-implementer ·<br/>dispatch the repo's implementer · comment"]
         RANK -->|"beyond cap"| CAPWAIT["Rest wait for next cycle ·<br/>re-ranked next pass — not dropped"]
         CAPWAIT -. "re-ranked next pass — re-enters eligibility" .-> PROMO
