@@ -99,5 +99,3 @@ Option B was rejected because an unrestricted author breaks the separation prope
 - [ADR-0021](0021-autonomous-merge.md) — autonomous merge of implementer fix PRs.
 - [ADR-0023](0023-origin-based-autonomy-boundary.md) — the origin-based autonomy boundary governing which implementer PRs auto-merge.
 - [ADR-0025](0025-owner-guard-on-platform-opened-pickup.md) — owner-guard on the platform repo's Mode-A opened pickup.
-
-[bad](nope-does-not-exist.md)
