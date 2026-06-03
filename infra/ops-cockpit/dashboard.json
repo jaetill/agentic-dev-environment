@@ -2646,7 +2646,7 @@
       },
       "id": 233,
       "options": {
-        "content": "### ⬛ Deferred pool — Low/Nit findings parked until an adjacent change  ·  `label:deferred-until-adjacent` (ADR-0016)",
+        "content": "### ⬛ Low / Nit — deferred by severity, drained on adjacency / active-cycle sweep  ·  `severity:low,severity:nit` (excludes `ready-for-implementer`)  ·  ADR-0037",
         "mode": "markdown"
       },
       "title": "",
@@ -2713,7 +2713,7 @@
             "uid": "ffnagb7t8j5s0e"
           },
           "options": {
-            "query": "is:open is:issue label:deferred-until-adjacent"
+            "query": "is:open is:issue label:severity:low,severity:nit -label:ready-for-implementer"
           },
           "owner": "jaetill",
           "queryType": "Issues",
@@ -2785,7 +2785,7 @@
             "uid": "ffnagb7t8j5s0e"
           },
           "options": {
-            "query": "is:open is:issue label:deferred-until-adjacent"
+            "query": "is:open is:issue label:severity:low,severity:nit -label:ready-for-implementer"
           },
           "owner": "jaetill",
           "queryType": "Issues",
@@ -2857,7 +2857,7 @@
             "uid": "ffnagb7t8j5s0e"
           },
           "options": {
-            "query": "is:open is:issue label:deferred-until-adjacent"
+            "query": "is:open is:issue label:severity:low,severity:nit -label:ready-for-implementer"
           },
           "owner": "jaetill",
           "queryType": "Issues",
@@ -2929,7 +2929,7 @@
             "uid": "ffnagb7t8j5s0e"
           },
           "options": {
-            "query": "is:open is:issue label:deferred-until-adjacent"
+            "query": "is:open is:issue label:severity:low,severity:nit -label:ready-for-implementer"
           },
           "owner": "jaetill",
           "queryType": "Issues",
@@ -3001,7 +3001,7 @@
             "uid": "ffnagb7t8j5s0e"
           },
           "options": {
-            "query": "is:open is:issue label:deferred-until-adjacent"
+            "query": "is:open is:issue label:severity:low,severity:nit -label:ready-for-implementer"
           },
           "owner": "jaetill",
           "queryType": "Issues",
@@ -3073,7 +3073,7 @@
             "uid": "ffnagb7t8j5s0e"
           },
           "options": {
-            "query": "is:open is:issue label:deferred-until-adjacent"
+            "query": "is:open is:issue label:severity:low,severity:nit -label:ready-for-implementer"
           },
           "owner": "jaetill",
           "queryType": "Issues",
@@ -3145,7 +3145,7 @@
             "uid": "ffnagb7t8j5s0e"
           },
           "options": {
-            "query": "is:open is:issue label:deferred-until-adjacent"
+            "query": "is:open is:issue label:severity:low,severity:nit -label:ready-for-implementer"
           },
           "owner": "jaetill",
           "queryType": "Issues",
@@ -3217,7 +3217,7 @@
             "uid": "ffnagb7t8j5s0e"
           },
           "options": {
-            "query": "is:open is:issue label:deferred-until-adjacent"
+            "query": "is:open is:issue label:severity:low,severity:nit -label:ready-for-implementer"
           },
           "owner": "jaetill",
           "queryType": "Issues",
@@ -3234,7 +3234,7 @@
         "h": 2,
         "w": 24,
         "x": 0,
-        "y": 85
+        "y": 77
       },
       "id": 234,
       "options": {
@@ -3280,7 +3280,7 @@
         "h": 5,
         "w": 3,
         "x": 0,
-        "y": 87
+        "y": 79
       },
       "id": 250,
       "options": {
@@ -3352,7 +3352,7 @@
         "h": 5,
         "w": 3,
         "x": 3,
-        "y": 87
+        "y": 79
       },
       "id": 251,
       "options": {
@@ -3424,7 +3424,7 @@
         "h": 5,
         "w": 3,
         "x": 6,
-        "y": 87
+        "y": 79
       },
       "id": 252,
       "options": {
@@ -3496,7 +3496,7 @@
         "h": 5,
         "w": 3,
         "x": 9,
-        "y": 87
+        "y": 79
       },
       "id": 253,
       "options": {
@@ -3568,7 +3568,7 @@
         "h": 5,
         "w": 3,
         "x": 12,
-        "y": 87
+        "y": 79
       },
       "id": 254,
       "options": {
@@ -3640,7 +3640,7 @@
         "h": 5,
         "w": 3,
         "x": 15,
-        "y": 87
+        "y": 79
       },
       "id": 255,
       "options": {
@@ -3712,7 +3712,7 @@
         "h": 5,
         "w": 3,
         "x": 18,
-        "y": 87
+        "y": 79
       },
       "id": 256,
       "options": {
@@ -3784,7 +3784,7 @@
         "h": 5,
         "w": 3,
         "x": 21,
-        "y": 87
+        "y": 79
       },
       "id": 257,
       "options": {
@@ -4420,598 +4420,6 @@
         "x": 0,
         "y": 69
       },
-      "id": 236,
-      "options": {
-        "content": "### 🟢 Low / Nit findings — low-priority, not yet deferred/dispatched  ·  `severity:low,nit` minus `deferred-until-adjacent`/`ready-for-implementer`",
-        "mode": "markdown"
-      },
-      "title": "",
-      "transparent": true,
-      "type": "text"
-    },
-    {
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "min": 0,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 5
-              },
-              {
-                "color": "orange",
-                "value": 15
-              },
-              {
-                "color": "red",
-                "value": 30
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 5,
-        "w": 3,
-        "x": 0,
-        "y": 71
-      },
-      "id": 270,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "orientation": "horizontal",
-        "reduceOptions": {
-          "calcs": [
-            "count"
-          ],
-          "fields": "number",
-          "values": false
-        },
-        "textMode": "value",
-        "wideLayout": true
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-github-datasource",
-            "uid": "ffnagb7t8j5s0e"
-          },
-          "options": {
-            "query": "is:open is:issue label:severity:low,severity:nit -label:deferred-until-adjacent -label:ready-for-implementer"
-          },
-          "owner": "jaetill",
-          "queryType": "Issues",
-          "refId": "A",
-          "repository": "agentic-dev-environment"
-        }
-      ],
-      "timeFrom": "5y",
-      "title": "agentic-dev-environment",
-      "type": "stat"
-    },
-    {
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "min": 0,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 5
-              },
-              {
-                "color": "orange",
-                "value": 15
-              },
-              {
-                "color": "red",
-                "value": 30
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 5,
-        "w": 3,
-        "x": 3,
-        "y": 71
-      },
-      "id": 271,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "orientation": "horizontal",
-        "reduceOptions": {
-          "calcs": [
-            "count"
-          ],
-          "fields": "number",
-          "values": false
-        },
-        "textMode": "value",
-        "wideLayout": true
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-github-datasource",
-            "uid": "ffnagb7t8j5s0e"
-          },
-          "options": {
-            "query": "is:open is:issue label:severity:low,severity:nit -label:deferred-until-adjacent -label:ready-for-implementer"
-          },
-          "owner": "jaetill",
-          "queryType": "Issues",
-          "refId": "A",
-          "repository": "game-night-pwa"
-        }
-      ],
-      "timeFrom": "5y",
-      "title": "game-night-pwa",
-      "type": "stat"
-    },
-    {
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "min": 0,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 5
-              },
-              {
-                "color": "orange",
-                "value": 15
-              },
-              {
-                "color": "red",
-                "value": 30
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 5,
-        "w": 3,
-        "x": 6,
-        "y": 71
-      },
-      "id": 272,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "orientation": "horizontal",
-        "reduceOptions": {
-          "calcs": [
-            "count"
-          ],
-          "fields": "number",
-          "values": false
-        },
-        "textMode": "value",
-        "wideLayout": true
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-github-datasource",
-            "uid": "ffnagb7t8j5s0e"
-          },
-          "options": {
-            "query": "is:open is:issue label:severity:low,severity:nit -label:deferred-until-adjacent -label:ready-for-implementer"
-          },
-          "owner": "jaetill",
-          "queryType": "Issues",
-          "refId": "A",
-          "repository": "meal-planner"
-        }
-      ],
-      "timeFrom": "5y",
-      "title": "meal-planner",
-      "type": "stat"
-    },
-    {
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "min": 0,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 5
-              },
-              {
-                "color": "orange",
-                "value": 15
-              },
-              {
-                "color": "red",
-                "value": 30
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 5,
-        "w": 3,
-        "x": 9,
-        "y": 71
-      },
-      "id": 273,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "orientation": "horizontal",
-        "reduceOptions": {
-          "calcs": [
-            "count"
-          ],
-          "fields": "number",
-          "values": false
-        },
-        "textMode": "value",
-        "wideLayout": true
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-github-datasource",
-            "uid": "ffnagb7t8j5s0e"
-          },
-          "options": {
-            "query": "is:open is:issue label:severity:low,severity:nit -label:deferred-until-adjacent -label:ready-for-implementer"
-          },
-          "owner": "jaetill",
-          "queryType": "Issues",
-          "refId": "A",
-          "repository": "ai-teacher"
-        }
-      ],
-      "timeFrom": "5y",
-      "title": "ai-teacher",
-      "type": "stat"
-    },
-    {
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "min": 0,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 5
-              },
-              {
-                "color": "orange",
-                "value": 15
-              },
-              {
-                "color": "red",
-                "value": 30
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 5,
-        "w": 3,
-        "x": 12,
-        "y": 71
-      },
-      "id": 274,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "orientation": "horizontal",
-        "reduceOptions": {
-          "calcs": [
-            "count"
-          ],
-          "fields": "number",
-          "values": false
-        },
-        "textMode": "value",
-        "wideLayout": true
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-github-datasource",
-            "uid": "ffnagb7t8j5s0e"
-          },
-          "options": {
-            "query": "is:open is:issue label:severity:low,severity:nit -label:deferred-until-adjacent -label:ready-for-implementer"
-          },
-          "owner": "jaetill",
-          "queryType": "Issues",
-          "refId": "A",
-          "repository": "jaetill-portal"
-        }
-      ],
-      "timeFrom": "5y",
-      "title": "jaetill-portal",
-      "type": "stat"
-    },
-    {
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "min": 0,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 5
-              },
-              {
-                "color": "orange",
-                "value": 15
-              },
-              {
-                "color": "red",
-                "value": 30
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 5,
-        "w": 3,
-        "x": 15,
-        "y": 71
-      },
-      "id": 275,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "orientation": "horizontal",
-        "reduceOptions": {
-          "calcs": [
-            "count"
-          ],
-          "fields": "number",
-          "values": false
-        },
-        "textMode": "value",
-        "wideLayout": true
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-github-datasource",
-            "uid": "ffnagb7t8j5s0e"
-          },
-          "options": {
-            "query": "is:open is:issue label:severity:low,severity:nit -label:deferred-until-adjacent -label:ready-for-implementer"
-          },
-          "owner": "jaetill",
-          "queryType": "Issues",
-          "refId": "A",
-          "repository": "splendor"
-        }
-      ],
-      "timeFrom": "5y",
-      "title": "splendor",
-      "type": "stat"
-    },
-    {
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "min": 0,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 5
-              },
-              {
-                "color": "orange",
-                "value": 15
-              },
-              {
-                "color": "red",
-                "value": 30
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 5,
-        "w": 3,
-        "x": 18,
-        "y": 71
-      },
-      "id": 276,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "orientation": "horizontal",
-        "reduceOptions": {
-          "calcs": [
-            "count"
-          ],
-          "fields": "number",
-          "values": false
-        },
-        "textMode": "value",
-        "wideLayout": true
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-github-datasource",
-            "uid": "ffnagb7t8j5s0e"
-          },
-          "options": {
-            "query": "is:open is:issue label:severity:low,severity:nit -label:deferred-until-adjacent -label:ready-for-implementer"
-          },
-          "owner": "jaetill",
-          "queryType": "Issues",
-          "refId": "A",
-          "repository": "draft"
-        }
-      ],
-      "timeFrom": "5y",
-      "title": "draft",
-      "type": "stat"
-    },
-    {
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "min": 0,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 5
-              },
-              {
-                "color": "orange",
-                "value": 15
-              },
-              {
-                "color": "red",
-                "value": 30
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 5,
-        "w": 3,
-        "x": 21,
-        "y": 71
-      },
-      "id": 277,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "orientation": "horizontal",
-        "reduceOptions": {
-          "calcs": [
-            "count"
-          ],
-          "fields": "number",
-          "values": false
-        },
-        "textMode": "value",
-        "wideLayout": true
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-github-datasource",
-            "uid": "ffnagb7t8j5s0e"
-          },
-          "options": {
-            "query": "is:open is:issue label:severity:low,severity:nit -label:deferred-until-adjacent -label:ready-for-implementer"
-          },
-          "owner": "jaetill",
-          "queryType": "Issues",
-          "refId": "A",
-          "repository": "carto"
-        }
-      ],
-      "timeFrom": "5y",
-      "title": "carto",
-      "type": "stat"
-    },
-    {
-      "gridPos": {
-        "h": 2,
-        "w": 24,
-        "x": 0,
-        "y": 77
-      },
       "id": 237,
       "options": {
         "content": "### 📦 dep-watch digest — weekly dependency digest (read-only info sink)  ·  `label:dep-watch`  ·  normally exactly 1/repo",
@@ -5052,7 +4460,7 @@
         "h": 5,
         "w": 3,
         "x": 0,
-        "y": 79
+        "y": 71
       },
       "id": 280,
       "options": {
@@ -5120,7 +4528,7 @@
         "h": 5,
         "w": 3,
         "x": 3,
-        "y": 79
+        "y": 71
       },
       "id": 281,
       "options": {
@@ -5188,7 +4596,7 @@
         "h": 5,
         "w": 3,
         "x": 6,
-        "y": 79
+        "y": 71
       },
       "id": 282,
       "options": {
@@ -5256,7 +4664,7 @@
         "h": 5,
         "w": 3,
         "x": 9,
-        "y": 79
+        "y": 71
       },
       "id": 283,
       "options": {
@@ -5324,7 +4732,7 @@
         "h": 5,
         "w": 3,
         "x": 12,
-        "y": 79
+        "y": 71
       },
       "id": 284,
       "options": {
@@ -5392,7 +4800,7 @@
         "h": 5,
         "w": 3,
         "x": 15,
-        "y": 79
+        "y": 71
       },
       "id": 285,
       "options": {
@@ -5460,7 +4868,7 @@
         "h": 5,
         "w": 3,
         "x": 18,
-        "y": 79
+        "y": 71
       },
       "id": 286,
       "options": {
@@ -5528,7 +4936,7 @@
         "h": 5,
         "w": 3,
         "x": 21,
-        "y": 79
+        "y": 71
       },
       "id": 287,
       "options": {

@@ -181,8 +181,8 @@ Update: `pydantic` 1.10.13 → 2.5.0 (MAJOR)
 When you file a finding (escalation to architect for ADR, or block on a PR):
 
 - **Critical / High** — issue gets label `severity:critical` or `severity:high`. Architect or implementer pickup is expected immediately. No deferral.
-- **Medium** — by default, no deferral. Bump risks should be addressed before the next release. EXCEPTION: dev-dep churn or peripheral majors where the realistic impact is bounded can carry `deferred-until-adjacent`.
-- **Low / Nit** — issue gets label `severity:low` (or `severity:nit`) AND label `deferred-until-adjacent`. Include in the body:
+- **Medium** — never deferred. Bump risks should be addressed before the next release; an item not worth a dedicated fix is, by definition, a Nit — file it as `severity:nit` (ADR-0037).
+- **Low / Nit** — issue gets label `severity:low` (or `severity:nit`). The nit tier IS the deferred tier; no separate label (ADR-0037). Include in the body:
 
   > **Deferral policy:** defer until the next feature work, Sentry-reported bug, or higher-severity fix touches this dep area. The `implementer` will bundle this opportunistically (per ADR-0016 finding lifecycle). Do not implement in isolation.
 

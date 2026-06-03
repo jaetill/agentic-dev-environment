@@ -27,7 +27,7 @@ on:
         required: false
         type: string
       bundle_issues:
-        description: 'Comma-separated deferred-until-adjacent nit issue numbers the promoter selected to ride along (same-file, ADR-0029)'
+        description: 'Comma-separated low/nit (severity:low,severity:nit) issue numbers the promoter selected to ride along (same-file, ADR-0029)'
         required: false
         type: string
 

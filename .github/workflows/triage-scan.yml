@@ -240,8 +240,9 @@ jobs:
                    --add-label ready-for-implementer
               2. ADJACENCY BUNDLE (ADR-0029): if this issue is a finding that
                  cites a file F (e.g. a `[code-review] F:line — …` title or a
-                 file path in the body), collect open `deferred-until-adjacent`
-                 nits in the SAME repo that cite the SAME file F — up to
+                 file path in the body), collect open low/nit findings
+                 (`severity:low,severity:nit`, excluding `ready-for-implementer`)
+                 in the SAME repo that cite the SAME file F — up to
                  min(floor(total/2), 4). They ride along in this dispatch and do
                  NOT consume an $AVAILABLE budget slot. NEVER dispatch a nit on
                  its own. (You own workload selection; the implementer no longer
@@ -266,7 +267,8 @@ jobs:
             High+ and auto-pick-up — so deferring nit-only cycles delays no
             real fix, and it cuts the self-collision churn from nit-only runs.)
             When the sweep is eligible: pick the fleet repo with the most open
-            `deferred-until-adjacent` issues — skip any repo whose count is
+            low/nit issues (`severity:low,severity:nit`, excluding
+            `ready-for-implementer`) — skip any repo whose count is
             zero, a cleanup-sweep there is a wasted run — and dispatch one
             cleanup-only run:
               GH_TOKEN=$FLEET_TOKEN gh workflow run claude-implementer.yml \

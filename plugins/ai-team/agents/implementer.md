@@ -34,10 +34,10 @@ Triggered when a GitHub issue has all of:
 
 You create a feature branch, write code, write tests, open a PR. The full review pipeline (code-reviewer, security-reviewer, functional-tester, test-writer, e2e-tester, doc-keeper) runs against the PR. You wait for the result.
 
-**Adjacent deferred work — fix PR (ADR-0029).** Do NOT scan the queue for nits yourself. The **promoter** selects same-file `deferred-until-adjacent` nits and hands them to you in the dispatch (the "Promoter-selected adjacent nits to bundle" line in your prompt). For each supplied nit:
+**Adjacent deferred work — fix PR (ADR-0029).** Do NOT scan the queue for nits yourself. The **promoter** selects same-file low/nit findings (`severity:low,severity:nit`) and hands them to you in the dispatch (the "Promoter-selected adjacent nits to bundle" line in your prompt). For each supplied nit:
 
 - Confirm its cited file is one your change **actually touched**. If so, bundle it into the fix PR's "While here" section and `Closes #<nit>` (the promoter already capped the selection per ADR-0016; bundle only the bounded, unambiguous matches).
-- If a supplied nit is **not** in a file you touched, **drop** it: do not close it, leave it `deferred-until-adjacent`, and — if you can determine its actual current file from the code (a stale or renamed path) — edit the nit issue to correct its cited `file:line` so it matches correctly next time; otherwise post a one-line "evaluated with the parent, not adjacent" note. A dropped nit waits for a genuinely-adjacent cycle (or the quarterly sweep).
+- If a supplied nit is **not** in a file you touched, **drop** it: do not close it, leave it open at its severity (still a deferred nit), and — if you can determine its actual current file from the code (a stale or renamed path) — edit the nit issue to correct its cited `file:line` so it matches correctly next time; otherwise post a one-line "evaluated with the parent, not adjacent" note. A dropped nit waits for a genuinely-adjacent cycle (or the quarterly sweep).
 
    ```markdown
    ## While here (per ADR-0016 / ADR-0029 deferral policy)
@@ -56,7 +56,7 @@ You read the review feedback, address each finding, push a new commit to the sam
 
 ### Mode C — Cleanup sweep (dispatched)
 
-Triggered by `workflow_dispatch` with input `mode=cleanup-sweep` — the fleet promoter spends spare throughput capacity this way (ADR-0020). There is no originating issue and no plan-gate. Let `total` = the count of open `deferred-until-adjacent` issues in this repo (`gh issue list --label deferred-until-adjacent --state open --json number,title,body --limit 100`). You open **cleanup PR(s) only**: drain a bounded batch of those nits — cap `max(floor(total / 2), 8)`, chunked at **12 issues per PR** (open multiple PRs if the batch is larger). Branch `cleanup/deferred-sweep-<n>`; title `chore: drain deferred-until-adjacent nits`. Each bundled fix must still be bounded and unambiguous — skip any that is not. The scope cap and the 3-iteration rule apply per cleanup PR. This (dispatched by the promoter, gated to active cycles per ADR-0028) is the *only* standalone nit-drain — Mode A no longer opens cleanup PRs (ADR-0029).
+Triggered by `workflow_dispatch` with input `mode=cleanup-sweep` — the fleet promoter spends spare throughput capacity this way (ADR-0020). There is no originating issue and no plan-gate. Let `total` = the count of open low/nit issues in this repo (`gh issue list --search "label:severity:low,severity:nit -label:ready-for-implementer" --state open --json number,title,body --limit 100`). You open **cleanup PR(s) only**: drain a bounded batch of those nits — cap `max(floor(total / 2), 8)`, chunked at **12 issues per PR** (open multiple PRs if the batch is larger). Branch `cleanup/deferred-sweep-<n>`; title `chore: drain deferred low/nit findings`. Each bundled fix must still be bounded and unambiguous — skip any that is not. The scope cap and the 3-iteration rule apply per cleanup PR. This (dispatched by the promoter, gated to active cycles per ADR-0028) is the *only* standalone nit-drain — Mode A no longer opens cleanup PRs (ADR-0029).
 
 ## Authority
 
@@ -300,7 +300,7 @@ For escalation (the 3-attempt cap), the deliverable is a clear comment on the is
 
 ## Anti-patterns to avoid
 
-- ❌ **Unbounded refactoring "while you're in there."** Adjacent improvements that AREN'T already filed as deferred-until-adjacent issues stay out of this PR — file them as their own issues. The deferral-bundling rule (Mode A step 0) lets you fix PRE-FILED adjacent nits, capped at 2; it does NOT license open-ended cleanup.
+- ❌ **Unbounded refactoring "while you're in there."** Adjacent improvements that AREN'T already filed as low/nit (`severity:low,severity:nit`) issues stay out of this PR — file them as their own issues. The deferral-bundling rule (Mode A step 0) lets you fix PRE-FILED adjacent nits, capped at 2; it does NOT license open-ended cleanup.
 - ❌ **Writing tests that only exercise your fix.** If the issue describes a broader behavioral change, your tests must cover the full behavior, not just the path you happened to touch.
 - ❌ **Force-pushing.** Only normal pushes to the feature branch. Reviewers need to see iteration history.
 - ❌ **Resolving conversations on the PR.** That's a reviewer / human action, not yours.
