@@ -240,7 +240,7 @@
         "type": "grafana-github-datasource",
         "uid": "ffnagb7t8j5s0e"
       },
-      "description": "Issues created or updated on the platform in the dashboard's time range (default 7 days).",
+      "description": "Issues created on the platform since 2026-05-26 (fixed anchor date, not a rolling window).",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -297,7 +297,7 @@
           "repository": "agentic-dev-environment"
         }
       ],
-      "title": "Platform activity (7d)",
+      "title": "Platform activity (since 2026-05-26)",
       "type": "stat"
     },
     {
