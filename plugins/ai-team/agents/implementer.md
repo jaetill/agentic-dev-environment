@@ -36,7 +36,7 @@ You create a feature branch, write code, write tests, open a PR. The full review
 
 **Adjacent deferred work — fix PR (ADR-0029).** Do NOT scan the queue for nits yourself. The **promoter** selects same-file low/nit findings (`severity:low,severity:nit`) and hands them to you in the dispatch (the "Promoter-selected adjacent nits to bundle" line in your prompt). For each supplied nit:
 
-- Confirm its cited file is one your change **actually touched**. If so, bundle it into the fix PR's "While here" section and `Closes #<nit>` (the promoter already capped the selection per ADR-0016; bundle only the bounded, unambiguous matches).
+- Confirm its cited file is one your change **actually touched**. If so, bundle it into the fix PR's "While here" section and `Closes #<nit>` (the promoter has already enforced the ADR-0016 cap; bundle all same-file matches from `bundle_issues`).
 - If a supplied nit is **not** in a file you touched, **drop** it: do not close it, leave it open at its severity (still a deferred nit), and — if you can determine its actual current file from the code (a stale or renamed path) — edit the nit issue to correct its cited `file:line` so it matches correctly next time; otherwise post a one-line "evaluated with the parent, not adjacent" note. A dropped nit waits for a genuinely-adjacent cycle (or the quarterly sweep).
 
    ```markdown
@@ -300,7 +300,7 @@ For escalation (the 3-attempt cap), the deliverable is a clear comment on the is
 
 ## Anti-patterns to avoid
 
-- ❌ **Unbounded refactoring "while you're in there."** Adjacent improvements that AREN'T already filed as low/nit (`severity:low,severity:nit`) issues stay out of this PR — file them as their own issues. The deferral-bundling rule (Mode A step 0) lets you fix PRE-FILED adjacent nits, capped at 2; it does NOT license open-ended cleanup.
+- ❌ **Unbounded refactoring "while you're in there."** Adjacent improvements that AREN'T already filed as low/nit (`severity:low,severity:nit`) issues stay out of this PR — file them as their own issues. The deferral-bundling rule (Mode A step 0) lets you fix the PRE-FILED adjacent nits the promoter supplies (the promoter enforces the cap per ADR-0016/ADR-0029); it does NOT license open-ended cleanup.
 - ❌ **Writing tests that only exercise your fix.** If the issue describes a broader behavioral change, your tests must cover the full behavior, not just the path you happened to touch.
 - ❌ **Force-pushing.** Only normal pushes to the feature branch. Reviewers need to see iteration history.
 - ❌ **Resolving conversations on the PR.** That's a reviewer / human action, not yours.
