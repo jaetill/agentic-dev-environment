@@ -1,54 +1,32 @@
 # Ops Cockpit dashboard. Per ADR-0022.
 #
-# Phase 1a (this file as written): a placeholder text panel so the full
-# Terraform pipeline — provider auth, S3 backend, folder, dashboard — is
-# applyable and verifiable end to end BEFORE any data-bound panels exist.
-# Text panels need no data source, so this applies even before the GitHub
-# plugin is installed (see README for the -target apply).
+# The dashboard definition lives in the sibling file dashboard.json, exported
+# from the live Grafana stack (jaetill.grafana.net, dashboard UID ops-cockpit).
+# That file is the Terraform-managed source of truth: the dashboard is edited
+# live during iteration (Chrome + /api/dashboards/db), then re-exported to
+# dashboard.json so `tofu apply` REPRODUCES the live dashboard instead of
+# reverting it. Phases 1a (placeholder) and 1b (inline panels) are retired —
+# the panel set is now large enough (80 panels) that an external JSON file is
+# cleaner than an inline jsonencode(...).
 #
-# Phase 1b: replace the text panel with the real panels (see README,
-# "Dashboard panel spec"). Each GitHub-datasource panel's query JSON is
-# confirmed against the live data source first, then committed here — the
-# dashboard stays 100% Terraform-managed.
+# Re-export procedure (also in HANDOFF.md):
+#   1. GET /api/dashboards/uid/ops-cockpit  -> {dashboard, meta} (v1 schema).
+#   2. From .dashboard, delete `id` and `version` (the grafana_dashboard
+#      provider manages both); keep `uid = "ops-cockpit"`, title, panels, etc.
+#   3. Write that object to dashboard.json (UTF-8, no BOM).
+# The JSON embeds datasource UIDs ffnagb7t8j5s0e (fleet-github, grafana-github-
+# datasource) and grafanacloud-infinity (Infinity, panel 8 job-level query).
+# Both are stable; keep them. The templating var `latest_triage_run_id` must be
+# preserved (the server-side render endpoint does not refresh variables).
 
 resource "grafana_dashboard" "cockpit" {
-  folder = grafana_folder.ops_cockpit.id
+  folder      = grafana_folder.ops_cockpit.id
+  config_json = file("${path.module}/dashboard.json")
 
-  config_json = jsonencode({
-    uid           = "ops-cockpit"
-    title         = "Ops Cockpit — autonomous loop"
-    description   = "Fleet loop health, issue/PR flow, and human TODOs. Managed by Terraform per ADR-0022."
-    tags          = ["ops", "autonomous-loop"]
-    timezone      = "browser"
-    schemaVersion = 30
-    refresh       = "5m"
-    time          = { from = "now-7d", to = "now" }
-    panels = [
-      {
-        id      = 1
-        type    = "text"
-        title   = "Ops Cockpit — Phase 1a scaffold"
-        gridPos = { x = 0, y = 0, w = 24, h = 10 }
-        options = {
-          mode    = "markdown"
-          content = <<-EOT
-            ## Scaffold applied — pipeline verified
-
-            Provider auth, S3 state backend, the **fleet-github** data
-            source, this folder, and this dashboard are all Terraform-managed.
-
-            **Phase 1b** replaces this panel with:
-
-            - Stat row — Discovered / Promoted / In-flight / Merged-7d
-            - Loop runs — recent triage-scan / claude-implementer / ci-health
-            - Per-project flow table
-            - Human TODOs (`human-todo` issues)
-            - Needs you — open P0 / `source:sentry` issues + held PRs
-          EOT
-        }
-      }
-    ]
-  })
+  # config_json embeds the fleet-github datasource UID, so the dashboard must
+  # apply after that data source exists. There is no Terraform reference inside
+  # the JSON to create the dependency implicitly, so make it explicit.
+  depends_on = [grafana_data_source.github]
 }
 
 output "dashboard_url" {

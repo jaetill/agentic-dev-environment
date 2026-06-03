@@ -1,8 +1,21 @@
 # Ops Cockpit — Phase 1b handoff
 
-**Status:** Paused 2026-05-28 mid-Phase-1b. Dashboard live at `https://jaetill.grafana.net/d/ops-cockpit`, version 27 (saved via API). v25–v27 added a single supervisor panel for the triage job's actual conclusion; the rest of the Phase 1b scope below is still pending.
+**Status:** Dashboard live at `https://jaetill.grafana.net/d/ops-cockpit`, **version 34, 80 panels**. The live dashboard has been **exported back to Terraform** (2026-06-02): `dashboard.json` (the panel definitions, exported from the live stack) + `dashboard.tf` (now `config_json = file("${path.module}/dashboard.json")`, replacing the old Phase-1a placeholder text panel). `tofu validate` passes. The export is the source of truth — a `tofu apply` now reproduces the live dashboard instead of reverting it.
+
+**One step left (needs the Grafana token):** `tofu apply` has NOT been run — there's no `TF_VAR_grafana_api_key` in the environment, so the live→state reconciliation is unverified by a real plan. When the token is available: `tofu plan` should show the placeholder text panel (id 1) being replaced by the 80-panel config; apply to converge. `tofu apply` also needs `TF_VAR_github_token` (read-only fleet PAT) because `main.tf` creates the GitHub data source.
 
 Use this doc to resume. The companion memory note is [`reference_grafana_cockpit_patterns`](#) — it has the workflow and gotchas; this doc has the project-specific state.
+
+## How the export works (re-run this whenever the live dashboard changes)
+
+The live dashboard is edited via Chrome + `/api/dashboards/db`; re-export afterward so Terraform stays in sync:
+
+1. `GET /api/dashboards/uid/ops-cockpit` → `{dashboard, meta}` (v1 schema, what the provider accepts).
+2. From `.dashboard`, delete `id` and `version` (the `grafana_dashboard` provider manages both); keep `uid = "ops-cockpit"`, title, panels, templating.
+3. Write that object to `dashboard.json` (UTF-8, **no BOM** — the provider/JSON parse chokes on a BOM). Pretty-printed for diff review.
+4. `tofu fmt` + `tofu validate`, then (with the token) `tofu plan`/`apply`.
+
+Export bridge gotcha (2026-06-02): the MCP-driven Chrome tab runs in the background, so the clipboard API (needs focus), programmatic blob downloads (background tabs navigate instead of saving), and `fetch`→`http://127.0.0.1` (Chrome Private-Network-Access blocks it) all fail. What worked: a **top-level navigation** `location.href='http://127.0.0.1:PORT/?d='+encodeURIComponent(json)` to a local TcpListener that URL-decodes the query to the file. Top-level navigation dodges both PNA preflight and mixed-content blocking. Simplest path next time: just supply the Grafana token and pull via PowerShell `Invoke-RestMethod` — no browser bridge needed.
 
 ## Where the design landed
 
@@ -14,7 +27,9 @@ The original ADR-0022 panel spec was an *operator* view (Discovered / Promoted /
 
 Implication: graphs/charts primary, tables for drill-down only.
 
-## What's actually built (dashboard v24)
+## What's actually built (dashboard v34 — 80 panels)
+
+The table below is the original **core** (15 panels). Since then a per-repo **state partition** was added (2026-06-02, → 80 panels total); see "State-row partition" below it.
 
 | Panel | id | Type | Query scope | Notes |
 |---|---|---|---|---|
@@ -27,7 +42,25 @@ Implication: graphs/charts primary, tables for drill-down only.
 | Open issues per repo (8 panels) | 100-107 | stat | one per fleet repo | row of 8 stats at y=23 |
 | Latest triage-scan: triage job | 8 | stat | Infinity → `/actions/runs/${latest_triage_run_id}/jobs`, filtered to `name=triage` | added v25 in response to the 2026-05-26..28 silent-loop incident; surfaces the `triage` job conclusion (red `skipped` when the cron drifted out of window, green `ran` when the window caught a fire). Uses templating variable `latest_triage_run_id` (Infinity query, `refresh: 1`, hardcoded `current` as render-endpoint fallback) |
 
-Total 15 panels.
+Total 15 core panels.
+
+### State-row partition (added 2026-06-02 → 80 panels)
+
+A per-repo partition of the loop's work queue. Each stage is a section header (`text` panel) plus a row of per-repo `stat` panels (one per fleet repo, `timeFrom: 5y` so they show current state, not 7-day activity). The partition was verified GAP=0 / OVERLAP=0 across repos when built. Authoritative id↔label mapping lives in `dashboard.json`; summary:
+
+| Stage (section header) | Stat panel ids | Span |
+|---|---|---|
+| Section headers (8) | 230–237 | `text` panels, one per stage |
+| Formulation | 200–207 | per-repo (8) |
+| Consideration queue (awaiting promoter) | 210–217 | per-repo (8) |
+| Self-change hold (platform repo only) | 220 | single (1) |
+| Deferred pool (Low/Nit until adjacent change) | 240–247 | per-repo (8) |
+| Untriaged | 250–257 | per-repo (8) |
+| In flight (promoted & dispatched) | 260–267 | per-repo (8) |
+| Low/Nit | 270–277 | per-repo (8) |
+| dep-watch | 280–287 | per-repo (8) |
+
+Composition: 70 `stat` + 2 `table` + 8 `text` = 80. (The stage→id-range labels above are reconstructed from the live layout; if one looks off, `dashboard.json` is ground truth — the export preserves every panel's `title`/`gridPos`.)
 
 ## What's not built yet (the original Phase 1b scope plus the supervisor pivot)
 
@@ -56,7 +89,7 @@ Total 15 panels.
 - **ADR-0022:** merged in PR #90.
 - **PR #90 reviewer findings:** mediums #91 (secrets in TF state) and security-review-M1 accepted with mitigation; #92, #93 (PAT rotation) closed by README update; #94 (no CI for IaC) and #98 (hygiene bundle) open as follow-ups.
 - **Plugin install / SA token / PAT:** all set up correctly. PAT is the `gh` CLI's OAuth token (`gho_...`); switching to a dedicated classic PAT (`repo` + `read:user`) is recommended security hygiene but not blocking. README amendment for this is part of #98.
-- **infra/ops-cockpit/ TF files:** still at v24-of-dashboard. v25-v27 (the triage-job stat) are live in Grafana but NOT yet exported to `dashboard.tf`. A `tofu apply` here would revert the panel. Export is a Phase 1b follow-up — bundle with the rest of the Phase 1b panel work.
+- **infra/ops-cockpit/ TF files:** ✅ **exported 2026-06-02** at dashboard v34/80 panels. `dashboard.json` holds the full panel set; `dashboard.tf` loads it via `file()`. `tofu validate` passes. The old "a `tofu apply` here would revert the dashboard" landmine is defused for everything captured up to v34 — but only on disk. **`tofu apply` still hasn't run** (no Grafana token in env), so if the live dashboard is edited past v34 before the next export, drift returns. Run `tofu plan` once a token is available to confirm clean convergence.
 
 ## Triage-job stat panel (v25-v27, 2026-05-28)
 
