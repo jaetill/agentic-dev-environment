@@ -294,9 +294,9 @@ Reviewer-style agents (`code-reviewer`, `security-reviewer`, `triage-bot`, `doc-
 
 ### Deferral policy
 
-Low and nit findings get filed as GitHub issues with the **`deferred-until-adjacent`** label. The implementer does NOT pick them up in isolation. Instead — per **[ADR-0020](../adr/0020-fleet-orchestration.md)**, which amends ADR-0016's flat cap of 2 — every dispatched implementer run drains nits across two PRs. The **fix PR** bundles directory-adjacent deferred nits, cap `min(floor(total / 2), 4)`. A separate **sidecar cleanup PR** drains the rest, cap `max(floor(total / 2), 8)`, chunked at 12 issues per PR. `total` is the repo's open `deferred-until-adjacent` count. The promoter's spare-capacity `mode=cleanup-sweep` dispatch drains repos that get no qualifying work — so cold-code nits no longer wait on coincidental adjacency.
+Low and nit findings get filed as GitHub issues at `severity:low`/`severity:nit`; the nit tier is the deferred tier, no separate label (ADR-0037). The deferred set is `label:severity:low,severity:nit -label:ready-for-implementer`. The implementer does NOT pick them up in isolation. Instead — per **[ADR-0020](../adr/0020-fleet-orchestration.md)**, which amends ADR-0016's flat cap of 2 — every dispatched implementer run drains nits across two PRs. The **fix PR** bundles directory-adjacent deferred nits, cap `min(floor(total / 2), 4)`. A separate **sidecar cleanup PR** drains the rest, cap `max(floor(total / 2), 8)`, chunked at 12 issues per PR. `total` is the repo's open low/nit count. The promoter's spare-capacity `mode=cleanup-sweep` dispatch drains repos that get no qualifying work — so cold-code nits no longer wait on coincidental adjacency.
 
-Medium findings default to non-deferred; defense-in-depth Mediums and prose-quality Mediums may carry the deferral label sparingly.
+Medium findings are never deferred; an item not worth a dedicated fix is a Nit (`severity:nit`) (ADR-0037).
 
 ### Sentry-bug auto-pickup
 
@@ -306,7 +306,7 @@ Issues labeled `source:sentry` (auto-applied by Sentry's GitHub integration when
 
 - **Quarterly sweep:** `/ai-team:sweep-deferred` (slash command, future implementation) re-triages deferred issues older than 90 days.
 - **Hard age limit:** any deferred issue open >180 days gets re-triaged (close, upgrade severity, or sweep).
-- **Release visibility:** `release-captain` adds a "Cleaned up while here" section to release notes listing closed `deferred-until-adjacent` issues since the last release.
+- **Release visibility:** `release-captain` adds a "Cleaned up while here" section to release notes listing closed `severity:low`/`severity:nit` issues since the last release.
 
 ### Consumer-side workflow update needed
 

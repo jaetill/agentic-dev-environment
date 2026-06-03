@@ -9,6 +9,8 @@
 
 > **Amended by [ADR-0031](0031-promoter-disambiguates-or-closes-vague-findings.md):** a vague *agent-discovered* finding is no longer parked ("comment and leave"); the promoter either enriches it into a normal ticket or auto-closes it and dispatches a fix to the source agent's contract. The vague branch is a disposed lifecycle outcome, not a held one.
 
+> **Amended by [ADR-0037](0037-deferral-is-a-function-of-severity.md):** Rule 2's "deferred Medium" exception is removed — deferral is now a pure function of severity (Low/Nit defer; Medium and above never). The `deferred-until-adjacent` label is retired; the deferred set is the `severity:low,severity:nit` selector. The deferral *behavior* (bundle opportunistically, drain via the active-cycle sweep) is unchanged.
+
 ## Context and Problem Statement
 
 The platform's AI reviewer agents (`code-reviewer`, `security-reviewer`, `triage-bot`, `doc-keeper`) produce findings on every PR, log scan, and merge. Two failure modes have surfaced in practice across the first month of platform use:

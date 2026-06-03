@@ -7,7 +7,7 @@ fork shown is `scope:iac` (which agent builds it) and the no-app vs. app behavio
 folded into the review battery (ADR-0024). There is intentionally no per-repo split.
 
 Source of truth: `triage-scan.yml`, `claude-implementer.yml`, `claude-pr-review.yml`,
-and ADR-0016 / 0017 / 0019 / 0020 / 0021 / 0023 / 0024 / 0025 / 0026 / 0027 / 0028 / 0029 / 0030 / 0032 / 0035.
+and ADR-0016 / 0017 / 0019 / 0020 / 0021 / 0023 / 0024 / 0025 / 0026 / 0027 / 0028 / 0029 / 0030 / 0032 / 0035 / 0037.
 
 > **Dispatch routing (ADR-0030):** machine-detected work (severity:critical, source:sentry/cloudwatch) flows through the promoter's deterministic, throttled dispatch — **event-dispatch** on the platform repo (immediate), a **central `*/15` urgent-poll** for app repos (they hold no cross-repo credential to be pushed). Human-approved work (`ready-for-implementer`) stays on each repo's **local** trigger — immediate, no throttle needed (humans don't storm). The fleet-wide `FLEET_MAX_DISPATCH` throttle is enforced centrally as a shared **in-flight ceiling** — all three dispatch paths (windowed promoter, event-dispatch, urgent-poll) count concurrent implementer runs through one source of truth (`scripts/fleet-inflight.sh`), so none can dispatch on top of the others' in-flight work.
 
@@ -92,7 +92,7 @@ flowchart TD
     end
 
     QUEUE --> WIN
-    PROMO -->|"Low / Nit — deferred-until-adjacent (ADR-0016)"| DEFER["deferred pool ·<br/>deferred-until-adjacent (ADR-0016)"]
+    PROMO -->|"Low / Nit — defers by severity (ADR-0037)"| DEFER["deferred pool ·<br/>severity:low / severity:nit (ADR-0037)"]
     DEFER -. "reconsidered every pass — re-enters eligibility (guarded self-loop)" .-> PROMO
     DEFER -. "pulled into a real dispatch only on an adjacent same-file change · ADR-0029" .-> DISPATCH
     DEFER -. "or swept on an active cycle · ADR-0028" .-> SWEEP
@@ -206,7 +206,7 @@ flowchart TD
 | Hold: merge failed | 🟧 | Qualified but `gh pr merge` rejected — left for human. *(This was the platform-repo deadlock fixed in ADR-0024.)* |
 | Paused | 🟧 | `AUTONOMOUS_MERGE=off`. |
 | Wait: window / cap / conflict / checks | ⬛ | Parked, re-evaluated next cycle or window. |
-| deferred-until-adjacent | ⬛ | Low/Nit finding — drained later by cleanup-sweep (ADR-0016). |
+| deferred (severity:low/nit) | ⬛ | Low/Nit finding — defers by severity, drained later by cleanup-sweep (ADR-0016/0037). |
 | Parked (rejected idea) | 🟡 | A formulated idea the human rejected — closed + `parked` label, saved and reopenable on a re-request or second thoughts (ADR-0036). Not a failure, not deleted. |
 | Auto-closed (malformed finding) | 🟩 | Promoter couldn't disambiguate a vague agent finding — closed, and a fix to the source agent's contract dispatched (ADR-0031). |
 
