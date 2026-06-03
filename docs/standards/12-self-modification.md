@@ -59,7 +59,7 @@ Anything that changes the agent roster, what a role does, a gate, a review, a st
 1. Be filed as a `needs-formulation` + `requires-adr` intake issue and enter **human formulation** ([ADR-0036](../adr/0036-human-intake-model.md)/[ADR-0038](../adr/0038-self-changes-route-through-formulation.md)) — not built, and not sent to a bespoke architect-stop. The agent that detects it files the issue and stops.
 2. Be grounded in authoritative best practice — see *Grounding* below. The team **researches** the relevant best practice before proposing; it does not improvise.
 3. Be proposed as an ADR (and paired standard) with options and tradeoffs — the architect drafts it during formulation.
-4. Be ratified by a human before implementation — the human approves the formulated item (with its ratified ADR); only then does it build, and it still holds for human merge ([ADR-0023](../adr/0023-origin-based-autonomy-boundary.md)).
+4. Be ratified by a human before implementation — the human approves the formulated item (with its ratified ADR); only then does it build, and it still holds for human merge via the `compositional-self-change` label (ADR-0039, pending ratification — PR #180; prior: [ADR-0023](../adr/0023-origin-based-autonomy-boundary.md)).
 
 **When in doubt, escalate.** If an agent cannot confidently classify a change as mechanical — or cannot confidently say it has the knowledge to make a compositional change well — it treats the change as compositional and escalates. An unmade self-change is recoverable; an improvised one is the expensive mistake.
 
@@ -74,9 +74,9 @@ A compositional self-change is evaluated against established practice:
 ## Review and ratification
 
 - Every self-modification PR runs the full `claude-pr-review` reusable, with `security-review` as a hard gate.
-- **Routine and mechanical platform fixes** — and all **error-driven** (machine-origin) work on the platform repo — merge autonomously via the fleet auto-merge job, exactly like project work. Per [ADR-0021](../adr/0021-autonomous-merge.md) as amended by [ADR-0023](../adr/0023-origin-based-autonomy-boundary.md).
+- **Routine and mechanical platform fixes** — and all **linked implementer** work on the platform repo — merge autonomously via the fleet auto-merge job, exactly like project work. Per [ADR-0021](../adr/0021-autonomous-merge.md) as amended by ADR-0039 (pending ratification — PR #180).
 - **Compositional self-changes** — anything that changes the team's gates, agent roster, standards, or security posture — keep a human checkpoint at the **design stage**: the architect proposes (with research and tradeoffs), and a human ratifies the design *before* implementation begins (competence gate above). The implementer/architect applies the `compositional-self-change` label on the resulting PR so the auto-merge gate holds it for a human merge. The categorical floor — *the system cannot weaken its own safety unsupervised* — is preserved as this narrow, rare touchpoint.
 
 ## Why
 
-A team that cannot improve its own process is half a team; a team that can rewrite its own gates and approve that itself has no safety floor. This standard keeps both true: the team may propose any change to itself, and a human ratifies the *design* of any change that touches the team's own gates/agents/standards/security. Routine maintenance flows autonomously like project work. Full rationale in [ADR-0019](../adr/0019-team-self-modification.md) (sub-decision 5 narrowed by [ADR-0023](../adr/0023-origin-based-autonomy-boundary.md)).
+A team that cannot improve its own process is half a team; a team that can rewrite its own gates and approve that itself has no safety floor. This standard keeps both true: the team may propose any change to itself, and a human ratifies the *design* of any change that touches the team's own gates/agents/standards/security. Routine maintenance flows autonomously like project work. Full rationale in [ADR-0019](../adr/0019-team-self-modification.md) (sub-decision 5 narrowed by [ADR-0023](../adr/0023-origin-based-autonomy-boundary.md), as further amended by ADR-0039 (pending ratification — PR #180)).
