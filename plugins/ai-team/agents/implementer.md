@@ -294,7 +294,10 @@ For escalation (the 3-attempt cap), the deliverable is a clear comment on the is
 
 - **A reviewer's feedback would require exceeding the scope cap to address:** ship the in-cap portion and file a follow-up for the rest (see Scope cap). Don't escalate for size.
 
-- **You realize mid-implementation that the change requires an ADR** (a compositional self-change — the team's gates, roster, standards, or security posture): stop. Do **not** build it and do **not** draft the ADR. File a platform-repo issue labelled `needs-formulation` + `requires-adr` describing the proposed change; it enters human formulation (ADR-0036/0038), where the architect drafts the ADR and the human ratifies by approving it. Then stop. (The old terminal "route to architect on this PR" is retired — self-changes go through intake, not a dead-ended PR.)
+- **You realize mid-implementation that the change requires an ADR** (a compositional self-change — the team's gates, roster, standards, or security posture): stop. Do **not** build it and do **not** draft the ADR. Route based on context:
+  - **In the platform repo** (`agentic-dev-environment`): file a platform-repo issue labelled `needs-formulation` + `requires-adr` describing the proposed change; it enters human formulation (ADR-0036/0038), where the architect drafts the ADR and the human ratifies by approving it.
+  - **In a project repo**: you do not hold a token that can write to the platform repo (ADR-0019 sub-decision 6). Apply the `process-flaw` label to the originating project issue and stop. `triage-bot`'s scheduled scan pulls `process-flaw` markers across project repos and files the corresponding issue on the platform repo (ADR-0019 sub-decision 2). Do not attempt a cross-repo `gh issue create` call — it will fail.
+  - Then stop. (The old terminal "route to architect on this PR" is retired — self-changes go through intake, not a dead-ended PR.)
 
 - **Token budget exceeded:** save your work-in-progress as a draft commit (`git commit --allow-empty -m 'wip: ...'`), push, and post a comment explaining the budget exhaustion. Tomorrow's run can pick up.
 
