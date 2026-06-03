@@ -44,7 +44,6 @@ flowchart TD
     S7 --> DEPAUTO["Auto-merges safe bumps + CVE patches<br/>(patch/minor · tests green) → merged"]
     S7 --> DEPFIND["Files work: major bumps · EOL/deprecation ·<br/>dead-package replacement<br/>severity:* + ready-for-implementer"]
     S7 --> DEPDIGEST["Weekly digest<br/>label: dep-watch"]
-    DEPFIND -->|"ADR-0027 · no human gate"| QUEUE
     DEPDIGEST --> DIGSINK["Human info sink ·<br/>read-only, never a gate"]
     subgraph INTAKE["Ⓗ Human intake · GitHub backlog — you own the &quot;what&quot; (ADR-0036)"]
         direction TB
@@ -59,20 +58,17 @@ flowchart TD
     end
     S8A --> FORM
     S8B --> CAPTURE
-    APPROVED --> QUEUE
     APPROVED -. "optional fast-track · you apply ready-for-implementer" .-> EVENTDISP
-    CILBL --> QUEUE
-
-    LBL --> QUEUE["Promoter consideration queue<br/>agent findings + approved features<br/>awaits the promoter"]
 
     SENT --> EVENTDISP["Promoter deterministic dispatch · ADR-0030<br/>machine work: event-dispatch (platform) · urgent-poll (app repos)<br/>throttled to FLEET_MAX_DISPATCH · no LLM"]
-    QUEUE -. "agent-applied severity:critical" .-> EVENTDISP
 
     %% ===================== ② PROMOTER (triage-bot) =====================
     subgraph LOOP["② Promoter · triage-bot · cron-woken · platform-central · fleet-wide"]
         direction TB
+        QUEUE["Promoter consideration queue<br/>agent findings + approved features<br/>awaits the promoter"]
         PF["triage-scan Pass 3<br/>process-flaw markers pulled<br/>fleet-wide, refiled on platform repo"]
         WIN{"In window?<br/>overnight 01–04 CT daily ·<br/>work-hours 09–12 CT Mon–Fri ·<br/>manual dispatch always passes"}
+        QUEUE --> WIN
         WIN -->|no| WWAIT["Quiet — wait for next window"]
         WIN -->|yes| EVALALL["①·triage EVERY open finding · full pass<br/>exhaustive — the cap does NOT gate evaluation"]
         EVALALL --> PROMO{"per item: promotion eligible? · Tier-2 judgement<br/>· agent-discovered finding (severity:med/high · triage:med)<br/>· OR an approved feature → ranks medium (ADR-0036)<br/>· not already ready-for-implementer<br/>· survived at least one cycle (older than ~35 min)<br/>· well-specified, single bounded change"}
@@ -88,15 +84,19 @@ flowchart TD
         CAPWAIT -. "re-ranked next pass — re-enters eligibility" .-> PROMO
         AQUAL -. "cap-exempt · dedup-bounded · ADR-0031" .-> DISPATCH
         RANK -. "spare slots, but only after ≥1 real promotion · ADR-0028" .-> SWEEP["Promoter dispatches a cleanup-sweep (Mode C) ·<br/>spare slots only · to the repo with the most<br/>deferred nits · skip zero-count repos"]
-        DEFER["deferred pool ·<br/>severity:low / severity:nit (ADR-0037)"]
+        PROMO -->|"Low / Nit — defers by severity (ADR-0037)"| DEFER["deferred pool ·<br/>severity:low / severity:nit (ADR-0037)"]
+        DEFER -. "reconsidered every pass — re-enters eligibility (guarded self-loop)" .-> PROMO
+        DEFER -. "pulled into a real dispatch only on an adjacent same-file change · ADR-0029" .-> DISPATCH
+        DEFER -. "or swept on an active cycle · ADR-0028" .-> SWEEP
     end
 
+    %% cross-boundary edges into the Promoter's consideration queue (sources → ②)
+    LBL --> QUEUE
+    CILBL --> QUEUE
+    DEPFIND -->|"ADR-0027 · no human gate"| QUEUE
+    APPROVED --> QUEUE
     PF --> QUEUE
-    QUEUE --> WIN
-    PROMO -->|"Low / Nit — defers by severity (ADR-0037)"| DEFER
-    DEFER -. "reconsidered every pass — re-enters eligibility (guarded self-loop)" .-> PROMO
-    DEFER -. "pulled into a real dispatch only on an adjacent same-file change · ADR-0029" .-> DISPATCH
-    DEFER -. "or swept on an active cycle · ADR-0028" .-> SWEEP
+    QUEUE -. "agent-applied severity:critical" .-> EVENTDISP
 
     %% ===================== ③ IMPLEMENTER =====================
     subgraph IMPL["③ Implementer · Mode A · repo-type-abstracted"]
