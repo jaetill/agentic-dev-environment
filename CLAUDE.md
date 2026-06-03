@@ -13,6 +13,14 @@ This is a meta-environment that defines mature-team engineering practices for so
 - **AI agents are the labor.** Subagents are shipped via the `ai-team` plugin defined under `plugins/ai-team/` (per [ADR-0015](docs/adr/0015-platform-as-plugin.md)). Projects subscribe via `.claude/settings.json` rather than copying agent definitions locally. The plugin's subagents are the expected actors for routine tasks (review, scaffolding, testing, doc updates). The human's role is to direct and approve, not author boilerplate.
 - **Templates are propagated, not edited downstream.** When a project diverges from its template, that's a signal to update the template — not to create a one-off.
 
+## Session hygiene — commit before you stop
+
+Uncommitted work is **invisible to the next session**: an agent sees committed history, never another session's untracked files or unstaged edits. Work left on disk rots silently — and unmerged work piles up because the human-merge gate is the bottleneck. So:
+
+- **Commit WIP before the session ends — always.** Even unfinished, even if it won't be merged yet. Put it on a descriptive branch (`wip/<topic>`); never leave generated files untracked or edits unstaged. A clearly-labelled partial commit ("WIP: `<done>` / `<remaining>`") is recoverable and discoverable (`git branch`, `git log`); an untracked file is neither. If the session produced a file, it gets committed.
+- **Inventory unmerged work at session start.** Before starting new work, run `git status` and check open branches/PRs across the repos in play; surface anything stale rather than building on top of forgotten WIP.
+- **Never write through the Linux sandbox mount for a Windows-mounted repo.** The mount can serve stale views; writes through it (`sed -i`, `cp`, shell redirects) can truncate real files. Use the Edit/Write tools for file changes, run `git` via Windows (PowerShell), and verify diffs with Windows `git` — not sandbox `git`.
+
 ## Communication style with the user
 
 - Lead with the answer, then explain.
