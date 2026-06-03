@@ -17,7 +17,7 @@ and ADR-0016 / 0017 / 0019 / 0020 / 0021 / 0023 / 0024 / 0025 / 0026 / 0027 / 00
 - 🟧 amber — handed to the human (a deliberate checkpoint, not a failure)
 - ⬛ grey — parked, re-evaluated on a later cycle/window
 
-**Agent palette** — every *action/choice* node is coloured by the agent that owns it, inside or outside the stage boxes (so the promoter's `EVENTDISP` and sweep dispatch read as promoter even though they sit outside the ② loop box): **teal** = promoter (`triage-bot`), **indigo** = implementer, **purple** = reviewer agents, **steel-blue** = merger (auto-merge gate). **Gold** = the human intake lane (`Ⓗ`, ADR-0036) — the human's own territory, distinct from the amber human-checkpoints the machine hands back to. See *Agent ownership* below.
+**Agent palette** — every *action/choice* node is coloured by the agent that owns it, inside or outside the stage boxes (so the promoter's `EVENTDISP` reads as promoter even though it sits outside the ② Promoter box — folding it in is the pending event-dispatch rework): **teal** = promoter (`triage-bot`), **indigo** = implementer, **purple** = reviewer agents, **steel-blue** = merger (auto-merge gate). **Gold** = the human intake lane (`Ⓗ`, ADR-0036) — the human's own territory, distinct from the amber human-checkpoints the machine hands back to. See *Agent ownership* below.
 
 ```mermaid
 flowchart TD
@@ -33,7 +33,6 @@ flowchart TD
         S7["dep-watch<br/>reviews dependency PRs"]
         S8A["You / trusted maintainer<br/>filed issue"]
         S8B["Other user · app user / external<br/>feature request or bug"]
-        PF["triage-scan Pass 3<br/>process-flaw markers pulled<br/>fleet-wide, refiled on platform repo"]
     end
 
     S1 --> LBL["Issue filed<br/>labels: severity:*, origin:internal-review"]
@@ -62,7 +61,6 @@ flowchart TD
     S8B --> CAPTURE
     APPROVED --> QUEUE
     APPROVED -. "optional fast-track · you apply ready-for-implementer" .-> EVENTDISP
-    PF --> QUEUE
     CILBL --> QUEUE
 
     LBL --> QUEUE["Promoter consideration queue<br/>agent findings + approved features<br/>awaits the promoter"]
@@ -70,9 +68,10 @@ flowchart TD
     SENT --> EVENTDISP["Promoter deterministic dispatch · ADR-0030<br/>machine work: event-dispatch (platform) · urgent-poll (app repos)<br/>throttled to FLEET_MAX_DISPATCH · no LLM"]
     QUEUE -. "agent-applied severity:critical" .-> EVENTDISP
 
-    %% ===================== ② TRIAGE-SCAN LOOP =====================
-    subgraph LOOP["② triage-scan loop · cron-driven · platform-central · fleet-wide"]
+    %% ===================== ② PROMOTER (triage-bot) =====================
+    subgraph LOOP["② Promoter · triage-bot · cron-woken · platform-central · fleet-wide"]
         direction TB
+        PF["triage-scan Pass 3<br/>process-flaw markers pulled<br/>fleet-wide, refiled on platform repo"]
         WIN{"In window?<br/>overnight 01–04 CT daily ·<br/>work-hours 09–12 CT Mon–Fri ·<br/>manual dispatch always passes"}
         WIN -->|no| WWAIT["Quiet — wait for next window"]
         WIN -->|yes| EVALALL["①·triage EVERY open finding · full pass<br/>exhaustive — the cap does NOT gate evaluation"]
@@ -89,10 +88,12 @@ flowchart TD
         CAPWAIT -. "re-ranked next pass — re-enters eligibility" .-> PROMO
         AQUAL -. "cap-exempt · dedup-bounded · ADR-0031" .-> DISPATCH
         RANK -. "spare slots, but only after ≥1 real promotion · ADR-0028" .-> SWEEP["Promoter dispatches a cleanup-sweep (Mode C) ·<br/>spare slots only · to the repo with the most<br/>deferred nits · skip zero-count repos"]
+        DEFER["deferred pool ·<br/>severity:low / severity:nit (ADR-0037)"]
     end
 
+    PF --> QUEUE
     QUEUE --> WIN
-    PROMO -->|"Low / Nit — defers by severity (ADR-0037)"| DEFER["deferred pool ·<br/>severity:low / severity:nit (ADR-0037)"]
+    PROMO -->|"Low / Nit — defers by severity (ADR-0037)"| DEFER
     DEFER -. "reconsidered every pass — re-enters eligibility (guarded self-loop)" .-> PROMO
     DEFER -. "pulled into a real dispatch only on an adjacent same-file change · ADR-0029" .-> DISPATCH
     DEFER -. "or swept on an active cycle · ADR-0028" .-> SWEEP
@@ -212,11 +213,11 @@ flowchart TD
 
 ## Agent ownership (node colours)
 
-Every **action/choice** node is coloured by the agent that owns it — so "is the right agent doing the right job" is a glance, and an agent's work is one colour *wherever it sits*, not confined to a stage box. The promoter's `EVENTDISP` (deterministic dispatch) and its sweep dispatch live outside the ② box but read promoter-teal like the rest of its nodes. Terminal/parked end-states keep the outcome palette (🟩/🟧/⬛).
+Every **action/choice** node is coloured by the agent that owns it — so "is the right agent doing the right job" is a glance, and an agent's work is one colour *wherever it sits*, not confined to a stage box. ② is now the **Promoter** box — its actions (window, exhaustive triage, rank, dispatch, vague-handling, Pass-3 process-flaw scan, cleanup-sweep dispatch) plus the `DEFER` pool drawn inside as a grey state-buffer. The consideration `QUEUE` sits just outside, on the ①→② boundary (the shared inbox sources write into), and the promoter's `EVENTDISP` (deterministic, event-driven dispatch) also sits outside ② — pending the event-dispatch rework — but reads promoter-teal regardless. Terminal/parked end-states keep the outcome palette (🟩/🟧/⬛).
 
 | Agent | Colour | Owns (action/choice nodes) |
 |---|---|---|
-| promoter (`triage-bot`) | teal | the ② loop (window, triage, rank, dispatch, vague-handling) **+** `EVENTDISP` & the sweep dispatch outside it **+** the Pass-3 process-flaw scan |
+| promoter (`triage-bot`) | teal | the ② Promoter box — window, exhaustive triage, rank, dispatch, vague-handling, Pass-3 process-flaw scan, cleanup-sweep dispatch **+** `EVENTDISP` (still outside, pending the event-dispatch rework). Grey state-buffers: `DEFER` pool (inside ②), consideration `QUEUE` (①→② boundary) |
 | implementer (+ `iac-implementer`) | indigo | the ③ build flow + the Mode-B fix node |
 | reviewer agents | purple | the ④ review-battery decisions |
 | merger (fleet App) | steel-blue | the ⑤ auto-merge gate, incl. the ADR-0032 self-change guard |
