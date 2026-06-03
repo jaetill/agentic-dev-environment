@@ -5,6 +5,7 @@ Thumbs.db
 *~
 .vscode/
 .idea/
+.obsidian/
 
 # Python
 __pycache__/
