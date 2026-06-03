@@ -7,7 +7,7 @@ fork shown is `scope:iac` (which agent builds it) and the no-app vs. app behavio
 folded into the review battery (ADR-0024). There is intentionally no per-repo split.
 
 Source of truth: `triage-scan.yml`, `claude-implementer.yml`, `claude-pr-review.yml`,
-and ADR-0016 / 0017 / 0019 / 0020 / 0021 / 0023 / 0024 / 0025 / 0026 / 0027 / 0028 / 0029 / 0030 / 0032 / 0035 / 0037 / 0038.
+and ADR-0016 / 0017 / 0019 / 0020 / 0021 / 0023 / 0024 / 0025 / 0026 / 0027 / 0028 / 0029 / 0030 / 0032 / 0035 / 0037 / 0038 / 0039.
 
 > **Dispatch routing (ADR-0030):** machine-detected work (severity:critical, source:sentry/cloudwatch) flows through the promoter's deterministic, throttled dispatch — **event-dispatch** on the platform repo (immediate), a **central `*/15` urgent-poll** for app repos (they hold no cross-repo credential to be pushed). Human-approved work (`ready-for-implementer`) stays on each repo's **local** trigger — immediate, no throttle needed (humans don't storm). The fleet-wide `FLEET_MAX_DISPATCH` throttle is enforced centrally as a shared **in-flight ceiling** — all three dispatch paths (windowed promoter, event-dispatch, urgent-poll) count concurrent implementer runs through one source of truth (`scripts/fleet-inflight.sh`), so none can dispatch on top of the others' in-flight work.
 
@@ -144,9 +144,9 @@ flowchart TD
         MG0 -->|on| MG1{"requires-adr:* label?"}
         MG1 -->|yes| HADR["Hold for human · ADR-gated"]
         MG1 -->|no| MG2{"compositional-self-change label?"}
-        MG2 -->|yes| HCOMP["Hold for human · ADR-0023"]
-        MG2 -->|no| MG3{"Linked issue present and machine-origin?<br/>bot author · source:sentry ·<br/>source:cloudwatch · origin:internal-review"}
-        MG3 -->|"no — human-origin or none"| HHUM["Hold for human merge"]
+        MG2 -->|yes| HCOMP["Hold for human · firewall (ADR-0019/0023)"]
+        MG2 -->|no| MG3{"Linked issue present?<br/>origin no longer gates the merge (ADR-0039)<br/>human gate moves to test→prod (#179)"}
+        MG3 -->|"no — unlinked"| HNOISS["Hold — no linked issue"]
         MG3 -->|yes| MGIAC{"scope:iac? · ADR-0035"}
         MGIAC -->|"yes — merge == apply on dev"| IACGUARD{"iac-additive-guard check pass?<br/>tofu plan: no destroy/replace ·<br/>≤5 resources · no exposure"}
         IACGUARD -->|"no / absent — unverified"| HIAC["Hold for human merge ·<br/>destroy/replace/exposure or no guard"]
@@ -183,7 +183,7 @@ flowchart TD
     classDef merger fill:#2b5b8a,stroke:#5a9fd4,color:#eaf6ff;
 
     class CLOSED,DEPAUTO success;
-    class ESCAL,HADR,HCOMP,HHUM,HIAC,HFAIL,HSELF,PAUSED human;
+    class ESCAL,HADR,HCOMP,HNOISS,HIAC,HFAIL,HSELF,PAUSED human;
     class CAPTURE,FORM,APPROVED,PARKED intake;
     class WWAIT,CAPWAIT,CONFWAIT,CAPM,DEFER,HCHK,DIGSINK,QUEUE wait;
 
@@ -202,8 +202,8 @@ flowchart TD
 | Decompose (scope cap) | — | Change exceeds one slice — the implementer ships the smallest coherent slice and files a follow-up for the remainder; not a terminal, not a human hand-off (ADR-0026 amended). |
 | Escalate (3 attempts) | 🟧 | Mode B couldn't converge in 3 fix iterations (ADR-0026). |
 | Hold: ADR-gated | 🟧 | `requires-adr:*` label — one of the five gated categories. |
-| Hold: compositional | 🟧 | `compositional-self-change` label (ADR-0023). |
-| Hold: human-origin | 🟧 | Linked issue is human-filed — human-merge checkpoint (ADR-0023). |
+| Hold: compositional | 🟧 | `compositional-self-change` label — the self-change firewall (ADR-0019/0023). |
+| Hold: unlinked PR | 🟧 | No `Closes/Fixes #n` linked issue — held for traceability. Origin no longer gates the merge (ADR-0039); the human checkpoint moves to test→prod promotion for user-facing features (#179). |
 | Hold: IaC unverified | 🟧 | `scope:iac` PR whose `tofu plan` isn't provably safe-additive (destroy/replace/exposure), or has no `iac-additive-guard` check — held for human merge (ADR-0035). |
 | Hold: merge failed | 🟧 | Qualified but `gh pr merge` rejected — left for human. *(This was the platform-repo deadlock fixed in ADR-0024.)* |
 | Paused | 🟧 | `AUTONOMOUS_MERGE=off`. |
