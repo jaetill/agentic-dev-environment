@@ -31,7 +31,7 @@ Should a compositional self-change be its own terminal sink, or should it enter 
 
 Chosen option: **Option B — route compositional self-changes through human formulation.**
 
-On detecting a compositional/standards/security/rail-enforcer self-change (or realising mid-build that a change requires an ADR), the implementer does **not** build it and does **not** draft the ADR. It files a platform-repo issue labelled `needs-formulation` + `requires-adr` (+ a self-change marker), describing the proposed change, and stops. That issue lands in the **Formulation** state (ADR-0036, Ⓗ human-intake lane). There, the architect drafts the paired ADR (Status: Proposed) and the human ratifies by moving it to `approved`. Only then does it enter the promoter and build — and, being a compositional self-change, it still holds for human merge per ADR-0023.
+On detecting a compositional/standards/security/rail-enforcer self-change (or realising mid-build that a change requires an ADR), the implementer does **not** build it and does **not** draft the ADR. It files a platform-repo issue labelled `needs-formulation` + `requires-adr` + `compositional-self-change`, describing the proposed change, and stops. That issue lands in the **Formulation** state (ADR-0036, Ⓗ human-intake lane). There, the architect drafts the paired ADR (Status: Proposed) and the human ratifies by moving it to `approved`. Only then does it enter the promoter and build — and, being a compositional self-change, it still holds for human merge per ADR-0023.
 
 The firewall is preserved because every guarantee is carried by a tag, not by the bespoke sink:
 - **Human ratifies** — now via formulation → `approved` instead of a one-off "ratify before implement." Same human, same veto.
@@ -72,7 +72,7 @@ The firewall is preserved because every guarantee is carried by a tag, not by th
 
 ## Implementation notes
 
-- `plugins/ai-team/agents/implementer.md` — the self-change / "requires an ADR mid-build" handling: file a `needs-formulation` + `requires-adr` issue (do not draft the ADR, do not build); stop. Replaces "post a comment requesting the architect on this PR."
+- `plugins/ai-team/agents/implementer.md` — the self-change / "requires an ADR mid-build" handling: file a `needs-formulation` + `requires-adr` + `compositional-self-change` issue (do not draft the ADR, do not build); stop. Replaces "post a comment requesting the architect on this PR."
 - `docs/diagrams/autonomous-loop-flow.md` — the `CG` compositional branch routes to `FORM` (human intake) via a relabelled node, not a terminal architect sink.
 - `docs/standards/12-self-modification.md` — operational procedure: compositional self-change → `needs-formulation` + `requires-adr` → formulation (architect drafts ADR) → `approved` → build → human-merge hold.
 - Amended-by banners on [ADR-0019](0019-team-self-modification.md) and [ADR-0036](0036-human-intake-model.md).
