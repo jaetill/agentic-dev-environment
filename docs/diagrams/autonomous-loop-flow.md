@@ -7,7 +7,7 @@ fork shown is `scope:iac` (which agent builds it) and the no-app vs. app behavio
 folded into the review battery (ADR-0024). There is intentionally no per-repo split.
 
 Source of truth: `triage-scan.yml`, `claude-implementer.yml`, `claude-pr-review.yml`,
-and ADR-0016 / 0017 / 0019 / 0020 / 0021 / 0023 / 0024 / 0025 / 0026 / 0027 / 0028 / 0029 / 0030 / 0032 / 0035 / 0037.
+and ADR-0016 / 0017 / 0019 / 0020 / 0021 / 0023 / 0024 / 0025 / 0026 / 0027 / 0028 / 0029 / 0030 / 0032 / 0035 / 0037 / 0038.
 
 > **Dispatch routing (ADR-0030):** machine-detected work (severity:critical, source:sentry/cloudwatch) flows through the promoter's deterministic, throttled dispatch — **event-dispatch** on the platform repo (immediate), a **central `*/15` urgent-poll** for app repos (they hold no cross-repo credential to be pushed). Human-approved work (`ready-for-implementer`) stays on each repo's **local** trigger — immediate, no throttle needed (humans don't storm). The fleet-wide `FLEET_MAX_DISPATCH` throttle is enforced centrally as a shared **in-flight ceiling** — all three dispatch paths (windowed promoter, event-dispatch, urgent-poll) count concurrent implementer runs through one source of truth (`scripts/fleet-inflight.sh`), so none can dispatch on top of the others' in-flight work.
 
@@ -104,7 +104,7 @@ flowchart TD
         IAC{"scope:iac?"}
         IAC -->|yes| IACIMPL["iac-implementer<br/>plan-only authoring · agent never applies<br/>(deploy cascade applies post-merge) · cap 5 resources"]
         IAC -->|no| CG{"Self-change?<br/>process-flaw / changes to ai-team"}
-        CG -->|"would change the team's own process:<br/>compositional · standards · security ·<br/>rail-enforcer agent · or generalizing a fix<br/>from one project's report (Std 12, n=1)"| ARCH["STOP — route to architect<br/>propose ADR · human ratifies"]
+        CG -->|"would change the team's own process:<br/>compositional · standards · security ·<br/>rail-enforcer agent · or generalizing a fix<br/>from one project's report (Std 12, n=1)"| ARCH["STOP build · file as self-change<br/>needs-formulation + requires-adr (ADR-0038)"]
         CG -->|"mechanical · additive agent-output<br/>tightening (ADR-0032) · or not a self-change"| SCOPE{"Fits one slice?<br/>400 LOC · 8 files · 3 components"}
         SCOPE -->|"no — too big"| SLICE["Decompose (ADR-0026 amend) ·<br/>re-scope to smallest coherent slice ·<br/>file remainder follow-up · Refs #n not Closes"]
         SLICE --> BUILD
@@ -118,6 +118,7 @@ flowchart TD
     EVENTDISP --> IAC
     DISPATCH --> IAC
     IACIMPL --> OPENPR
+    ARCH -. "enters human formulation · architect drafts ADR · you ratify (ADR-0019/0038)" .-> FORM
 
     %% ===================== ④ REVIEW BATTERY =====================
     subgraph REV["④ Review battery · claude-pr-review on the PR"]
@@ -182,12 +183,12 @@ flowchart TD
     classDef merger fill:#2b5b8a,stroke:#5a9fd4,color:#eaf6ff;
 
     class CLOSED,DEPAUTO success;
-    class ARCH,ESCAL,HADR,HCOMP,HHUM,HIAC,HFAIL,HSELF,PAUSED human;
+    class ESCAL,HADR,HCOMP,HHUM,HIAC,HFAIL,HSELF,PAUSED human;
     class CAPTURE,FORM,APPROVED,PARKED intake;
     class WWAIT,CAPWAIT,CONFWAIT,CAPM,DEFER,HCHK,DIGSINK,QUEUE wait;
 
     class PF,EVENTDISP,WIN,EVALALL,PROMO,DISAMB,ENRICH,CLOSEV,AQUAL,PROMSET,RANK,DISPATCH,SWEEP promoter;
-    class IAC,IACIMPL,CG,SCOPE,SLICE,BUILD,CONF,OPENPR,FIX,SWEEPIMPL implementer;
+    class IAC,IACIMPL,CG,ARCH,SCOPE,SLICE,BUILD,CONF,OPENPR,FIX,SWEEPIMPL implementer;
     class REVIEW,VERDICT,FIXIT reviewer;
     class MG0,MG1,MG2,MG3,MGIAC,IACGUARD,MGGUARD,MG4,MG5,DOMERGE,MFAIL,APPLY merger;
 ```
@@ -197,7 +198,7 @@ flowchart TD
 | State | Colour | Meaning |
 |---|---|---|
 | Issue closed | 🟩 | Fix merged; the loop did its job end-to-end. |
-| Route to architect | 🟧 | Competence gate caught a compositional/standards/security self-change — ADR + human ratify (ADR-0019). |
+| Self-change → formulation | Ⓗ | Compositional self-change filed as `needs-formulation` + `requires-adr`; enters human intake — you scope it and ratify via ADR before it builds (ADR-0019/0038). Routes to Formulation; not a terminal sink. |
 | Decompose (scope cap) | — | Change exceeds one slice — the implementer ships the smallest coherent slice and files a follow-up for the remainder; not a terminal, not a human hand-off (ADR-0026 amended). |
 | Escalate (3 attempts) | 🟧 | Mode B couldn't converge in 3 fix iterations (ADR-0026). |
 | Hold: ADR-gated | 🟧 | `requires-adr:*` label — one of the five gated categories. |

@@ -7,6 +7,8 @@
 
 > **Extends/amends** [ADR-0017](0017-async-orchestration.md) (the human's role in routing), [ADR-0020](0020-fleet-orchestration.md)/[ADR-0030](0030-all-dispatch-through-promoter.md) (promoter eligibility — now includes approved features), and [ADR-0033](0033-opted-in-features-build-without-plan-gate.md) (a feature's *entry* into the implementable pool moves from open-time to approval-time). Realises the human-owned-`what` half of the intake separation captured in the platform's intake-planning notes; the formulation *mechanism* itself stays a deliberate placeholder.
 
+> **Extended by [ADR-0038](0038-self-changes-route-through-formulation.md):** compositional self-changes are now an intake class — the implementer files them as `needs-formulation` + `requires-adr`, so they flow through formulation → `approved` like features (with the ADR-required gate and the ADR-0023 human-merge hold preserved).
+
 > **Format:** MADR 4.x with the platform's three documented extensions. Single-decision ADR.
 
 ## Context and Problem Statement
