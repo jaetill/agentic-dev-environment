@@ -346,9 +346,9 @@ Per **[ADR-0021](../adr/0021-autonomous-merge.md)**, the fleet loop closes itsel
 
 ### The gate
 
-The job merges an implementer fix PR when, and only when, **all** of the following hold. The gate is deterministic — decidable from labels and check state, with no agent judgement at merge time. Per [ADR-0021](../adr/0021-autonomous-merge.md) as amended by [ADR-0039](../adr/0039-merge-is-autonomous-human-gate-moves-to-prod.md), condition 1 is **linked issue present** — origin no longer gates the merge.
+The job merges an implementer fix PR when, and only when, **all** of the following hold. The gate is deterministic — decidable from labels and check state, with no agent judgement at merge time. Per [ADR-0021](../adr/0021-autonomous-merge.md) as amended by ADR-0039 (pending ratification — PR #180), condition 1 is **implementer-authored and linked issue present** — origin no longer gates the merge.
 
-1. **Linked issue present.** The PR body must contain a `Closes #n` or `Fixes #n` reference. Origin no longer gates the merge (ADR-0039); all review-passing, linked work merges autonomously — a bug Jason filed and a Sentry-detected error now merge the same way.
+1. **Implementer-authored and linked issue present.** The PR is authored by `app/claude` (the implementer agent) and the PR body contains a `Closes #n` or `Fixes #n` reference. Origin no longer gates the merge (ADR-0039); all linked implementer work merges autonomously — issues Jason filed and Sentry-detected errors now merge the same way.
 2. **Every check green.** The full AI review battery (§9, ADR-0003) passed; `code-review` and `security-review` are hard gates. A PR with *zero* checks does not qualify — the gate requires a non-empty green battery, not a vacuous pass.
 3. **No `requires-adr:*` label.** The five ADR-gated categories (ADR-0003) route to the human, unchanged — regardless of origin.
 4. **No `compositional-self-change` label.** Per ADR-0023, routine/mechanical platform-repo fixes are eligible like any project fix; only **compositional** self-changes — changes to the team's gates, agent roster, standards, or security posture — keep a human checkpoint. The implementer/architect applies this label when the change is classified compositional. (This replaces the old "project repo only" exclusion.)
