@@ -38,7 +38,21 @@ Grafana Cloud → Administration → Plugins and data → Plugins → search "Gi
 
 If the service-account token can't create data sources (see step 2 caveat), also create the data source itself here: Connections → Data sources → Add data source → GitHub → name it `fleet-github`, paste the PAT from step 1, Save & test → copy the UID from the URL, then `tofu import grafana_data_source.github <uid>` to bring it under TF management.
 
-### 5. Create the `human-todo` label
+### 5. Add a GitHub token to the `grafanacloud-infinity` data source
+
+Panel 8 (triage-job stat) and the `latest_triage_run_id` templating variable use the built-in `grafanacloud-infinity` datasource to call `api.github.com`. Without authentication those calls count against GitHub's **60 req/hour unauthenticated limit** — shared with all Grafana Cloud tenants on the same egress IP. Contention can trigger 403s and blank out panel 8, eliminating the primary silent-loop signal (issue #158).
+
+Mitigation: add the same fine-grained read-only PAT (step 1) as a secure HTTP header on the Infinity datasource so its calls use the **5,000 req/hour authenticated limit**. The token is stored encrypted in Grafana Cloud — it does not appear in `dashboard.json` or Terraform state.
+
+Steps:
+1. Grafana Cloud → Connections → Data sources → `grafanacloud-infinity`.
+2. Settings → **Secure HTTP headers** → **Add**.
+3. Header name: `Authorization` · Value: `token <PAT-from-step-1>`.
+4. **Save & test**.
+
+This is a one-time step. The header survives dashboard edits and Terraform applies because it is stored at the data source layer.
+
+### 6. Create the `human-todo` label
 
 In the platform repo, so the cockpit has TODOs to read. You file a TODO by opening an issue with this label.
 

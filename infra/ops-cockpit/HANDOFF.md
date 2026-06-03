@@ -83,6 +83,7 @@ Composition: 70 `stat` + 2 `table` + 8 `text` = 80. (The stage→id-range labels
 - **Field overrides reliably break multi-series stat panels** on this Grafana version. `byFrameRefID` matcher + displayName → "No data." `displayName: "${__series.name}"` → "No data." The workaround that always works: one panel per series, panel title is the label.
 - **GitHub search ANDs `repo:` qualifiers.** Multi-repo aggregation in a single query is impossible. Use N queries (one per repo) + transformations, or N panels.
 - **The Grafana Cloud free-tier service-account token can't write data sources.** The data source was created in the UI and imported to TF state (UID `ffnagb7t8j5s0e`); `main.tf` has `lifecycle.ignore_changes` to prevent the read-only token from 403-ing on update. PAT rotation requires UI (documented in README's "Rotate credentials" section).
+- **`grafanacloud-infinity` must be configured with a GitHub token (issue #158).** The two Infinity queries (templating variable + panel 8) call `api.github.com` unauthenticated. Grafana Cloud shares egress IPs across tenants, so cross-tenant contention can exhaust the 60 req/h anon limit and blank panel 8. Add the fleet PAT (`Authorization: token <PAT>`) as a Secure HTTP header on the `grafanacloud-infinity` datasource — see README step 5. The token is stored encrypted in Grafana Cloud; do not add it to `dashboard.json`.
 
 ## Status of associated work
 
@@ -103,7 +104,7 @@ Gotchas observed during build:
 - `textMode: value_and_name` rendered a blank value box. Switched to `textMode: value`.
 - The Grafana GitHub data source plugin does NOT have a Jobs query type — `Workflow_Runs` exposes only run-level fields. Job-level data requires Infinity hitting the REST API directly.
 - Infinity computed columns with arithmetic expressions returned `null` against the `parser: backend` mode — left for a Phase 1c look if computed in-panel becomes necessary.
-- `agentic-dev-environment` is a public repo so unauthenticated Infinity calls work within GitHub's 60/h anon rate limit; if rate limiting becomes a problem, configure Infinity with the same fine-grained PAT used by the GitHub data source.
+- `agentic-dev-environment` is a public repo so unauthenticated Infinity calls work within GitHub's 60/h anon rate limit. However, Grafana Cloud tenants share egress IPs, so contention from other tenants can exhaust that bucket and 403 these queries — blanking panel 8 and silencing the primary silent-loop signal. **Required mitigation (issue #158):** add the fleet PAT as `Authorization: token <PAT>` in the Infinity datasource's Secure HTTP headers (Grafana UI → Connections → `grafanacloud-infinity` → Settings → Secure HTTP headers). See README step 5 for the exact procedure. This raises the limit to 5 000 req/h and eliminates the risk without touching `dashboard.json`.
 
 ## Side note for the resuming agent
 
