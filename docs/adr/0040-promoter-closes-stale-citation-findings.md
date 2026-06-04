@@ -1,6 +1,6 @@
 # ADR-0040: The promoter closes stale-citation findings via a deterministic existence check before evaluation
 
-- **Status:** Proposed — direction ratified by Jason in formulation of #195 (2026-06-04); merge of this ADR's PR is the formal ratification
+- **Status:** Accepted — ratified by Jason's merge of PR #197, 2026-06-04 (60d9832); implementation pending (builds through the loop via #195)
 - **Date:** 2026-06-04
 - **Deciders:** Jason Tilley
 - **Tags:** ai-workflows, orchestration, signal-to-noise, autonomy, token-economy
