@@ -3,7 +3,7 @@
 **Status:** 🟩 Decided (2026-05-08)
 **ADR:** [ADR-0011](../adr/0011-ai-workflows.md)
 
-This standard operationalizes the AI side of the platform that every prior standard has been assuming. It defines the head agent's modes, the 12 specialist subagents' system prompts and triggers, the hook policy, the slash command set, and the discipline around tokens, performance, and autonomy.
+This standard operationalizes the AI side of the platform that every prior standard has been assuming. It defines the head agent's modes, the 14 specialist subagents' system prompts and triggers, the hook policy, the slash command set, and the discipline around tokens, performance, and autonomy.
 
 ## Three guiding principles
 
@@ -19,7 +19,7 @@ These principles are baked into every agent's system prompt and into the hook co
 
 | Concern | Choice |
 |---|---|
-| Architecture | Head agent (orchestrator + decision partner, multiple modes) + 12 specialist subagents (headless workers) |
+| Architecture | Head agent (orchestrator + decision partner, multiple modes) + 14 specialist subagents (headless workers) |
 | Model selection | Tiered: Haiku for routine; Sonnet for reasoning; Opus only for `architect` on ADR-gated PRs |
 | Token budgets | ~$15/mo total at solo scale; per-agent caps; prompt caching of stable context |
 | Hook policy | Mixed strictness with concrete rules (see §3) |
@@ -36,7 +36,7 @@ The Claude session the human talks to. Holds memory, project state, conversation
 
 When a "scheduled scrummaster run" happens (e.g., daily digest), it's the head agent spawning with mode-specific instructions.
 
-### 12 specialist subagents
+### 14 specialist subagents
 
 Headless workers, narrow scope, restricted tools. Each has a focused system prompt. Always invoked by the head agent or by scheduled workflows.
 
@@ -54,6 +54,8 @@ Headless workers, narrow scope, restricted tools. Each has a focused system prom
 | `incident-responder` | Reactive urgent triage — auto-rollback fails, prod down, paging | Real-time on alert |
 | `drift-detector` | IaC drift triage and proposed fixes (per ADR-0007) | Weekly scheduled |
 | `triage-bot` | Proactive scanner — gathers logs/errors, classifies, dedupes, files tickets with customer-advocate lens | Daily/weekly + webhook-driven |
+| `implementer` | Writes production code in response to defect issues, feature requests, and review feedback | On dispatched issue (`ready-for-implementer`) |
+| `iac-implementer` | Writes IaC (Terraform/OpenTofu) changes in response to drift-detector findings and IaC defects | On dispatched IaC issue (`scope:iac`) |
 
 ## 2. Model selection per agent
 
@@ -73,6 +75,8 @@ The model is part of each agent's contract. Specified in the agent's frontmatter
 | `incident-responder` | Sonnet 4.6 | No |
 | `drift-detector` | Haiku 4.5 | Escalate to Sonnet for fix-PR drafts |
 | `triage-bot` | Haiku 4.5 | Escalate to Sonnet for ticket framing |
+| `implementer` | Sonnet 4.6 | No |
+| `iac-implementer` | Sonnet 4.6 | No |
 
 The head agent uses the model the user is talking to it through (Sonnet 4.6 in interactive use; can be configured otherwise per session).
 
@@ -300,7 +304,7 @@ Medium findings are never deferred; an item not worth a dedicated fix is a Nit (
 
 ### Sentry-bug auto-pickup
 
-Issues labeled `source:sentry` (auto-applied by Sentry's GitHub integration when its alert rules create an issue) or `severity:critical` trigger the implementer **immediately**, regardless of whether `ready-for-implementer` is set. Sentry-reported bugs are pre-validated production work; they don't need a triage gate. Fixing a Sentry bug also triggers the deferral-bundling scan in the same directory.
+Issues labeled `source:sentry` (auto-applied by Sentry's GitHub integration) or `severity:critical` trigger the **promoter** immediately — event-triggered, bypassing the cron window (per ADR-0030). The promoter auto-promotes the triggering issue unconditionally (no Tier-2 eligibility judgment) and dispatches the implementer via `ready-for-implementer`. Sentry-reported bugs are pre-validated production work; they don't need a triage gate. Fixing a Sentry bug also triggers the deferral-bundling scan in the same directory.
 
 ### Backlog finalization
 
@@ -342,9 +346,9 @@ Per **[ADR-0021](../adr/0021-autonomous-merge.md)**, the fleet loop closes itsel
 
 ### The gate
 
-The job merges an implementer fix PR when, and only when, **all** of the following hold. The gate is deterministic — decidable from labels and check state, with no agent judgement at merge time. Per [ADR-0023](../adr/0023-origin-based-autonomy-boundary.md), the conditions are keyed to work **origin**, not work type.
+The job merges an implementer fix PR when, and only when, **all** of the following hold. The gate is deterministic — decidable from labels and check state, with no agent judgement at merge time. Per [ADR-0021](../adr/0021-autonomous-merge.md) as amended by [ADR-0039](../adr/0039-merge-is-autonomous-human-gate-moves-to-prod.md), condition 1 is **implementer-authored with a linked issue present** — origin no longer gates the merge; the human checkpoint moves to test→prod promotion for user-facing features (#179; interim: all merges/releases are treated as test).
 
-1. **Implementer-authored, machine-origin fix.** The PR's author is the implementer agent (`gh pr list --json author` renders the App bot as `app/claude`) and it closes an issue whose origin is **machine** — the issue's author is a bot, OR the issue carries `source:sentry`, `source:cloudwatch`, or `origin:internal-review`. Human-origin issues (any type, including a bug filed by a person, or an `approved` feature) take a human-merge checkpoint and are held. Features are human-origin — formulated and `approved` by a maintainer at intake (ADR-0036) — so they are held at this human-merge checkpoint like any human-origin work.
+1. **Implementer-authored and linked issue present.** The PR's author is the implementer agent (`gh pr list --json author` renders the App bot as `app/claude`) and the PR body links an issue (`Closes/Fixes #n`) for traceability. Origin no longer gates the merge (ADR-0039) — a bug the maintainer filed and a Sentry-detected error merge the same way, including `approved` features (ADR-0036), provided every other condition holds.
 2. **Every check green.** The full AI review battery (§9, ADR-0003) passed; `code-review` and `security-review` are hard gates. A PR with *zero* checks does not qualify — the gate requires a non-empty green battery, not a vacuous pass.
 3. **No `requires-adr:*` label.** The five ADR-gated categories (ADR-0003) route to the human, unchanged — regardless of origin.
 4. **No `compositional-self-change` label.** Per ADR-0023, routine/mechanical platform-repo fixes are eligible like any project fix; only **compositional** self-changes — changes to the team's gates, agent roster, standards, or security posture — keep a human checkpoint. The implementer/architect applies this label when the change is classified compositional. (This replaces the old "project repo only" exclusion.)
