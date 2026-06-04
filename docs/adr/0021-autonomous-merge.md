@@ -5,6 +5,8 @@
 - **Deciders:** Jason Tilley
 - **Tags:** ai-workflows, governance, ci-cd, orchestration, autonomy
 
+> **Amended by [ADR-0039](0039-merge-is-autonomous-human-gate-moves-to-prod.md):** condition 1 ("linked issue is machine-origin") is relaxed to "linked issue is present" — origin no longer gates the merge. The human checkpoint moves off the merge and onto test→prod promotion for user-facing features (#179). The other conditions (checks green, no `requires-adr`) and the firewall holds are unchanged.
+
 > **Format:** MADR 4.x with the platform's three documented extensions. Single-decision ADR. This ADR *applies* an existing decision (ADR-0003) to a new path — it does not reopen the approval model.
 
 ## Context and Problem Statement

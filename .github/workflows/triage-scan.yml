@@ -340,11 +340,13 @@ jobs:
             echo "## Auto-merge: paused (AUTONOMOUS_MERGE=off)" >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
-          # Per ADR-0023, the autonomy boundary is origin (not type), and the
-          # platform repo is included for routine/mechanical fixes. Compositional
-          # self-changes (team gates / agents / standards / security) are excluded
-          # by the compositional-self-change label check below.
-          # genealogy still has no implementer loop.
+          # Per ADR-0039, code merge is autonomous for all review-passing linked
+          # work regardless of origin (ADR-0023's origin boundary is retired at
+          # the merge; the human checkpoint moves to test->prod promotion, #179).
+          # The platform repo is included for routine/mechanical fixes.
+          # Compositional self-changes (team gates / agents / standards /
+          # security) and ADR-gated changes are still held by the label checks
+          # below. genealogy still has no implementer loop.
           REPOS="game-night-pwa meal-planner ai-teacher jaetill-portal splendor draft carto agentic-dev-environment"
           merged=0 ; held=0
           # Per-run blast-radius cap (security-review): a malfunctioning or
@@ -380,28 +382,27 @@ jobs:
               if echo "$meta" | jq -e '[.labels[].name] | any(. == "compositional-self-change")' >/dev/null 2>&1; then
                 echo "  $slug#$pr — compositional-self-change label; hold for human (ADR-0023)"; held=$((held+1)); continue
               fi
-              # ADR-0021 cond. 1, as amended by ADR-0023: the linked issue must
-              # be MACHINE-ORIGIN. Machine-origin = the issue author is a bot,
-              # OR the issue carries `source:sentry`, `source:cloudwatch`, or
-              # `origin:internal-review`. Human-origin issues (any type,
-              # including a bug filed by a person, or an `approved` feature) take
-              # a human-merge checkpoint and are held here (ADR-0023). (Dropping
-              # this human-merge gate for approved features is teed up but not yet
-              # done.)
+              # ADR-0021 cond. 1, as amended by ADR-0039: a linked issue must be
+              # PRESENT for traceability, but its ORIGIN no longer gates the
+              # merge. ADR-0023's HHUM hold — human-origin work waiting for a
+              # human merge click — is RETIRED. Review-passing, linked work
+              # merges autonomously regardless of who filed the issue. The
+              # human's checkpoint moves off the merge and onto test->prod
+              # promotion for user-facing features (#179); until that gate
+              # exists, all merges/releases are treated as test. The
+              # architectural and self-change gates above (requires-adr:*,
+              # compositional-self-change) and the checks battery below still
+              # hold — this is "routine reviewed work ships itself," never
+              # "skip the checks."
               issue=$(echo "$meta" | jq -r '.body // ""' \
                         | grep -ioE '(close[sd]?|fix(e[sd])?|resolve[sd]?) +#[0-9]+' \
                         | grep -oE '[0-9]+' | head -1 || true)
               if [[ -z "$issue" ]]; then
                 echo "  $slug#$pr — no linked issue; hold"; held=$((held+1)); continue
               fi
+              # issue_meta is still read: the ADR-0032 (agent-quality) and
+              # ADR-0035 (scope:iac) gates below classify from the issue labels.
               issue_meta=$(gh issue view "$issue" --repo "$slug" --json author,labels 2>/dev/null || echo '{}')
-              is_machine_origin=$(echo "$issue_meta" | jq -r '
-                (.author.is_bot == true) or
-                ([.labels[].name] | any(. == "source:sentry" or . == "source:cloudwatch" or . == "origin:internal-review"))
-              ' 2>/dev/null || echo false)
-              if [[ "$is_machine_origin" != "true" ]]; then
-                echo "  $slug#$pr — issue #$issue is human-origin; hold for human merge (ADR-0023)"; held=$((held+1)); continue
-              fi
               # ADR-0032 additive self-change lane. If this PR touches the loop's
               # own agent definitions, it may auto-merge ONLY if the deterministic
               # guard classifies it IN_LANE: exactly one non-rail-enforcer agent
