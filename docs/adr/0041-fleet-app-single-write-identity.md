@@ -58,6 +58,20 @@ The fleet already owns a first-party App — `jaetill-ai-triage-team` — which 
 
 - Review-battery workflows don't push code; they keep their current tokens. Only the implementer's write path changes.
 
+## Pros and Cons of the Options
+
+### A — single write identity (chosen)
+- Good: one owner-controlled identity for every author-keyed check, query, and dashboard; removes the third-party App from the loop's write path.
+- Bad: a one-time author-filter sweep; the fleet token becomes the highest-value credential (accepted behind the injection-hardening precondition).
+
+### B — split identity (fleet token only for scope:ci)
+- Good: smallest immediate blast radius.
+- Bad: two PR-author identities forever; every author-keyed check must know both — permanent complexity to dodge a one-time sweep.
+
+### C — post-step push
+- Good: keeps `app/claude` as the primary author.
+- Bad: splits one logical change across two committer identities; the most moving parts.
+
 ## Links
 
 - [ADR-0020](0020-fleet-orchestration.md) — the fleet App and its token plumbing.
