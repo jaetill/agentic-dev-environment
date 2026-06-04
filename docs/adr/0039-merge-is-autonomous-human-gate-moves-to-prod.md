@@ -73,6 +73,20 @@ The governing principle shifts by one axis: **the human's checkpoint sits at the
 - **Not built here (tracked in #179):** the test→prod promotion gate — per-project deploy wiring audit, the `user-facing` classifier/label, and the manual-approval environment-protection step on prod deploys. Interim policy until then: all merges/releases are test, everything automatic.
 - Unchanged: ADR-0021 conditions 2–3 (checks green, no `requires-adr`), ADR-0032 additive auto-lane, ADR-0035 IaC guard, the per-run cap, and the `compositional-self-change` firewall hold.
 
+## Pros and Cons of the Options
+
+### Option A — keep origin at the merge
+- Good: every human-origin result is seen before it merges.
+- Bad: the human's own reviewed, green work piles up behind a rubber-stamp; the merge queue becomes the loop's throughput bottleneck.
+
+### Option B — merge autonomous; human gate at test→prod (chosen)
+- Good: merging reflects the review battery's verdict (what it's *for*); the human's judgment lands at ship-to-users, the irreplaceable call; throughput no longer depends on merge-click latency.
+- Bad: reviewed work reaches test/dev with no human in the loop until the prod gate is built (mitigated — the review battery is the quality bar; the prod gate is tracked in #179 and shipped in ADR-0043).
+
+### Option C — merge autonomous, no gate anywhere
+- Good: maximal throughput.
+- Bad: removes the ship-to-users decision the human explicitly wants on user-facing changes. Rejected.
+
 ## Links
 
 - [ADR-0023 — origin-based autonomy boundary](0023-origin-based-autonomy-boundary.md) — the origin merge hold retired here.

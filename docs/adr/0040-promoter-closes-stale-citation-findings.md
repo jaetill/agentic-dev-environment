@@ -73,6 +73,24 @@ Before the promoter's LLM evaluation of a candidate finding, a **deterministic e
 - `docs/diagrams/autonomous-loop-flow.md` — add the stale-close branch beside `DISAMB`/`CLOSEV` in box ②.
 - This is a compositional self-change (promoter contract + a gate-adjacent script): the implementation PR carries `compositional-self-change` and holds for human merge per ADR-0023/0039.
 
+## Pros and Cons of the Options
+
+### 1. Status quo (flag, human closes)
+- Good: zero new code.
+- Bad: leaves an immortal class and a standing human chore — the pattern ADR-0031 exists to kill.
+
+### 2. Auto-demote to `severity:nit`
+- Good: out of the promotion path.
+- Bad: hides the corpse instead of burying it — still occupies the queue, still swept, still burns evaluation.
+
+### 3. Deterministic auto-close with provenance comment (chosen)
+- Good: drains the class; zero LLM tokens (pure `test -e`); deterministic; closed-and-linked, reopenable.
+- Bad: a renamed (not deleted) file closes as stale — mitigated by provenance comment + reopen + reviewers re-finding it.
+
+### 4. LLM judges staleness during evaluation
+- Good: could catch nuance.
+- Bad: spends tokens to learn a fact a file-existence check establishes for free; makes the disposition non-deterministic.
+
 ## Links
 
 - [ADR-0031](0031-promoter-disambiguates-or-closes-vague-findings.md) — the vague-finding disposition this extends; same nothing-loiters philosophy.
