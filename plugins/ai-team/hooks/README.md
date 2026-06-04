@@ -15,6 +15,7 @@ Lifecycle hook scripts implementing the platform's Mixed-strictness hook policy 
 | `audit-bash.sh` | `PostToolUse(Bash)` | Append every bash invocation to `.claude/audit.log` |
 | `inject-context.sh` | `UserPromptSubmit` | Prepend branch state + uncommitted changes + recent commits |
 | `inject-session-context.sh` | `SessionStart` | Inject standards summary + recent ADRs + recent commits |
+| `wip-inventory.sh` | `SessionStart` | Surface uncommitted changes, local-only branches, and open PRs (structured fields only — prompt-injection safe) |
 | `check-clean-stop.sh` | `Stop` | Warn (not block) if working tree dirty or last test run failed |
 
 ## Cross-platform notes
