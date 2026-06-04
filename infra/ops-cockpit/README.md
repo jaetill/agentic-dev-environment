@@ -38,7 +38,21 @@ Grafana Cloud → Administration → Plugins and data → Plugins → search "Gi
 
 If the service-account token can't create data sources (see step 2 caveat), also create the data source itself here: Connections → Data sources → Add data source → GitHub → name it `fleet-github`, paste the PAT from step 1, Save & test → copy the UID from the URL, then `tofu import grafana_data_source.github <uid>` to bring it under TF management.
 
-### 5. Create the `human-todo` label
+### 5. Add a GitHub token to the `grafanacloud-infinity` data source
+
+Panel 8 (triage-job stat) and the `latest_triage_run_id` templating variable use the built-in `grafanacloud-infinity` datasource to call `api.github.com`. Without authentication those calls count against GitHub's **60 req/hour unauthenticated limit** — shared with all Grafana Cloud tenants on the same egress IP. Contention can trigger 403s and blank out panel 8, eliminating the primary silent-loop signal (issue #158).
+
+Mitigation: add the same fine-grained read-only PAT (step 1) as a secure HTTP header on the Infinity datasource so its calls use the **5,000 req/hour authenticated limit**. The token is stored encrypted in Grafana Cloud — it does not appear in `dashboard.json` or Terraform state.
+
+Steps:
+1. Grafana Cloud → Connections → Data sources → `grafanacloud-infinity`.
+2. Settings → **Secure HTTP headers** → **Add**.
+3. Header name: `Authorization` · Value: `token <PAT-from-step-1>`.
+4. **Save & test**.
+
+This setup is a one-time step, but the header value must be re-entered whenever the PAT is rotated — see 'Rotate credentials' below. The header survives dashboard edits and Terraform applies because it is stored at the data source layer.
+
+### 6. Create the `human-todo` label
 
 In the platform repo, so the cockpit has TODOs to read. You file a TODO by opening an issue with this label.
 
@@ -91,11 +105,13 @@ The dashboard currently renders one placeholder text panel. Phase 1b replaces it
 
 The PAT in step 1 has an expiry. When you rotate it, `tofu apply` with the new `TF_VAR_github_token` value **will silently no-op** — `main.tf` has `lifecycle { ignore_changes = [secure_json_data_encoded] }` to keep the read-only Grafana SA token from 403-ing on update (see step 2 caveat), and that block also blocks the rotated value from flowing through.
 
-Three rotation paths, in increasing order of effort:
+Three rotation paths for `fleet-github`, in increasing order of effort:
 
 1. **UI rotation (recommended for now).** Grafana Cloud → Connections → Data sources → `fleet-github` → edit → paste new PAT into the Access Token field → Save & test. Done. State will drift by one field (`secure_json_data_encoded`); ignore — that's the design.
 2. **Direct API.** `curl -X PUT -H "Authorization: Bearer <SA token>" -H "Content-Type: application/json" -d '{"secureJsonData":{"accessToken":"<new PAT>"}}' https://jaetill.grafana.net/api/datasources/uid/<uid>`. Same caveat as step 2 of prereqs — if the SA token lacks `datasources:write` you'll get 403 and have to fall back to UI.
 3. **Re-import.** Only if the data source needs to be rebuilt from scratch. `tofu state rm grafana_data_source.github`, recreate in UI (or anywhere with `datasources:create`), `tofu import grafana_data_source.github <new uid>`. Heavyweight; reserve for when the resource itself is broken, not for routine rotation.
+
+**Also required — every rotation:** update the `grafanacloud-infinity` header. Grafana Cloud → Connections → Data sources → `grafanacloud-infinity` → Settings → **Secure HTTP headers** → edit the `Authorization` row → paste `token <new-PAT>` → **Save & test**. Skipping this step leaves panel 8 (triage-job stat) authenticating with a stale token, silently re-exposing the shared-egress-IP 403 risk (issue #158). Verify: panel 8 should render a green/red value (not blank) after saving.
 
 The Grafana SA token (step 2 of prereqs) rotates without TF involvement — it's read by the provider from the env var each apply, so a fresh value just works.
 

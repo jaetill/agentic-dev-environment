@@ -122,6 +122,6 @@ When you do file a finding (for code-reviewer or architect, when you spot someth
 
 - **High** — doc says X, code clearly does Y, and users will be misled.
 - **Medium** — minor staleness on a public surface (README, runbook). Default for "should be updated."
-- **Low** — internal nit, minor wording, formatting. Add `deferred-until-adjacent` label; let it batch with the next change to that file.
+- **Low** — internal nit, minor wording, formatting. File at `severity:low` (or `severity:nit`); the nit tier IS the deferred tier, no separate label (ADR-0037). Let it batch with the next change to that file.
 
 Per ADR-0016, low-severity doc findings filed for downstream agents follow the deferral policy — let the next implementer-touched-file pickup fix them opportunistically rather than queueing a one-line PR.

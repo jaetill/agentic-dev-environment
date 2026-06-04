@@ -103,7 +103,14 @@ jobs:
   # ── triage-bot: scan + fleet promoter + flaw pull ───────────────────────
   triage:
     needs: window
-    if: needs.window.outputs.in_window == 'true'
+    # The full LLM fleet-scan runs only on the schedule and manual dispatch.
+    # Issues / repository_dispatch events are handled deterministically by
+    # event-dispatch (ADR-0030); running the scan on them is redundant AND fails
+    # when a bot filed the triggering issue (claude-code-action rejects a Bot
+    # actor: "Workflow initiated by non-human actor").
+    if: |
+      needs.window.outputs.in_window == 'true'
+      && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -120,11 +127,33 @@ jobs:
           private-key: ${{ secrets.FLEET_APP_PRIVATE_KEY }}
           owner: ${{ github.repository_owner }}
 
+      # ADR-0030 shared ceiling: the windowed promoter must respect the SAME
+      # fleet-wide in-flight budget as event-dispatch and the urgent poll — not a
+      # per-run batch cap. Compute the available budget deterministically BEFORE
+      # the LLM so it can never dispatch on top of runs already in flight.
+      - name: Compute fleet dispatch budget
+        id: budget
+        env:
+          GH_TOKEN: ${{ steps.fleet-token.outputs.token }}
+          FLEET_MAX_DISPATCH: ${{ vars.FLEET_MAX_DISPATCH_PER_RUN || '6' }}
+        run: |
+          set -uo pipefail
+          cap=${FLEET_MAX_DISPATCH:-6}
+          if inflight=$(bash "$GITHUB_WORKSPACE/scripts/fleet-inflight.sh"); then
+            avail=$(( cap - inflight )); (( avail < 0 )) && avail=0
+          else
+            avail=$cap; inflight="?"   # FAIL OPEN: couldn't read → full budget
+          fi
+          echo "available=$avail" >> "$GITHUB_OUTPUT"
+          echo "Fleet dispatch budget: cap=$cap in-flight=$inflight available=$avail"
+          echo "## Fleet dispatch budget — available=$avail (cap=$cap, in-flight=$inflight)" >> "$GITHUB_STEP_SUMMARY"
+
       - name: Run triage-bot (scan + fleet promote + flaw pull)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           FLEET_TOKEN: ${{ steps.fleet-token.outputs.token }}
           FLEET_MAX_DISPATCH: ${{ vars.FLEET_MAX_DISPATCH_PER_RUN || '6' }}
+          AVAILABLE: ${{ steps.budget.outputs.available }}
           WINDOW: ${{ needs.window.outputs.window }}
         uses: anthropics/claude-code-action@v1
         with:
@@ -171,36 +200,51 @@ jobs:
                 --state open --json number,title,labels,createdAt,author,comments --limit 100
 
             An issue is eligible for promotion when ALL hold:
-              - AGENT-discovered: the author is a bot, OR it carries a
-                `source:*` or `triage:*` label. Human-authored issues are
-                NEVER promoted here — filing them was their triage; the
-                implementer picks those up directly on `issues: opened`.
-              - It carries `severity:medium`, `severity:high`, or
-                `triage:medium`. ADR-0020 folds `severity:high` in — it
-                previously had no automatic path. Do NOT promote
-                `severity:critical` or `source:sentry`: those auto-pick-up at
-                the implementer already.
+              - It is EITHER (a) AGENT-discovered — the author is a bot, OR it
+                carries a `source:*` or `triage:*` label — OR (b) a human
+                feature carrying the `approved` label (ADR-0036). Other
+                human-authored issues are NOT promoted here: a raw
+                `feature-request` is still in formulation (the human owns the
+                `what`); only `approved` signals intake is done.
+              - TIER: an agent finding ranks by its `severity:*` / `triage:*`.
+                An `approved` feature ranks at the **medium** tier — above
+                low/nits, below `severity:high`/`critical`, equal footing with
+                `severity:medium` / `triage:medium` (ADR-0036). A human-confirmed
+                BUG carries its real `severity:*`, NOT `approved`.
+              - For an AGENT finding the tier must be `severity:medium`,
+                `severity:high`, or `triage:medium`. ADR-0020 folds
+                `severity:high` in. Do NOT promote `severity:critical` or
+                `source:sentry`: those auto-pick-up at the implementer already.
               - It does NOT already carry `ready-for-implementer`.
               - It has survived at least one full triage-scan cycle — do NOT
                 promote an issue created in the last ~35 minutes.
               - It is well-specified: a clear repro or acceptance criteria, a
                 single bounded change. Judgement call — when vague, leave it
-                unpromoted and comment exactly what is missing.
+                unpromoted and comment exactly what is missing. (An `approved`
+                feature carries its human-written functional spec — trust it.)
 
-            THROTTLE: dispatch at most $FLEET_MAX_DISPATCH implementer runs
-            across the whole fleet this run. Order by severity — promote every
-            eligible `severity:high` before any `severity:medium`. When the
-            cap is reached, stop; the next window takes the rest.
+            THROTTLE: dispatch at most $AVAILABLE implementer runs this run.
+            $AVAILABLE is your HARD budget — it already accounts for implementer
+            runs in flight elsewhere in the fleet (the shared ADR-0030 ceiling of
+            $FLEET_MAX_DISPATCH minus what is already running), so you never
+            dispatch on top of work the event-dispatch or urgent-poll paths
+            already started. If $AVAILABLE is 0, promote and dispatch NOTHING this
+            pass — still run Pass 1 and Pass 3. Order by tier — every eligible
+            `severity:high` before any medium, where the medium tier is
+            `severity:medium` / `triage:medium` findings AND `approved` features
+            together (ADR-0036). When the budget is reached, stop; the next cycle
+            takes the rest.
 
-            For each eligible issue, within the cap:
+            For each eligible issue, within the $AVAILABLE budget:
               1. GH_TOKEN=$FLEET_TOKEN gh issue edit <n> --repo jaetill/<repo> \
                    --add-label ready-for-implementer
               2. ADJACENCY BUNDLE (ADR-0029): if this issue is a finding that
                  cites a file F (e.g. a `[code-review] F:line — …` title or a
-                 file path in the body), collect open `deferred-until-adjacent`
-                 nits in the SAME repo that cite the SAME file F — up to
+                 file path in the body), collect open low/nit findings
+                 (`severity:low,severity:nit`, excluding `ready-for-implementer`)
+                 in the SAME repo that cite the SAME file F — up to
                  min(floor(total/2), 4). They ride along in this dispatch and do
-                 NOT consume a FLEET_MAX_DISPATCH slot. NEVER dispatch a nit on
+                 NOT consume an $AVAILABLE budget slot. NEVER dispatch a nit on
                  its own. (You own workload selection; the implementer no longer
                  hunts the queue — it executes what you hand it.)
               3. Dispatch that repo's implementer. Per ADR-0020 the label is
@@ -214,7 +258,7 @@ jobs:
             real failure; name it in the summary.
 
             SPARE-CAPACITY SWEEP: only if you dispatched AT LEAST ONE real
-            promotion this cycle AND fewer than $FLEET_MAX_DISPATCH total,
+            promotion this cycle AND fewer than $AVAILABLE total,
             spend each remaining slot draining nits (ADR-0028). On a cycle
             with ZERO real promotions, do NOT sweep — nits ride along only
             when the loop is already doing real work; they wait for a cycle
@@ -223,7 +267,8 @@ jobs:
             High+ and auto-pick-up — so deferring nit-only cycles delays no
             real fix, and it cuts the self-collision churn from nit-only runs.)
             When the sweep is eligible: pick the fleet repo with the most open
-            `deferred-until-adjacent` issues — skip any repo whose count is
+            low/nit issues (`severity:low,severity:nit`, excluding
+            `ready-for-implementer`) — skip any repo whose count is
             zero, a cleanup-sweep there is a wasted run — and dispatch one
             cleanup-only run:
               GH_TOKEN=$FLEET_TOKEN gh workflow run claude-implementer.yml \
@@ -295,11 +340,13 @@ jobs:
             echo "## Auto-merge: paused (AUTONOMOUS_MERGE=off)" >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
-          # Per ADR-0023, the autonomy boundary is origin (not type), and the
-          # platform repo is included for routine/mechanical fixes. Compositional
-          # self-changes (team gates / agents / standards / security) are excluded
-          # by the compositional-self-change label check below.
-          # genealogy still has no implementer loop.
+          # Per ADR-0039, code merge is autonomous for all review-passing linked
+          # work regardless of origin (ADR-0023's origin boundary is retired at
+          # the merge; the human checkpoint moves to test->prod promotion, #179).
+          # The platform repo is included for routine/mechanical fixes.
+          # Compositional self-changes (team gates / agents / standards /
+          # security) and ADR-gated changes are still held by the label checks
+          # below. genealogy still has no implementer loop.
           REPOS="game-night-pwa meal-planner ai-teacher jaetill-portal splendor draft carto agentic-dev-environment"
           merged=0 ; held=0
           # Per-run blast-radius cap (security-review): a malfunctioning or
@@ -335,27 +382,27 @@ jobs:
               if echo "$meta" | jq -e '[.labels[].name] | any(. == "compositional-self-change")' >/dev/null 2>&1; then
                 echo "  $slug#$pr — compositional-self-change label; hold for human (ADR-0023)"; held=$((held+1)); continue
               fi
-              # ADR-0021 cond. 1, as amended by ADR-0023: the linked issue must
-              # be MACHINE-ORIGIN. Machine-origin = the issue author is a bot,
-              # OR the issue carries `source:sentry`, `source:cloudwatch`, or
-              # `origin:internal-review`. Human-origin issues (any type,
-              # including a bug filed by a person) take a human-merge checkpoint
-              # and are held here. The feature plan-gate still keeps features
-              # out of this path entirely (ADR-0017).
+              # ADR-0021 cond. 1, as amended by ADR-0039: a linked issue must be
+              # PRESENT for traceability, but its ORIGIN no longer gates the
+              # merge. ADR-0023's HHUM hold — human-origin work waiting for a
+              # human merge click — is RETIRED. Review-passing, linked work
+              # merges autonomously regardless of who filed the issue. The
+              # human's checkpoint moves off the merge and onto test->prod
+              # promotion for user-facing features (#179); until that gate
+              # exists, all merges/releases are treated as test. The
+              # architectural and self-change gates above (requires-adr:*,
+              # compositional-self-change) and the checks battery below still
+              # hold — this is "routine reviewed work ships itself," never
+              # "skip the checks."
               issue=$(echo "$meta" | jq -r '.body // ""' \
                         | grep -ioE '(close[sd]?|fix(e[sd])?|resolve[sd]?) +#[0-9]+' \
                         | grep -oE '[0-9]+' | head -1 || true)
               if [[ -z "$issue" ]]; then
                 echo "  $slug#$pr — no linked issue; hold"; held=$((held+1)); continue
               fi
+              # issue_meta is still read: the ADR-0032 (agent-quality) and
+              # ADR-0035 (scope:iac) gates below classify from the issue labels.
               issue_meta=$(gh issue view "$issue" --repo "$slug" --json author,labels 2>/dev/null || echo '{}')
-              is_machine_origin=$(echo "$issue_meta" | jq -r '
-                (.author.is_bot == true) or
-                ([.labels[].name] | any(. == "source:sentry" or . == "source:cloudwatch" or . == "origin:internal-review"))
-              ' 2>/dev/null || echo false)
-              if [[ "$is_machine_origin" != "true" ]]; then
-                echo "  $slug#$pr — issue #$issue is human-origin; hold for human merge (ADR-0023)"; held=$((held+1)); continue
-              fi
               # ADR-0032 additive self-change lane. If this PR touches the loop's
               # own agent definitions, it may auto-merge ONLY if the deterministic
               # guard classifies it IN_LANE: exactly one non-rail-enforcer agent
@@ -441,6 +488,10 @@ jobs:
   # app repos forward their events via repository_dispatch; here on the platform
   # repo they fire same-repo. The LLM cycle-fill is a Phase-2 follow-up.
   # scope:iac is excluded (its path is unchanged for now — ADR-0030 §IaC path).
+  # ADR-0036: owner-`opened` auto-dispatch is bug/defect ONLY. A raw
+  # feature-request is NOT dispatched on open — it awaits human formulation →
+  # `approved` (promoter, medium tier) or a human `ready-for-implementer`
+  # fast-track. `feature-request` was therefore dropped from the opened branch.
   event-dispatch:
     if: |
       github.event_name == 'repository_dispatch'
@@ -462,7 +513,6 @@ jobs:
             && (
               contains(github.event.issue.labels.*.name, 'bug')
               || contains(github.event.issue.labels.*.name, 'defect')
-              || contains(github.event.issue.labels.*.name, 'feature-request')
             )
           )
         )
@@ -470,6 +520,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      - uses: actions/checkout@v4   # for scripts/fleet-inflight.sh
       - name: Mint fleet App token
         id: fleet-token
         uses: actions/create-github-app-token@v1
@@ -499,21 +550,16 @@ jobs:
           echo "Trusted-origin event for ${repo}#${issue}."
           # Durable promotion state (idempotent).
           gh issue edit "$issue" --repo "$repo" --add-label ready-for-implementer || true
-          # Throttle (ADR-0030): the cap is FLEET-WIDE — only a central counter
-          # bounds a multi-repo storm. Count ACTIVELY RUNNING implementer
-          # dispatches (in_progress + queued claude-implementer runs), NOT open
-          # PRs — an open PR is done-and-awaiting-merge and does not consume a
-          # dispatch slot, so counting PRs would chronically hold urgent work.
-          # FAIL OPEN: if the count can't be read, dispatch anyway — never drop
-          # urgent work on a transient API error.
-          REPOS="game-night-pwa meal-planner ai-teacher jaetill-portal splendor draft carto agentic-dev-environment"
-          inflight=0; counted=true
-          for r in $REPOS; do
-            n=$(gh run list --repo "jaetill/$r" --workflow=claude-implementer.yml --limit 50 \
-                  --json status \
-                  --jq '[.[] | select(.status == "in_progress" or .status == "queued")] | length' 2>/dev/null) || { counted=false; break; }
-            inflight=$((inflight + n))
-          done
+          # Throttle (ADR-0030): the cap is FLEET-WIDE — count actively running
+          # implementer dispatches via the shared source of truth (scripts/
+          # fleet-inflight.sh) so all three dispatch paths share ONE budget.
+          # FAIL OPEN on a read error — never drop urgent work on a transient API
+          # error.
+          if inflight=$(bash "$GITHUB_WORKSPACE/scripts/fleet-inflight.sh"); then
+            counted=true
+          else
+            counted=false
+          fi
           cap=${FLEET_MAX_DISPATCH:-6}
           if [[ "$counted" == "true" && "$inflight" -ge "$cap" ]]; then
             echo "::notice::Active implementer runs ($inflight) >= cap ($cap). ${repo}#${issue} is labelled ready-for-implementer; the next promoter cycle will dispatch it. Not dispatching now."

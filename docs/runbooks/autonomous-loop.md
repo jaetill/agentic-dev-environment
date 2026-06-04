@@ -70,12 +70,14 @@ To manually drain deferred nits on a specific fleet repo (Mode C cleanup sweep, 
 
 ## How work routes
 
-ADR-0017 routes work by **source × type × severity**. `claude-implementer`'s `initial` job is triggered two ways:
+All implementer dispatch flows through the **promoter** (ADR-0030) — there is no direct `issues: opened` bypass to a per-repo `initial` job anymore (that job was removed). Work reaches the implementer (the `manual-dispatch` job, via `workflow_dispatch`) by these paths:
 
-- **Human-filed work — `issues: opened`.** When a human opens an issue carrying a type label (`bug`, `defect`, or `feature-request`), the implementer picks it up immediately — no window, no promoter. The `opened` event is itself a human action, so it triggers the workflow directly: there is no label round-trip and no `GITHUB_TOKEN` cascade problem. A human-filed **bug** goes straight to the build phase; a human-filed **feature** enters the plan-gate — the implementer posts an approach and waits for the human's `plan-approved`.
-- **Agent-discovered work — promoter dispatch (ADR-0020).** The in-window fleet promoter applies `ready-for-implementer` as durable state and then dispatches `claude-implementer.yml` directly. The label-triggered `initial` job still fires for `source:sentry`, `severity:critical`, `plan-approved`, `skip-plan`, and a *human*-applied `ready-for-implementer` — but a *bot*-applied `ready-for-implementer` is deliberately ignored there (the dispatch handles it; this prevents a double-trigger).
+- **Owner-opened defects — immediate.** An owner-opened `bug` / `defect` dispatches at once via the promoter's deterministic `event-dispatch` (ADR-0030 / 0025). An owner-opened `feature-request` does **not** — features are formulated at human intake and enter via `approved` (ADR-0036), never on open.
+- **Machine-detected urgent work.** `source:sentry`, `source:cloudwatch`, `severity:critical` route through `event-dispatch` (platform) or the central urgent-poll (app repos), throttled to the shared fleet in-flight ceiling (`scripts/fleet-inflight.sh`).
+- **Human fast-track.** A human applying `ready-for-implementer` dispatches immediately via `event-dispatch` — the intake override for an `approved` feature you want worked now.
+- **Agent findings + approved features — windowed promoter (ADR-0020).** The in-window ranked promoter promotes eligible agent findings and `approved` features (the latter at the **medium** tier, ADR-0036) within the shared dispatch budget, then dispatches via `workflow_dispatch`.
 
-A human-filed issue with **no** type label is not auto-picked-up — add `bug` / `feature-request`, or apply `ready-for-implementer` directly. Issues filed through the bug-report or feature-request template already carry the label. The `opened` trigger is not retroactive: an issue opened before this routing landed needs a one-time `ready-for-implementer`.
+There is **no in-loop plan-gate**: a feature's *what* is decided at human intake (formulation → `approved`, ADR-0036); the implementer plans the *how* itself. A human-filed issue with no type label is not auto-picked-up — a maintainer formulates/labels it first.
 
 ### Resolved — the promoter dispatches; it does not rely on a label cascade
 

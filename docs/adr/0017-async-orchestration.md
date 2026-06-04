@@ -7,7 +7,7 @@
 
 > **Amended by [ADR-0030](0030-all-dispatch-through-promoter.md):** dispatch routing changed — all implementer dispatch now goes through the promoter (no direct bypass). See the *Impacted ADRs* table in ADR-0030 for the specific change to this ADR.
 
-> **Amended by [ADR-0033](0033-opted-in-features-build-without-plan-gate.md):** the feature plan-gate (sub-decision 4) is no longer the default — an opted-in `feature-request` builds directly like a defect; the plan phase runs only when the human applies the `plan-first` label. `skip-plan` is retired.
+> **Amended by [ADR-0033](0033-opted-in-features-build-without-plan-gate.md), then superseded by [ADR-0036](0036-human-intake-model.md):** ADR-0033 made the feature plan-gate (sub-decision 4) an opt-in (`plan-first`) rather than the default. ADR-0036 then **retired it entirely** — feature planning (the *what*) moved to human intake (formulation → `approved`); the in-loop PLAN PHASE and its labels are removed. The implementer plans only the *how* (its own plan-mode), with no human approval gate.
 
 > **Format:** MADR 4.x with the platform's three extensions. This is a **bundled-sub-decision** ADR — five tightly-coupled decisions about how autonomous work is scheduled, serialized, and routed.
 

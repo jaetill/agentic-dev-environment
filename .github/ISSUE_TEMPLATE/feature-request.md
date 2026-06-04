@@ -1,7 +1,7 @@
 ---
 name: Feature request
 about: Propose a new feature or enhancement
-labels: feature-request
+labels: feature-request, needs-formulation
 ---
 
 ## What
@@ -12,16 +12,13 @@ labels: feature-request
 
 <!-- Why does this matter? What does it unblock or improve? -->
 
-## Approach (optional)
-
-<!--
-Leave this blank to have the implementer propose an approach and wait for
-your approval (the plan-gate, per ADR-0017).
-
-OR: write the intended approach here yourself and add the `skip-plan`
-label — the implementer will go straight to building it.
--->
-
 ## Acceptance criteria
 
 <!-- How do we know it's done? -->
+
+<!--
+A maintainer formulates and approves features before they enter the build
+loop (ADR-0036). A filed request waits in `needs-formulation` until then —
+it does not auto-build. The more concrete the What / Why / Acceptance
+criteria above, the faster it can be approved.
+-->

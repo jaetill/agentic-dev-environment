@@ -7,6 +7,8 @@
 
 > **Format:** MADR 4.x. Single-decision ADR. Makes the promoter the single dispatch authority; the natural endpoint of the scheduler/worker separation begun in [ADR-0029](0029-promoter-owns-nit-adjacency.md). Amends [ADR-0017](0017-async-orchestration.md), [ADR-0020](0020-fleet-orchestration.md), [ADR-0026](0026-agentic-implementer.md), [ADR-0023](0023-origin-based-autonomy-boundary.md), [ADR-0025](0025-owner-guard-on-platform-opened-pickup.md), [ADR-0016](0016-finding-lifecycle-calibration-deferral.md) — see *Impacted ADRs*.
 
+> **Amendment (2026-06-01) — throttle loophole closed; in-flight count centralised.** The `FLEET_MAX_DISPATCH` ceiling is defined here as **fleet-wide in-flight** (concurrent `in_progress`+`queued` implementer runs across the fleet). Phases 1–2 (`event-dispatch`, `urgent-poll`) enforced it that way, but the **windowed LLM promoter** (`triage-scan.yml` Pass 2) was left on its pre-0030 semantics — a **per-run batch cap** of `FLEET_MAX_DISPATCH` that ignored runs already in flight from the other two paths (and from prior windowed runs). Since the windowed pass fires up to ~6×/window and its dispatches *do* count against the other paths' reads, it could barge past the ceiling while event-dispatch and the poll correctly backed off — concurrency could reach `cap + (already in flight)`. **Fix:** all three paths now compute the in-flight count through one shared source of truth, [`scripts/fleet-inflight.sh`](../../scripts/fleet-inflight.sh); the windowed pass computes `AVAILABLE = max(0, FLEET_MAX_DISPATCH − in-flight)` deterministically *before* the LLM and hands it that as a hard budget (0 ⇒ promote/dispatch nothing this pass; Pass 1/3 still run). All three **fail open** on a read error (never drop work on a transient API error). Shipped 2026-06-01.
+
 ## Context and Problem Statement
 
 Today five signals dispatch the implementer **directly**, skipping the promoter:
@@ -71,6 +73,21 @@ Option A is rejected: it leaves the throttle gap and the five-front-door duplica
 
 - Human-approved work (`ready-for-implementer` / owner-opened) is *already* a promotion decision; routing it through the promoter to "auto-promote" is redundant there — its only added value is the cycle-fill. Acceptable.
 - The auto-merge **machine-origin** check (ADR-0023) is unchanged — that governs *merge*, not *dispatch*.
+
+## Pros and Cons of the Options
+
+### Option A: keep the direct bypasses; wire `source:cloudwatch` into the implementer trigger
+
+- ✅ Pro: Smallest possible change — one trigger line to match the spec.
+- ❌ Con: Leaves the `FLEET_MAX_DISPATCH` throttle gap — urgent work (the Sentry-storm case) still bypasses the only central in-flight counter.
+- ❌ Con: Keeps the five-front-door duplication and the per-signal trigger tangle in the implementer.
+
+### Option B: route everything through the promoter (chosen)
+
+- ✅ Pro: One dispatch authority; the implementer keeps a single `ready-for-implementer` entry point.
+- ✅ Pro: Throttle + dedup finally cover urgent work — only the central promoter can count fleet-wide in-flight work, so a multi-repo storm is actually capped.
+- ✅ Pro: The CloudWatch inconsistency dissolves, and an urgent event opportunistically drains other eligible work for that project in the same run.
+- ❌ Con: The LLM promoter becomes the single front door for all dispatch — a SPOF. Mitigated by the deterministic auto-promote of the trigger (no LLM veto on the urgent issue) and the small, project-scoped per-event run.
 
 ## Impacted ADRs (consolidated, so consistency lives in one place)
 

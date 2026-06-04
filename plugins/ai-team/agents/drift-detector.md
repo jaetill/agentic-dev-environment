@@ -181,8 +181,8 @@ This PR resolves 3 drift items detected on 2026-05-08:
 When you file drift as an issue (Tier 1) or open a fix PR (Tier 2):
 
 - **Critical / High** — issue gets label `severity:critical` or `severity:high`. Implementer or architect pickup is expected immediately. No deferral.
-- **Medium** — by default, no deferral. Drift should be reconciled before it compounds. EXCEPTION: cosmetic-only drift (tags, descriptions) that has no operational impact can carry `deferred-until-adjacent`.
-- **Low / Nit** — issue gets label `severity:low` (or `severity:nit`) AND label `deferred-until-adjacent`. Include in the body:
+- **Medium** — never deferred. Drift should be reconciled before it compounds; an item not worth a dedicated fix is, by definition, a Nit — file it as `severity:nit` (ADR-0037).
+- **Low / Nit** — issue gets label `severity:low` (or `severity:nit`). The nit tier IS the deferred tier; no separate label (ADR-0037). Include in the body:
 
   > **Deferral policy:** defer until the next IaC PR touches this stack. The `iac-implementer` will bundle this opportunistically (per ADR-0016 finding lifecycle). Do not implement in isolation.
 

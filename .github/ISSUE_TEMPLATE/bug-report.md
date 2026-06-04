@@ -21,6 +21,6 @@ labels: bug
 
 ## Context
 
-<!-- Environment, recent changes, anything relevant. Bug issues skip the
-     plan-gate — the implementer fixes them directly once they're
+<!-- Environment, recent changes, anything relevant. A confirmed bug builds
+     directly — owner-filed bugs on open, others once a maintainer applies
      `ready-for-implementer`. -->

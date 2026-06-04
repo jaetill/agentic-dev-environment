@@ -22,6 +22,12 @@ How do we move adjacency selection to the promoter without creating a colliding 
 - **The bundling safety check needs the code.** Only the implementer sees the actual diff; the promoter sees the issue's *claimed* file, which can be stale or wrong.
 - **A mis-selected nit must not be lost or cause churn.**
 
+## Considered Options
+
+- **Option A — Implementer self-discovers** (ADR-0016 status quo): while working an issue, the implementer scans the deferred-nit queue itself and bundles same-directory matches.
+- **Option B — Promoter promotes the nit as a separate dispatch**: pure scheduler ownership, but it opens a second run/PR on the same file.
+- **Option C — Promoter selects into the same dispatch; implementer validates and executes** (chosen): the promoter hands same-file nits to the implementer in the dispatch; the implementer confirms each against its actual diff and drops/corrects the rest.
+
 ## Decision Outcome
 
 Chosen option: **promoter selects into the same dispatch; implementer validates and executes.**

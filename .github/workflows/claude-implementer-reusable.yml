@@ -9,18 +9,15 @@ name: claude-implementer (reusable)
 #
 # Phase B of ADR-0026 — invokes the implementer agent in one of two modes:
 #
-# Mode A (initial implementation): triggered either when the repo OWNER opens
-#   an issue labelled `bug`/`defect`/`feature-request` (the owner's own work —
-#   picked up at once, bypassing the promoter and window per ADR-0017; the
-#   `author_association == 'OWNER'` guard is required because this repo is
-#   PUBLIC and ships templates that auto-apply those labels, so without it any
-#   GitHub user could start an implementer run on the platform repo — ADR-0025), or
-#   when an issue gains a pickup label (`ready-for-implementer`,
-#   `source:sentry`, `severity:critical`, `plan-approved`).
-#   Features build by default (ADR-0033): a `feature-request` goes straight to
-#   the BUILD PHASE like a `defect`/`bug`. The two-phase plan-gate (PLAN PHASE
-#   posts an approach and waits for the human's `plan-approved`, then BUILD)
-#   runs only when the human opts in with the `plan-first` label.
+# Mode A (initial implementation): all Mode-A dispatch arrives via
+#   workflow_dispatch → the `manual-dispatch` job. The promoter (triage-scan.yml,
+#   ADR-0020/0030) is the dispatcher — owner-opened bug/defect dispatch
+#   immediately via event-dispatch; agent findings and `approved` features
+#   promote on a cycle, then dispatch via workflow_dispatch. Features are
+#   formulated at human intake and enter via `approved` (ADR-0036) — they do NOT
+#   build on open, and there is NO in-loop plan-gate: the plan-first PLAN PHASE
+#   was retired by ADR-0036 (the `what` is decided at intake, the `how` by the
+#   implementer's own plan-mode).
 #
 # Mode B (fix iteration): triggered when a PR authored by claude[bot]
 #   receives a review with state REQUEST_CHANGES from code-reviewer or
@@ -28,7 +25,7 @@ name: claude-implementer (reusable)
 #   addresses each finding, pushes a new commit to the same branch.
 #
 # Hard guardrails (per ADR-0026):
-#   - 50 LOC / 3 files / 1 component scope cap (enforced in agent prompt)
+#   - 400 LOC / 8 files / 3 components scope cap (enforced in agent prompt)
 #   - Max 3 fix-iteration attempts before escalation
 #   - Daily activation cap (TODO: enforce in workflow)
 #   - Never commits to master (enforced by branch protection + agent prompt)
@@ -51,7 +48,7 @@ on:
         required: false
         type: string
       bundle_issues:
-        description: 'Comma-separated deferred-until-adjacent nit issue numbers the promoter selected to ride along with issue_number (same-file, ADR-0029)'
+        description: 'Comma-separated low/nit (severity:low,severity:nit) issue numbers the promoter selected to ride along with issue_number (same-file, ADR-0029)'
         required: false
         type: string
 
@@ -68,174 +65,11 @@ concurrency:
   cancel-in-progress: false   # don't kill mid-implementation
 
 jobs:
-  # ── Mode A: initial implementation (feature plan-gate continuation only) ──
-  # Per ADR-0030 the bypass triggers moved to the promoter's event-dispatch
-  # (triage-scan.yml). The ADR-0025 OWNER guard and the source:sentry /
-  # severity:critical / human ready-for-implementer triggers now live there.
-  initial:
-    # ADR-0030: all initial dispatch now routes through the promoter's
-    # event-dispatch (triage-scan.yml). The bypass triggers — source:sentry,
-    # severity:critical, human-applied ready-for-implementer, and owner-opened
-    # bug/defect/feature-request — were REMOVED from here and moved there
-    # (deterministic, throttled). What remains is the feature plan-gate
-    # continuation: a human applying plan-approved re-enters the BUILD phase
-    # for a plan-first feature (ADR-0033). The promoter dispatches all
-    # other Mode-A work via workflow_dispatch (the manual-dispatch job).
-    if: |
-      github.event_name == 'issues'
-      && github.event.action == 'labeled'
-      && !contains(github.event.issue.labels.*.name, 'scope:iac')
-      && github.event.label.name == 'plan-approved'
-    runs-on: ubuntu-latest
-    timeout-minutes: 25
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          # Use GITHUB_TOKEN for push permissions (already write per
-          # workflow-level permissions block).
-          token: ${{ secrets.IMPLEMENTER_PAT || secrets.GITHUB_TOKEN }}
-      # Node setup + install only when this repo is actually a Node project.
-      # The platform repo itself has no root package.json; unconditionally
-      # running setup-node (cache: npm) or `npm ci` fails there.
-      - name: Detect Node project
-        id: detect
-        run: |
-          if [ -f package.json ]; then
-            echo "node=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "node=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::No root package.json — skipping Node setup."
-          fi
-      - uses: actions/setup-node@v4
-        if: steps.detect.outputs.node == 'true'
-        with:
-          node-version: 22
-          cache: npm
-      - name: Install dependencies
-        if: steps.detect.outputs.node == 'true'
-        run: |
-          npm ci
-          [ -f lambda/package-lock.json ] && npm ci --prefix lambda || echo "no lambda deps"
-      - name: Configure git author
-        run: |
-          git config user.name 'claude[bot]'
-          git config user.email '41898282+claude[bot]@users.noreply.github.com'
-      - name: Run implementer agent (Mode A — initial)
-        env:
-          ISSUE_NUMBER: ${{ github.event.issue.number }}
-        uses: anthropics/claude-code-action@v1
-        with:
-          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          show_full_output: true
-          prompt: |
-            Act as the `implementer` subagent (see .claude/agents/implementer.md).
-            You are operating in **Mode A**.
-
-            The work item is issue #${{ github.event.issue.number }}.
-
-            Read the issue FIRST, including its labels:
-              gh issue view ${{ github.event.issue.number }} --json title,body,labels,comments
-
-            ## Step 0 — Competence gate (process-flaw issues, ADR-0019)
-
-            If this issue is a process flaw — it carries the `process-flaw`
-            label, or its fix lives in `ai-team` (an agent definition, a
-            reusable workflow, a platform standard, a shared template) —
-            classify it per docs/standards/12-self-modification.md before
-            doing anything else:
-
-            - MECHANICAL — a permission, a typo, a missing tool grant, or
-              applying a pattern the team already uses elsewhere → proceed
-              through the build phase below.
-            - COMPOSITIONAL / STANDARDS / SECURITY-touching — it changes
-              the agent roster, what a role does, a gate, a review, a
-              standard, or the security posture → do NOT implement it.
-              Post an issue comment naming the classification and
-              recommending the architect path (research authoritative best
-              practice, propose an ADR with tradeoffs, human ratifies),
-              then STOP.
-
-            When you cannot confidently call a self-change mechanical,
-            treat it as compositional and stop. An unmade self-change is
-            recoverable; an improvised one is not.
-
-            A `process-flaw` pulled from a single project is n=1 — do NOT
-            assume its fix fits every project. If the flaw or its proposed
-            fix is shaped by that project's stack or codebase, treat it as
-            compositional and route it to the architect for a generality
-            assessment (Standard 12): general flaw, project-local, or
-            general flaw needing a generalized fix.
-
-            ## Step 1 — Determine the phase (feature plan-gate, ADR-0017)
-
-            Inspect the labels:
-
-            - If the issue has `feature-request` AND `plan-first` AND not yet
-              `plan-approved` → you are in the **PLAN PHASE** (ADR-0033 opt-in).
-            - Otherwise (a `defect`/`bug`, a `feature-request` WITHOUT
-              `plan-first`, or a `plan-first` feature that now has
-              `plan-approved`) → you are in the **BUILD PHASE**. Features build
-              by default; the plan phase is opt-in via `plan-first`.
-
-            ### PLAN PHASE — do this and nothing else:
-              1. Read the issue body in full; read enough surrounding code to
-                 propose a concrete approach.
-              2. Check the scope cap (>50 LOC, >3 files, cross-component). If
-                 the feature plainly exceeds it, post the scope-cap refusal
-                 comment and stop.
-              3. Post your intended approach as an issue comment
-                 (`gh issue comment`): what you will change, which files, the
-                 solution shape, what you will test, what you are explicitly
-                 NOT doing. Keep it skimmable.
-              4. `gh issue edit ${{ github.event.issue.number }} --add-label awaiting-plan-approval`
-              5. STOP. Do not create a branch. Do not write code. The human
-                 applies `plan-approved` when satisfied, which re-triggers
-                 this workflow into the build phase.
-
-            ### BUILD PHASE — follow your spec's Mode A process exactly:
-              1. Read the issue body in full. For a feature, also re-read your
-                 own approved approach comment and implement THAT.
-              2. Check the scope cap (>50 LOC, >3 files, cross-component).
-                 If exceeded, post the refusal comment and stop.
-              3. Read the relevant code in context.
-              4. Plan the minimal change.
-              5. Create branch `impl/<slug>-${{ github.event.issue.number }}`.
-              6. Write the code change.
-              7. Write tests that would fail without the fix.
-              8. Run `npm test`, `npm run lint`, `npm run typecheck` (if defined).
-              9. Iterate locally until clean.
-             10. Commit (SSH-signed via the git config from earlier; the
-                 runner has the GitHub App's signing identity).
-             11. **Pre-flight conflict check** (per spec step 11, issue #29).
-                 `git fetch origin master && git rebase origin/master`. If
-                 the rebase succeeds, your branch is up-to-date with master
-                 — continue. If it fails with conflicts, `git rebase --abort`,
-                 post an explanatory comment on the issue, and EXIT WITHOUT
-                 PUSHING. The ready-for-implementer label remains; the human
-                 (or a future dispatch) will retry once the conflicting PR
-                 has settled. This prevents the parallel-dispatch failure
-                 mode we hit on PRs #26/#27.
-             12. Push the branch.
-             13. Open a PR with title `<type>(<component>): <description>`
-                 and the body sections from your spec (What changed / Why /
-                 How tested / Closes #${{ github.event.issue.number }}).
-             14. Stop.
-
-            Hard rules:
-              - Never commit to master.
-              - Never modify terraform/ (that's iac-implementer).
-              - Never modify .github/workflows/ unless the issue has `scope:ci`.
-              - Never apply `plan-approved` yourself — that is the human's gate.
-              - If at any point you cannot proceed safely, post a comment
-                on the issue explaining and stop. Do not push broken code.
-          claude_args: |
-            --model claude-sonnet-4-6
-            --permission-mode bypassPermissions
-            --allowed-tools Bash,Read,Write,Edit,Glob,Grep
-            --append-system-prompt "Follow the platform standards in docs/standards/. Adhere strictly to the implementer agent's scope cap and authority rules per .claude/agents/implementer.md."
-
   # ── Mode A: IaC implementation (separate agent) ─────────────────────────
+  # ADR-0036: owner-`opened` auto-dispatch is bug/defect ONLY here too. An IaC
+  # feature-request awaits formulation; because scope:iac bypasses the promoter
+  # (ADR-0030), an approved IaC feature dispatches via a human
+  # `ready-for-implementer` fast-track, not the promoter's medium tier.
   initial-iac:
     if: |
       github.event_name == 'issues'
@@ -253,7 +87,6 @@ jobs:
           && (
             contains(github.event.issue.labels.*.name, 'bug')
             || contains(github.event.issue.labels.*.name, 'defect')
-            || contains(github.event.issue.labels.*.name, 'feature-request')
           )
         )
       )
@@ -533,7 +366,7 @@ jobs:
             one your change ACTUALLY touched; if so, bundle it into this PR's
             "While here" section and `Closes #<nit>`. If a supplied nit is NOT
             in a file you touched, DROP it: do not close it, leave it
-            `deferred-until-adjacent`, and — if you can determine the nit's
+            open at its severity (still a deferred nit), and — if you can determine the nit's
             actual current file from the code (e.g. a stale or renamed path) —
             edit that nit issue to correct its cited file:line so it is matched
             correctly next time; otherwise post a one-line note that it was
@@ -546,7 +379,7 @@ jobs:
 
   # ── Mode C: cleanup sweep (workflow_dispatch -f mode=cleanup-sweep) ──────
   # Dispatched by the fleet promoter's spare-capacity sweep (ADR-0020). No
-  # originating issue — the implementer drains deferred-until-adjacent nits.
+  # originating issue — the implementer drains low/nit (severity:low,severity:nit) findings.
   cleanup-sweep:
     if: |
       github.event_name == 'workflow_dispatch'
@@ -594,12 +427,13 @@ jobs:
             sweep** (see .claude/agents/implementer.md).
 
             There is no originating issue. Open sidecar cleanup PR(s) only:
-            drain a bounded batch of this repo's open `deferred-until-adjacent`
-            nit issues — cap max(floor(total / 2), 8), chunked at 12 issues per
+            drain a bounded batch of this repo's open low/nit issues
+            (`severity:low,severity:nit`, excluding `ready-for-implementer`)
+            — cap max(floor(total / 2), 8), chunked at 12 issues per
             PR. Branch `cleanup/deferred-sweep-<n>`; PR title
-            `chore: drain deferred-until-adjacent nits`. Each bundled fix must
+            `chore: drain deferred low/nit findings`. Each bundled fix must
             be bounded and unambiguous; skip any that is not. If there are no
-            open `deferred-until-adjacent` issues, do nothing and exit.
+            open low/nit issues, do nothing and exit.
           claude_args: |
             --model claude-sonnet-4-6
             --permission-mode bypassPermissions

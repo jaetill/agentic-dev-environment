@@ -9,6 +9,10 @@
 
 > **Amended by [ADR-0032](0032-additive-self-change-auto-lane.md):** the compositional-self-change human checkpoint gains a deterministically-gated exception — additive agent output-contract tightenings auto-merge via the `additive-self-change-guard` inside the auto-merge gate; out-of-lane agent edits are still held for human ratification.
 
+> **Amended by [ADR-0039](0039-merge-is-autonomous-human-gate-moves-to-prod.md):** the origin-based human-merge hold (`HHUM` — human-origin work waiting for a human merge) is **retired**. Code merge is autonomous for all review-passing linked work regardless of origin; the human checkpoint moves to test→prod promotion for user-facing features (#179). The compositional-self-change firewall hold and the `requires-adr` architectural hold are unchanged — ADR-0039 relaxes only the *origin* axis at the merge, not the firewall.
+
+> **Reader note (2026-06-04):** the Decision Outcome's sentence "Human-filed **features** keep the ADR-0017 plan-gate" was accurate when written; the plan-gate was later made opt-in by [ADR-0033](0033-plan-gate-opt-in.md) and retired by [ADR-0036](0036-human-intake-model.md) — features are now scoped at human intake (formulation → `approved`) instead.
+
 > **Format:** MADR 4.x with the platform's three extensions. Single-decision ADR. It re-decides the *axis* of the autonomy boundary and, in doing so, amends ADR-0017, ADR-0019, and ADR-0021; the amendments are enumerated in Implementation notes.
 
 ## Context and Problem Statement
@@ -59,7 +63,7 @@ The governing principle: **the human's checkpoint sits where their judgment is i
 
 ### Negative
 
-- A machine-origin change merging unseen is now the explicit norm, not the exception. ADR-0021 already accepted this for `defect`/`bug`; this ADR widens it to all machine-origin work and to routine platform fixes. Bounded by: the review battery, the implementer scope cap (50 LOC / 3 files / 1 component), `requires-adr` routing, every change being a revertable PR, and `AUTONOMOUS_MERGE=off` as a one-flip stop.
+- A machine-origin change merging unseen is now the explicit norm, not the exception. ADR-0021 already accepted this for `defect`/`bug`; this ADR widens it to all machine-origin work and to routine platform fixes. Bounded by: the review battery, the implementer scope cap (per [ADR-0026](0026-agentic-implementer.md)), `requires-adr` routing, every change being a revertable PR, and `AUTONOMOUS_MERGE=off` as a one-flip stop.
 - Loop-churn safety now rests on agent logic that must actually work. If oscillation detection is weak, churn runs unchecked — there is no gate behind it by design. Accepted, and the reason oscillation detection is a hard requirement of this ADR, not a nice-to-have.
 - A human-filed bug is now slower — it waits for a human merge — than it was under the type axis. Accepted: that wait *is* the control the human asked for.
 
