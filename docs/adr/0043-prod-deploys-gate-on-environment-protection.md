@@ -7,6 +7,8 @@
 
 > **Format:** MADR 4.x with the platform's three extensions. Single-decision ADR with a staged rollout. Amends [ADR-0039](0039-merge-is-autonomous-human-gate-moves-to-prod.md) — its interim policy ("treat all merges/releases as test") is replaced by a real gate.
 
+> **Scope correction (2026-06-04, same day — Jason):** as originally worded, "phase 2" read as the mandated end-state, forcing a two-environment topology on every platform adopter. That is wrong. **The platform invariant this ADR establishes is exactly one thing: the production deploy is human-gated** (environment protection, required reviewer). The phase-1 shape — a single environment whose deploy job is the protected prod deploy — is a **fully compliant, permanent** end-state, right-sized for low-merge-volume projects. The dual-target shape (test deploys ungated, gated promotion) is an **opt-in ergonomic upgrade** for projects where merge volume makes per-merge approval clicks expensive — this fleet opts in (the autonomous loop generates that volume), which is why per-app phase-2 issues exist here. Adopters choose per project; Standard 02 §1 carries the same rule.
+
 ## Context and Problem Statement
 
 ADR-0039 moved the human checkpoint off the code merge and promised it would reappear at **test→prod promotion** for user-facing features (#179), with an interim policy of "treat all merges/releases as test." The deploy-wiring audit (2026-06-04, posted to #179) found the interim policy describes a world that does not exist:
