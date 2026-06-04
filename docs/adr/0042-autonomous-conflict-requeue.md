@@ -58,6 +58,27 @@ Live exhibits (2026-06-03): game-night-pwa #132 and meal-planner #64 conflicted 
 - `CONFWAIT` in the loop diagram becomes truthful ("re-queued, bounded retry") instead of aspirational ("retry next dispatch").
 - Option B's lower retry latency was real but bought with blocker-identification + watcher machinery; next-cycle latency is acceptable at current windows.
 
+## Pros and Cons of the Options
+
+### Option A — self-re-queue with a bounded retry counter (chosen)
+
+- ✅ Reuses the existing promotion path entirely; no new watcher machinery.
+- ✅ Bounded: a structurally persistent conflict escalates at 7, converting spin into a meaningful human signal.
+- ✅ One concept applied at both conflict points (pre-flight abort and merge-time failure).
+- ❌ Up to 7 wasted builds before a human sees a genuinely persistent conflict. Accepted: builds are cheap; each retry is spaced by at least one promotion cycle.
+- ❌ Label arithmetic (`conflict-retry:n` → `n+1`) must be implemented correctly in both the implementer and the auto-merge gate; a missed increment delays escalation (but cannot cause a spin).
+
+### Option B — event-driven precise retry
+
+- ✅ Lower retry latency: re-dispatches as soon as the conflicting PR merges, not on the next promotion cycle.
+- ❌ Requires identifying the conflicting PR and adding watcher/subscriber machinery — new infrastructure for a latency improvement that is acceptable at current window spacing.
+
+### Option C — status quo plus honest diagram label
+
+- ✅ Zero implementation work.
+- ❌ The "re-poke the label" human chore persists; the loop fails to absorb the mechanical friction it exists to absorb.
+- ❌ The issue stays *ready, no PR* until the human acts — indefinitely.
+
 ## Implementation notes
 
 - `plugins/ai-team/agents/implementer.md` — Mode A step 11 (and the Mode B analog): replace comment-for-human with strip + `conflict-retry` increment + one-line comment.

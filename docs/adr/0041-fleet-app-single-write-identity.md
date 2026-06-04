@@ -58,6 +58,27 @@ The fleet already owns a first-party App — `jaetill-ai-triage-team` — which 
 
 - Review-battery workflows don't push code; they keep their current tokens. Only the implementer's write path changes.
 
+## Pros and Cons of the Options
+
+### Option A — single identity: fleet App for all implementer pushes (chosen)
+
+- ✅ One identity in every author-keyed check, query, and dashboard — no OR logic needed.
+- ✅ `scope:ci` class becomes deliverable fleet-wide; the promoter's refusal carve-out is removed.
+- ✅ Third-party Anthropic App (`app/claude`) leaves the write path; the loop's hands are owner-controlled end to end.
+- ❌ The fleet token becomes the highest-value credential in the system once `workflows: write` is granted. Accepted only behind the injection-hardening precondition (#126/#128/#138).
+
+### Option B — split identity: fleet token for `scope:ci` only, `app/claude` for the rest
+
+- ✅ Minimises the fleet token's blast radius in the interim.
+- ❌ Two identities forever in every author-keyed check, query, and dashboard.
+- ❌ The split logic must be maintained and kept in sync as scope definitions evolve.
+
+### Option C — post-step push: agent writes files; a fleet-token step commits workflow paths
+
+- ✅ Narrow fleet-token exposure (only touches `.github/workflows/**`).
+- ❌ Splits one logical change across two committer identities, complicating blame and revert.
+- ❌ Most complex: requires detecting changed workflow paths at action time and adding a separate commit step.
+
 ## Links
 
 - [ADR-0020](0020-fleet-orchestration.md) — the fleet App and its token plumbing.

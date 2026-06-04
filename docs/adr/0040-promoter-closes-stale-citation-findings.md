@@ -65,6 +65,33 @@ Before the promoter's LLM evaluation of a candidate finding, a **deterministic e
 - The check runs per-candidate inside the promoter pass — no new workflow, no new dispatch path, no throttle interaction (ADR-0030 untouched).
 - Disposition authority expands by exactly one deterministic branch; the promoter's LLM judgment surface is unchanged.
 
+## Pros and Cons of the Options
+
+### Option 1 — status quo (human closes by hand)
+
+- ✅ Zero new machinery.
+- ❌ Stale citations are immortal: nothing makes a deleted file reappear, so nothing triggers resolution.
+- ❌ Burns promoter evaluation tokens every cycle on inputs that cannot change.
+- ❌ Keeps a standing human chore that is pure mechanical friction — the exact pattern ADR-0031 was written to kill.
+
+### Option 2 — auto-demote to `severity:nit`
+
+- ✅ Keeps the finding in the queue in case the file reappears.
+- ❌ Hides the corpse instead of burying it: the nit still occupies the queue, still gets swept into Mode-C batches, and still burns evaluation tokens.
+
+### Option 3 — deterministic auto-close with provenance comment (chosen)
+
+- ✅ Zero LLM cost: file existence is a `test -e` check, not a judgment.
+- ✅ Closed issues are linked and reopenable — provenance preserved, nothing silently lost.
+- ✅ Directly shrinks the LLM evaluation set; every skipped stale finding is a compounding token and context saving.
+- ❌ A renamed (not deleted) file closes a still-actionable finding. Accepted: the close comment names the removing commit/PR; the finding is reopenable; reviewer agents re-find persisting defects at new paths on a future pass.
+
+### Option 4 — LLM judges staleness during evaluation
+
+- ✅ Unified evaluation path; no separate script.
+- ❌ Spends LLM tokens to determine a fact `test -e` establishes for free.
+- ❌ Makes the disposition non-deterministic — the one property this check must not lose.
+
 ## Implementation notes
 
 - `scripts/stale-citation-check.sh` — new; input: issue title + body, repo checkout at HEAD; output: `STALE <path>...` / `PRESENT` / `NO_PATHS`. Pure bash, no LLM.

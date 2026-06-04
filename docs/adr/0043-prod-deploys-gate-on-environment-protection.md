@@ -70,6 +70,27 @@ The configuration is recorded in `scripts/configure-deploy-protection.ps1` (repe
 - The IaC cascade (ADR-0035) is untouched — `scope:iac` guards govern infrastructure changes; this ADR gates application deploys.
 - Merge autonomy (ADR-0039) is untouched — code still merges without a human; only the deploy now waits.
 
+## Pros and Cons of the Options
+
+### Option A — protect every prod deploy, permanently
+
+- ✅ Immediate and uniform: every prod deploy gated from day one with no phased conversion work.
+- ❌ Re-creates a per-merge human click forever, even for low-risk internal refactors — the click ADR-0039 deliberately removed at merge reappears at deploy for all time.
+
+### Option B — build dual-target first (merge→test ungated, gated promotion→prod from the start)
+
+- ✅ Ships the end-state directly; no per-click overhead once deployed.
+- ❌ Prod stays ungated for weeks while test environments are built across six apps.
+- ❌ The interim exposure is the exact gap ADR-0039's risk note warned about; deferring the gate perpetuates it.
+
+### Option C — staged: protect now, evolve per-app (chosen)
+
+- ✅ Closes ungated-prod exposure the day this ADR lands (phase 1), with no throwaway work.
+- ✅ Each phase-1 artifact (the protected `production` environment) migrates directly into phase 2; nothing built now is discarded.
+- ✅ Per-app conversion lets each project move to the dual-target shape on its own timeline.
+- ❌ Until phase-2 conversion, every merge of that app waits for an approval click — transitional cost, knowingly accepted over weeks of ungated prod.
+- ❌ Transitions can calcify; counter-measured by filing phase-2 issues at ratification time so the work enters the loop's backlog immediately.
+
 ## Implementation notes
 
 - `scripts/configure-deploy-protection.ps1` — creates/updates environments and required-reviewer rules across the fleet (idempotent).

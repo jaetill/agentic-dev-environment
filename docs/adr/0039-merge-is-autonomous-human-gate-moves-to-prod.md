@@ -65,6 +65,28 @@ The governing principle shifts by one axis: **the human's checkpoint sits at the
 - ADR-0023's *analysis* (the human's resource is product judgment) is preserved; only the *location* of the checkpoint changes (merge → prod).
 - This PR is itself a compositional self-change, so it holds for human merge per the firewall — Jason's merge is the ratification. Consistent: relaxing the origin gate does not relax the firewall that governs relaxing gates.
 
+## Pros and Cons of the Options
+
+### Option A — keep origin at the merge (status quo)
+
+- ✅ No implementation work; existing ADR-0023 logic unchanged.
+- ❌ The loop's merge bottleneck persists: the human clicks through their own reviewed, green PRs with no new information added.
+- ❌ The checkpoint is misaligned — origin at merge is not where product judgment is irreplaceable (ship-to-users is).
+- ❌ Jason's own reviewed, green PRs keep waiting on a rubber-stamp that provides no safety the review battery didn't already provide.
+
+### Option B — merge is autonomous regardless of origin; human gate moves to test→prod (chosen)
+
+- ✅ Clears the merge bottleneck; loop throughput stops depending on the human's click latency.
+- ✅ The human checkpoint aligns with where product judgment matters: the user-facing ship decision, not the merge click.
+- ✅ One simpler condition at merge (linked issue present) replaces origin inspection.
+- ❌ Reviewed work merges to `main` and deploys to test with no human in the loop. Accepted: bounded by the review battery; the interim "all merges are test" policy holds until #179.
+- ❌ The prod-promotion gate is not built in this ADR — the safety rests on the interim policy until #179 ships.
+
+### Option C — merge autonomous, no human gate anywhere
+
+- ✅ Maximum throughput; zero checkpoint latency at any stage.
+- ❌ The human loses the ship-to-users decision on user-facing features entirely. Explicitly rejected — that call is the one the system cannot substitute.
+
 ## Implementation notes
 
 - `.github/workflows/triage-scan.yml` (auto-merge job): removed the `is_machine_origin` computation and the human-origin hold block. Kept the linked-issue sanity check, the `issue_meta` fetch (reused by the ADR-0032 and ADR-0035 gates), and every other gate. Updated the job header comment.

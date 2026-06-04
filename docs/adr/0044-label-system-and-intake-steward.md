@@ -23,6 +23,22 @@ Root cause, in one sentence: **no actor owns admission, and no law governs what 
 - Vocabulary must not grow by improvisation (the zombie's dialect) — growth needs a rule.
 - Token economy: deterministic before LLM, always (ADR-0040's precedent).
 
+## Considered Options
+
+This is a bundled ADR; each sub-decision selects a design choice for one part of the label system. The six sub-decisions in the package:
+
+1. **The label law** — what a label is allowed to mean and who enforces it
+2. **The axes** — which orthogonal label families exist and what values they carry
+3. **Merge timing** — windowed merge vs. merge-when-green with `hold:<reason>` gating
+4. **The intake-steward** — whether admission has a designated owner and what form it takes
+5. **Migration** — how to transition from the five existing dialect labels without breaking consumers
+6. **The zombie** — whether `splendor/claude-triage-bot.yml` is retired or preserved
+
+The high-level package alternatives were:
+- **Package (chosen):** establish law + axes + steward as a coherent system in one ADR; implement in phases.
+- **Piecemeal:** address each dialect issue in separate ADRs as individual findings emerge.
+- **Cleanup only:** retire dead labels without establishing the axis law or the steward.
+
 ## Decision Outcome — six sub-decisions
 
 ### 1. The label law
@@ -68,6 +84,28 @@ Old labels with **live consumers** (Sentry's alert rules mint `source:sentry`; a
 **Negative:** a dual-label transition period (old + axis labels coexist) until phase-B repoints land — queries written during the window must prefer the axis labels; the steward is one more standing workflow to keep healthy (mitigated: deterministic, no LLM, observable via its run history).
 
 **Neutral:** PR-side gate labels (`requires-adr:<subtype>`, `compositional-self-change`, `autorelease: pending`) are unchanged by this ADR except that `hold:*` (phase B) will mirror them into the queryable state family.
+
+## Pros and Cons of the Options
+
+### Package (chosen)
+
+- ✅ Coherent system: law, axes, and steward designed together rather than accreting inconsistently across incidents.
+- ✅ Immediately addresses all five live costs identified by the permutation table: invisible externals, lying dashboard counts, silent mutations, zombie dialect, and stranded `ready-for-implementer` labels.
+- ✅ Deterministic steward v1 (pure bash) ships fast; LLM duties deferred until a case demands judgment.
+- ❌ Dual-label transition period while consumers are repointed — queries written during the window must prefer axis labels.
+- ❌ Phase B (merge-when-green + `hold:*`) deferred to a separate PR; the `hold:<reason>` queryability improvement waits.
+
+### Piecemeal
+
+- ✅ Each ADR smaller and easier to ratify in isolation.
+- ❌ The anti-dialect rule — the law that prevents new improvisation — would be the last thing designed, written after the dialects it should have prevented.
+- ❌ Interacting design decisions (axis values, steward trust boundary, migration steps) are harder to reason about when authored in separate sessions.
+
+### Cleanup only
+
+- ✅ No new standing workflow to maintain.
+- ❌ Root cause unaddressed: no actor owns admission, so dialect improvisation resumes immediately.
+- ❌ Externals remain invisible; the formulation gap the permutation table exposed persists.
 
 ## Implementation notes
 
