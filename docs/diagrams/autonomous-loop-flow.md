@@ -7,7 +7,7 @@ fork shown is `scope:iac` (which agent builds it) and the no-app vs. app behavio
 folded into the review battery (ADR-0024). There is intentionally no per-repo split.
 
 Source of truth: `triage-scan.yml`, `claude-implementer.yml`, `claude-pr-review.yml`,
-and ADR-0016 / 0017 / 0019 / 0020 / 0021 / 0023 / 0024 / 0025 / 0026 / 0027 / 0028 / 0029 / 0030 / 0032 / 0035 / 0037 / 0038.
+and ADR-0016 / 0017 / 0019 / 0020 / 0021 / 0023 / 0024 / 0025 / 0026 / 0027 / 0028 / 0029 / 0030 / 0032 / 0035 / 0037 / 0038 / 0039.
 
 > **Dispatch routing (ADR-0030):** machine-detected work (severity:critical, source:sentry/cloudwatch) flows through the promoter's deterministic, throttled dispatch — **event-dispatch** on the platform repo (immediate), a **central `*/15` urgent-poll** for app repos (they hold no cross-repo credential to be pushed). Human-approved work (`ready-for-implementer`) stays on each repo's **local** trigger — immediate, no throttle needed (humans don't storm). The fleet-wide `FLEET_MAX_DISPATCH` throttle is enforced centrally as a shared **in-flight ceiling** — all three dispatch paths (windowed promoter, event-dispatch, urgent-poll) count concurrent implementer runs through one source of truth (`scripts/fleet-inflight.sh`), so none can dispatch on top of the others' in-flight work.
 
@@ -144,9 +144,9 @@ flowchart TD
         MG0 -->|on| MG1{"requires-adr:* label?"}
         MG1 -->|yes| HADR["Hold for human · ADR-gated"]
         MG1 -->|no| MG2{"compositional-self-change label?"}
-        MG2 -->|yes| HCOMP["Hold for human · ADR-0023"]
-        MG2 -->|no| MG3{"Linked issue present and machine-origin?<br/>bot author · source:sentry ·<br/>source:cloudwatch · origin:internal-review"}
-        MG3 -->|"no — human-origin or none"| HHUM["Hold for human merge"]
+        MG2 -->|yes| HCOMP["Hold for human · firewall (ADR-0019/0023)"]
+        MG2 -->|no| MG3{"Implementer-authored and linked issue present?<br/>origin no longer gates the merge (ADR-0039)<br/>human gate moves to test→prod (#179)"}
+        MG3 -->|"no"| HNOISS["Hold — not implementer-authored<br/>or no linked issue"]
         MG3 -->|yes| MGIAC{"scope:iac? · ADR-0035"}
         MGIAC -->|"yes — merge == apply on dev"| IACGUARD{"iac-additive-guard check pass?<br/>tofu plan: no destroy/replace ·<br/>≤5 resources · no exposure"}
         IACGUARD -->|"no / absent — unverified"| HIAC["Hold for human merge ·<br/>destroy/replace/exposure or no guard"]
@@ -183,7 +183,7 @@ flowchart TD
     classDef merger fill:#2b5b8a,stroke:#5a9fd4,color:#eaf6ff;
 
     class CLOSED,DEPAUTO success;
-    class ESCAL,HADR,HCOMP,HHUM,HIAC,HFAIL,HSELF,PAUSED human;
+    class ESCAL,HADR,HCOMP,HNOISS,HIAC,HFAIL,HSELF,PAUSED human;
     class CAPTURE,FORM,APPROVED,PARKED intake;
     class WWAIT,CAPWAIT,CONFWAIT,CAPM,DEFER,HCHK,DIGSINK,QUEUE wait;
 
@@ -202,8 +202,8 @@ flowchart TD
 | Decompose (scope cap) | — | Change exceeds one slice — the implementer ships the smallest coherent slice and files a follow-up for the remainder; not a terminal, not a human hand-off (ADR-0026 amended). |
 | Escalate (3 attempts) | 🟧 | Mode B couldn't converge in 3 fix iterations (ADR-0026). |
 | Hold: ADR-gated | 🟧 | `requires-adr:*` label — one of the five gated categories. |
-| Hold: compositional | 🟧 | `compositional-self-change` label (ADR-0023). |
-| Hold: human-origin | 🟧 | Linked issue is human-filed — human-merge checkpoint (ADR-0023). |
+| Hold: compositional | 🟧 | `compositional-self-change` label — the self-change firewall (ADR-0019/0023). |
+| Hold: not implementer-authored / unlinked | 🟧 | PR isn't authored by the implementer agent, or has no `Closes/Fixes #n` linked issue — not eligible for autonomous merge. Origin no longer gates the merge (ADR-0039); the human checkpoint moves to test→prod promotion for user-facing features (#179). |
 | Hold: IaC unverified | 🟧 | `scope:iac` PR whose `tofu plan` isn't provably safe-additive (destroy/replace/exposure), or has no `iac-additive-guard` check — held for human merge (ADR-0035). |
 | Hold: merge failed | 🟧 | Qualified but `gh pr merge` rejected — left for human. *(This was the platform-repo deadlock fixed in ADR-0024.)* |
 | Paused | 🟧 | `AUTONOMOUS_MERGE=off`. |
@@ -229,10 +229,10 @@ The **source agents** (① — code-reviewer, ci-health, Sentry, dep-watch, …)
 
 - **Two ways in.** Most agent-discovered work *waits* for the in-window promoter. A small set of **label-triggered** signals bypass it and hit the implementer immediately: `ready-for-implementer`, `severity:critical`, and `source:sentry`.
 - **You vs. other users — the separation is permission-enforced.** In every app repo the implementer fires only on a *labeled* event, never on issue-open. Applying those labels requires triage/write access, which app users and external collaborators don't have (and there are no auto-labeling issue templates). So another user's request **sits inert** until a trusted maintainer reviews it and opts it in. The distinction is enforced by GitHub repo permissions on label application, not by an author check in the workflow — which is why it isn't visible in the raw `if:` conditions.
-- **Three safeguards against an external request weakening the app.** (1) It can't self-dispatch — needs a maintainer's label. (2) If it's a `feature-request`, it cannot enter the loop until the maintainer formulates it and applies `approved` (ADR-0036) — a raw request never auto-builds. (3) The auto-merge gate holds *every* human-origin issue for your manual merge (ADR-0023). A non-maintainer can file, but cannot make the loop build or land anything.
+- **Three safeguards against an external request weakening the app.** (1) It can't self-dispatch — needs a maintainer's label. (2) If it's a `feature-request`, it cannot enter the loop until the maintainer formulates it and applies `approved` (ADR-0036) — a raw request never auto-builds. (3) Any change that touches the team's gates, standards, or security posture carries `compositional-self-change` or `requires-adr:*` and holds for your manual merge (ADR-0019/0039). A non-maintainer can file, but cannot make the loop build or land anything.
 - **Platform opened-path — owner-gated and bug/defect-only.** The platform repo (`agentic-dev-environment`) is public and its templates auto-apply `bug` / `feature-request`. The owner-`opened` fast-path (`author_association == 'OWNER'`, ADR-0025) now dispatches **bug/defect only** (ADR-0036) — owner-opened defects fast-path; an owner-opened `feature-request` awaits formulation→`approved` like everyone else's. Anyone else's issues start *no* work until the owner labels them. So the "Other user" source is inert across the whole fleet, platform repo included.
 - **The loop generates its own inputs.** The review battery files fresh defects (dashed edge back to sources) — this is why backlog can grow even while the loop runs; throughput, not correctness.
 - **Triage is exhaustive; only dispatch is capped — and it ranks first.** Each pass the promoter triages *every* open finding — promoting, deferring, enriching, or auto-closing as it goes — and applies `FLEET_MAX_DISPATCH` only at the end, to the *ranked* promotable set (phases ①→②→③ in the loop). It never stops evaluating because the cap is full, so nothing is skipped for triage; a beyond-cap promotion just waits and is re-ranked next pass, never dropped. Agent-quality self-fixes dispatch **cap-exempt** (dedup-bounded, ADR-0031), so a self-correction can't be starved by routine work.
 - **The loop fixes its own labor (ADR-0031).** A vague finding can only originate from one of the loop's own agents — the promoter never evaluates human-authored issues. So when the promoter can't enrich a vague finding from the code, it auto-closes it and dispatches a fix to the *source agent's* contract, same run. Repeated vague output converges to one tracked improvement instead of an immortal, re-commented backlog issue.
 - **Repo abstraction.** The promoter, implementer, review, and merge stages are identical across all fleet repos. The only repo-shaped decisions are `scope:iac` (routes to `iac-implementer`) and app-vs-no-app inside the review battery (resolved by ADR-0024 so required checks always report, never skip).
-- **The merge gate is mechanical.** No agent judgement — every branch is decidable from labels, the linked issue's origin, and check state.
+- **The merge gate is mechanical.** No agent judgement — every branch is decidable from labels, whether a linked issue is present, and check state.

@@ -304,7 +304,7 @@ Medium findings are never deferred; an item not worth a dedicated fix is a Nit (
 
 ### Sentry-bug auto-pickup
 
-Issues labeled `source:sentry` (auto-applied by Sentry's GitHub integration when its alert rules create an issue) or `severity:critical` trigger the implementer **immediately**, regardless of whether `ready-for-implementer` is set. Sentry-reported bugs are pre-validated production work; they don't need a triage gate. Fixing a Sentry bug also triggers the deferral-bundling scan in the same directory.
+Issues labeled `source:sentry` (auto-applied by Sentry's GitHub integration) or `severity:critical` trigger the **promoter** immediately — event-triggered, bypassing the cron window (per ADR-0030). The promoter auto-promotes the triggering issue unconditionally (no Tier-2 eligibility judgment) and dispatches the implementer via `ready-for-implementer`. Sentry-reported bugs are pre-validated production work; they don't need a triage gate. Fixing a Sentry bug also triggers the deferral-bundling scan in the same directory.
 
 ### Backlog finalization
 
@@ -344,14 +344,14 @@ The promoter respects a per-run dispatch cap (`FLEET_MAX_DISPATCH_PER_RUN`, defa
 
 Per **[ADR-0021](../adr/0021-autonomous-merge.md)**, the fleet loop closes itself: the autonomous implementer's routine fix PRs are squash-merged by an `auto-merge` job in the `triage-scan` promoter — no human, no open session. This *applies* ADR-0003's approval model (AI shipping authority; the human gates only ADR-decisions) to the implementer path, the same way `release-captain` already auto-merges release PRs.
 
-### The four-condition gate
+### The gate
 
-The job merges an implementer fix PR when, and only when, **all four** conditions hold. The gate is deterministic — decidable from labels and check state, with no agent judgement at merge time:
+The job merges an implementer fix PR when, and only when, **all** of the following hold. The gate is deterministic — decidable from labels and check state, with no agent judgement at merge time. Per [ADR-0021](../adr/0021-autonomous-merge.md) as amended by [ADR-0039](../adr/0039-merge-is-autonomous-human-gate-moves-to-prod.md), condition 1 is **implementer-authored with a linked issue present** — origin no longer gates the merge; the human checkpoint moves to test→prod promotion for user-facing features (#179; interim: all merges/releases are treated as test).
 
-1. **Implementer-authored, fixing a defect.** The PR's author is the implementer agent (`gh pr list --json author` renders the App bot as `app/claude`) and it closes an issue labelled `defect` or `bug`. A `feature-request` is excluded — a feature is human-origin (formulated and `approved` by a maintainer at intake, ADR-0036) and is held for human merge.
+1. **Implementer-authored and linked issue present.** The PR's author is the implementer agent (`gh pr list --json author` renders the App bot as `app/claude`) and the PR body links an issue (`Closes/Fixes #n`) for traceability. Origin no longer gates the merge (ADR-0039) — a bug the maintainer filed and a Sentry-detected error merge the same way, including `approved` features (ADR-0036), provided every other condition holds.
 2. **Every check green.** The full AI review battery (§9, ADR-0003) passed; `code-review` and `security-review` are hard gates. A PR with *zero* checks does not qualify — the gate requires a non-empty green battery, not a vacuous pass.
-3. **No `requires-adr:*` label.** The five ADR-gated categories (ADR-0003) route to the human, unchanged.
-4. **A project repo.** The platform repo is excluded — its PRs are self-modifications, human-merged per [ADR-0019](../adr/0019-team-self-modification.md) / Standard 12.
+3. **No `requires-adr:*` label.** The five ADR-gated categories (ADR-0003) route to the human, unchanged — regardless of origin.
+4. **No `compositional-self-change` label.** Per ADR-0023, routine/mechanical platform-repo fixes are eligible like any project fix; only **compositional** self-changes — changes to the team's gates, agent roster, standards, or security posture — keep a human checkpoint. The implementer/architect applies this label when the change is classified compositional. (This replaces the old "project repo only" exclusion.)
 
 ### Controls
 

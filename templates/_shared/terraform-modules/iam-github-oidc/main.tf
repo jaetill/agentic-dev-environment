@@ -41,7 +41,13 @@ resource "aws_iam_role" "github_actions" {
             "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
           }
           StringLike = {
-            "token.actions.githubusercontent.com:sub" = "repo:${var.github_repo}:ref:refs/heads/${var.github_branch}"
+            # Both sub forms: ref-form for plain branch jobs, environment-form
+            # for jobs running in a protected GitHub Environment — gated prod
+            # deploys (ADR-0043) present the environment form.
+            "token.actions.githubusercontent.com:sub" = concat(
+              ["repo:${var.github_repo}:ref:refs/heads/${var.github_branch}"],
+              [for e in var.github_environments : "repo:${var.github_repo}:environment:${e}"]
+            )
           }
         }
       }
