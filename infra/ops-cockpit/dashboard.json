@@ -236,8 +236,8 @@
     },
     {
       "datasource": {
-        "type": "grafana-github-datasource",
-        "uid": "ffnagb7t8j5s0e"
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "afo51rbbobke8a"
       },
       "fieldConfig": {
         "defaults": {
@@ -290,21 +290,52 @@
       "pluginVersion": "13.1.0-26564065169",
       "targets": [
         {
+          "refId": "A",
           "datasource": {
-            "type": "grafana-github-datasource",
-            "uid": "ffnagb7t8j5s0e"
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "afo51rbbobke8a"
           },
-          "options": {
-            "query": "is:open label:human-todo"
-          },
-          "owner": "jaetill",
-          "queryType": "Issues",
-          "refId": "Human TODOs",
-          "repository": "agentic-dev-environment"
+          "type": "json",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "root_selector": "items",
+          "columns": [
+            {
+              "selector": "repository_url",
+              "text": "repo",
+              "type": "string"
+            },
+            {
+              "selector": "number",
+              "text": "#",
+              "type": "number"
+            },
+            {
+              "selector": "title",
+              "text": "title",
+              "type": "string"
+            },
+            {
+              "selector": "user.login",
+              "text": "author",
+              "type": "string"
+            },
+            {
+              "selector": "created_at",
+              "text": "created",
+              "type": "string"
+            }
+          ],
+          "url": "https://api.github.com/search/issues?q=user:jaetill+is:issue+is:open+label:needs-formulation&per_page=50",
+          "url_options": {
+            "method": "GET"
+          }
         }
       ],
-      "title": "Human TODOs",
-      "type": "table"
+      "title": "Formulation queue \u2014 awaiting your scoping",
+      "type": "table",
+      "description": "Every open issue fleet-wide labeled needs-formulation (ADR-0036/0044). The intake-steward routes external and label-bare filings here."
     },
     {
       "datasource": {
@@ -454,103 +485,6 @@
         }
       ],
       "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "grafana-github-datasource",
-        "uid": "ffnagb7t8j5s0e"
-      },
-      "description": "Recent runs of the three loop workflows on the platform repo. Three queries, one per workflow.",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "custom": {
-            "align": "auto",
-            "cellOptions": {
-              "type": "auto"
-            },
-            "filterable": true,
-            "footer": {
-              "reducers": []
-            },
-            "inspect": false
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              }
-            ]
-          }
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "html_url",
-              "scope": "series"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 296
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "url",
-              "scope": "series"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 133
-              }
-            ]
-          }
-        ]
-      },
-      "gridPos": {
-        "h": 10,
-        "w": 18,
-        "x": 6,
-        "y": 13
-      },
-      "id": 7,
-      "options": {
-        "cellHeight": "sm",
-        "showHeader": true,
-        "sortBy": [
-          {
-            "desc": true,
-            "displayName": "created_at"
-          }
-        ]
-      },
-      "pluginVersion": "13.1.0-26564065169",
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-github-datasource",
-            "uid": "ffnagb7t8j5s0e"
-          },
-          "options": {
-            "workflow": "triage-scan.yml"
-          },
-          "owner": "jaetill",
-          "queryType": "Workflow_Runs",
-          "refId": "A",
-          "repository": "agentic-dev-environment"
-        }
-      ],
-      "title": "Loop runs \u2014 triage-scan heartbeat",
-      "type": "table"
     },
     {
       "gridPos": {
