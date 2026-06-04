@@ -5,6 +5,8 @@
 - **Deciders:** Jason Tilley
 - **Tags:** ai-workflows, orchestration, governance, autonomy
 
+> **Amended by [ADR-0043](0043-prod-deploys-gate-on-environment-protection.md):** the interim policy ("treat all merges/releases as test") is **replaced** — the 2026-06-04 deploy-wiring audit found every fleet app deployed straight to prod on merge. ADR-0043 ships the promised prod gate: environment-protection approval on every prod deploy now, evolving per-app to test→prod promotion.
+
 > **Format:** MADR 4.x with the platform's three extensions. Single-decision ADR. Amends [ADR-0023](0023-origin-based-autonomy-boundary.md) (retires the origin-based human-merge hold) and [ADR-0021](0021-autonomous-merge.md) (condition 1 is now "linked issue present," not "linked issue is machine-origin"). This is the first half of the human-gate relocation; the prod-promotion gate itself is tracked in #179 and not built here.
 
 ## Context and Problem Statement
