@@ -78,6 +78,20 @@ The configuration is recorded in `scripts/configure-deploy-protection.ps1` (repe
 - ADR-0039 banner: interim policy superseded by this ADR.
 - Cockpit follow-up (existing redesign direction): "awaiting deploy approval" becomes a first-class held-by-me series.
 
+## Pros and Cons of the Options
+
+### A — protect every prod deploy, permanently
+- Good: uniform, immediate, native (~1 line/repo).
+- Bad: re-creates a per-merge human click forever — the anti-pattern ADR-0039 just removed at the merge.
+
+### B — build dual-target first
+- Good: the true end-state — the human approves only user-facing promotions.
+- Bad: prod stays ungated for the weeks it takes to build test targets across 6 apps.
+
+### C — staged: A now, evolve to B per-app (chosen)
+- Good: closes the exposure today with zero throwaway work (the protected environment is exactly what B's promotion job reuses); each app converts on its own schedule.
+- Bad: per-merge clicks during the transition, which can calcify — countered by filing the per-app phase-2 issues now.
+
 ## Links
 
 - [ADR-0039](0039-merge-is-autonomous-human-gate-moves-to-prod.md) — the promise this ADR keeps; its interim policy is replaced.
