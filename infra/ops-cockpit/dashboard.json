@@ -1939,7 +1939,7 @@
             "type": "yesoreyeram-infinity-datasource",
             "uid": "afo51rbbobke8a"
           },
-          "type": "json",
+          "type": "graphql",
           "source": "url",
           "parser": "backend",
           "format": "table",
@@ -2116,7 +2116,7 @@
             "type": "yesoreyeram-infinity-datasource",
             "uid": "afo51rbbobke8a"
           },
-          "type": "json",
+          "type": "graphql",
           "source": "url",
           "parser": "backend",
           "format": "table",
@@ -2293,7 +2293,7 @@
             "type": "yesoreyeram-infinity-datasource",
             "uid": "afo51rbbobke8a"
           },
-          "type": "json",
+          "type": "graphql",
           "source": "url",
           "parser": "backend",
           "format": "table",
@@ -2470,7 +2470,7 @@
             "type": "yesoreyeram-infinity-datasource",
             "uid": "afo51rbbobke8a"
           },
-          "type": "json",
+          "type": "graphql",
           "source": "url",
           "parser": "backend",
           "format": "table",
@@ -2647,7 +2647,7 @@
             "type": "yesoreyeram-infinity-datasource",
             "uid": "afo51rbbobke8a"
           },
-          "type": "json",
+          "type": "graphql",
           "source": "url",
           "parser": "backend",
           "format": "table",
@@ -2824,7 +2824,7 @@
             "type": "yesoreyeram-infinity-datasource",
             "uid": "afo51rbbobke8a"
           },
-          "type": "json",
+          "type": "graphql",
           "source": "url",
           "parser": "backend",
           "format": "table",
@@ -3001,7 +3001,7 @@
             "type": "yesoreyeram-infinity-datasource",
             "uid": "afo51rbbobke8a"
           },
-          "type": "json",
+          "type": "graphql",
           "source": "url",
           "parser": "backend",
           "format": "table",
@@ -3178,7 +3178,7 @@
             "type": "yesoreyeram-infinity-datasource",
             "uid": "afo51rbbobke8a"
           },
-          "type": "json",
+          "type": "graphql",
           "source": "url",
           "parser": "backend",
           "format": "table",
