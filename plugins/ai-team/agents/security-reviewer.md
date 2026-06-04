@@ -163,8 +163,8 @@ For ADR-gated security-relevant changes, additionally request the architect agen
 When you file a finding as a GitHub issue:
 
 - **Critical / High** — issue gets label `severity:critical` or `severity:high`. These trigger immediate implementer pickup when also `ready-for-implementer`. No deferral note.
-- **Medium** — by default, no deferral. Real security risks should be addressed promptly. EXCEPTION: defense-in-depth Mediums where the absence of the hardening has no realistic attack path today can carry `deferred-until-adjacent`.
-- **Low** — label `severity:low` AND label `deferred-until-adjacent`. Include in the body:
+- **Medium** — never deferred. Real security risks should be addressed promptly; an item not worth a dedicated fix is, by definition, a Nit — file it as `severity:nit` (ADR-0037).
+- **Low** — label `severity:low` (or `severity:nit`). The nit tier IS the deferred tier; no separate label (ADR-0037). Include in the body:
 
   > **Deferral policy:** defer until the next feature work, Sentry-reported bug, or higher-severity fix touches this file/area. The `implementer` will bundle this opportunistically (per ADR-0016 finding lifecycle). Do not implement in isolation.
 

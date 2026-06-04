@@ -1,0 +1,49 @@
+# intake-steward — admission owner for the issue backlog (ADR-0044).
+# Central, fleet-wide, fully deterministic (no LLM): applies the axis labels
+# (origin from author identity, type where derivable), migrates the retired
+# zombie dialect, and surfaces non-maintainer / label-bare filings to the
+# human's Formulation panel via needs-formulation. Verified writes throughout.
+#
+# Trust boundary: never applies ready-for-implementer / approved / auto-pickup
+# labels — classification and surfacing only (see plugins/ai-team/agents/intake-steward.md).
+
+name: intake-steward
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"   # cheap bash; externals surface within ~30 min
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "recent (last ~40 min) or full (entire open backlog)"
+        type: choice
+        options: [recent, full]
+        default: recent
+
+permissions:
+  contents: read
+
+concurrency:
+  group: intake-steward
+  cancel-in-progress: false
+
+jobs:
+  steward:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Mint fleet App token
+        id: fleet-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.FLEET_APP_ID }}
+          private-key: ${{ secrets.FLEET_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+
+      - name: Steward pass
+        env:
+          GH_TOKEN: ${{ steps.fleet-token.outputs.token }}
+          MODE: ${{ inputs.mode || 'recent' }}
+          OWNER: ${{ github.repository_owner }}
+        run: bash scripts/intake-steward.sh

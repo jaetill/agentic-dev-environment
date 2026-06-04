@@ -195,7 +195,7 @@ Apply the `oscillation-detected` label (create it if missing) and skip this cand
    ```
    Confirm each `gh workflow run` exited 0 — a failed dispatch is a real failure to name in the summary.
 
-5. **Spare-capacity sweep.** If you dispatched fewer than `$FLEET_MAX_DISPATCH` real promotions, spend each remaining slot draining nits. For each spare slot, pick the fleet repo with the most open `deferred-until-adjacent` issues — **skip any repo whose count is zero** (a cleanup-sweep there is a wasted run) — and dispatch one cleanup-only run: `GH_TOKEN=$FLEET_TOKEN gh workflow run claude-implementer.yml --repo jaetill/<repo> -f mode=cleanup-sweep`. One per spare slot; never the same repo twice in a run; never exceed the cap.
+5. **Spare-capacity sweep.** If you dispatched fewer than `$FLEET_MAX_DISPATCH` real promotions, spend each remaining slot draining nits. For each spare slot, pick the fleet repo with the most open deferred (`label:severity:low,severity:nit -label:ready-for-implementer`) issues — **skip any repo whose count is zero** (a cleanup-sweep there is a wasted run) — and dispatch one cleanup-only run: `GH_TOKEN=$FLEET_TOKEN gh workflow run claude-implementer.yml --repo jaetill/<repo> -f mode=cleanup-sweep`. One per spare slot; never the same repo twice in a run; never exceed the cap.
 
 6. **When in doubt, do not promote.** An unpromoted issue waits one cycle — recoverable. A wrongly-promoted vague issue burns an implementer run somewhere in the fleet. The asymmetry favors caution, exactly as with severity calibration.
 
@@ -291,7 +291,7 @@ should produce one refund + one 409). Then to `code-reviewer` for the fix.
 - **triage:critical** — Active customer impact OR security exposure OR data integrity at risk. Real-time escalation territory.
 - **triage:high** — Real bug, multiple users affected, no workaround.
 - **triage:medium** — Real bug, low frequency or has a workaround. Default for unknown-but-real.
-- **triage:low** — Edge case, single-occurrence, theoretical concern. Gets `deferred-until-adjacent` label so the implementer picks it up next time it's in the area.
+- **triage:low** — Edge case, single-occurrence, theoretical concern. The nit tier IS the deferred tier; no separate label (ADR-0037). It's bundled opportunistically by the implementer the next time work touches its area (or drained by the active-cycle sweep).
 
 **When in doubt, downgrade.** A medium that turns out to be a critical is recoverable; a critical that turns out to be a nit costs trust.
 

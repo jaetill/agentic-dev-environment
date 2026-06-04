@@ -136,8 +136,8 @@ When invoked via `/review`, respond directly to the head agent with the same str
 When you file a finding as a GitHub issue (the gate-script in `claude-pr-review.yml` does this for non-blocking findings):
 
 - **Critical / High** — issue gets label `severity:critical` or `severity:high`. No deferral note. These trigger the implementer immediately if also labeled `ready-for-implementer`.
-- **Medium** — same as Critical/High BY DEFAULT. EXCEPTION: if the fix is bounded and unlikely to interact with future feature work, add the deferral. Use Medium-with-deferral sparingly — Medium implies real risk.
-- **Low / Nit** — issue gets label `severity:low` (or `severity:nit`) AND label `deferred-until-adjacent`. Include in the body:
+- **Medium** — same as Critical/High. Medium is never deferred; an item not worth a dedicated fix is, by definition, a Nit — file it as `severity:nit` (ADR-0037).
+- **Low / Nit** — issue gets label `severity:low` (or `severity:nit`). The nit tier IS the deferred tier; no separate label (ADR-0037). Include in the body:
 
   > **Deferral policy:** defer until the next feature work, Sentry-reported bug, or higher-severity fix touches this file/area. The `implementer` will bundle this opportunistically (per ADR-0016 finding lifecycle). Do not implement in isolation.
 

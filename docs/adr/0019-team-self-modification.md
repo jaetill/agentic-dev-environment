@@ -9,6 +9,8 @@
 
 > **Amended by [ADR-0032](0032-additive-self-change-auto-lane.md):** introduces a narrow, deterministically-gated exception to human-ratified self-change — additive agent output-contract tightenings (one non-rail-enforcer agent file, size-capped, no guardrail vocabulary, `agent-quality` origin) auto-merge without ratification; everything else still routes here for human ratification.
 
+> **Amended by [ADR-0038](0038-self-changes-route-through-formulation.md):** sub-decision 3's *routing* changes — a compositional self-change is filed as a `needs-formulation` + `requires-adr` intake issue and ratified through human formulation (ADR-0036), not a bespoke "route to architect" stop. The competence gate and the firewall (human ratifies, ADR required, ADR-0023 merge hold, credential boundary) are unchanged.
+
 ## Context and Problem Statement
 
 [ADR-0017](0017-async-orchestration.md) defined how autonomous work is scheduled and routed *within* a repo. It did not address a structural fact: the platform repo (`agentic-dev-environment`) is not a project — it is the team's own definition. The agents, their roles, the gates, the workflows: that is `ai-team`, and it lives here. Every other repo is a *project* the team works on.

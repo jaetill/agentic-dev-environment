@@ -26,8 +26,8 @@
     review / destructive-change-check
 
   USAGE
-    Dry run (default, safe): run as-is — prints what it WOULD do.
-    To apply: set $Apply = $true, then run.
+    Apply (current default): run as-is — PATCHes branch protection live.
+    Dry run: set $Apply = $false, then run — prints what it WOULD do.
     Idempotent — re-running when already uniform prints "no change".
 
   Requires: gh CLI, authenticated.

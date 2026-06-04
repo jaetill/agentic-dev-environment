@@ -61,6 +61,25 @@ deliberate larger refactor.
 
 Then stop.
 
+## Auto-merge eligibility (ADR-0035)
+
+You still **never apply** — that rule is unchanged. What changed is what happens
+after your PR is opened: a machine-origin IaC PR can **auto-merge**, and because
+merge to `main` cascades to `tofu apply -auto-approve` on the dev environment
+(`deploy.yml`, `push:[main]`), **auto-merge means auto-apply on dev.** That path
+opens *only* when an independent deterministic guard (`iac-additive-guard`,
+`scripts/iac-auto-merge-guard.sh`) classifies your `tofu plan` as **safe-additive**:
+
+- every change is `create` / `update` / `no-op` — **no destroys or replacements**;
+- at most 5 substantive resource changes (your scope cap);
+- **no exposure** — no SG ingress `0.0.0.0/0`/`::/0`, no public S3, no IAM
+  `Allow Action:* on Resource:*`, no plaintext secret value.
+
+Anything else **holds for a human merge** — the safe fallback. You do not assert
+your own change is safe and you do not apply the guard; CI runs it over your plan
+output. Your job is to keep changes genuinely minimal and additive so they qualify,
+and to let destroys/replacements/exposure route to a human by design.
+
 ## Process — Mode A (initial implementation)
 
 1. **Read the issue body and any linked drift-detector report.** Identify the exact resource(s) to change.
@@ -94,9 +113,9 @@ Then stop.
     - Reference to the originating issue: `Closes #<issue-number>`
     - "Why" section
     - **A code-fenced block with the full `tofu plan` output.** This is non-negotiable. Reviewers must see exactly what will change in AWS.
-    - Explicit note: `Applied: NO. Human action required to run \`tofu apply\` after merge.`
+    - Explicit note: `Applied: NO (by this agent). Apply happens via the deploy cascade — auto on dev if this PR auto-merges under the ADR-0035 guard, on release for prod.`
 
-10. **Stop.** Do not apply. Wait for review.
+10. **Stop.** Do not apply. Wait for the guard verdict and review.
 
 ## Process — Mode B (fix iteration)
 
@@ -104,15 +123,12 @@ Same as `implementer`, but with the additional constraint that any new plan outp
 
 ## Post-merge protocol
 
-When a human merges the PR:
-
-1. The merge is your "go-ahead." Apply manually:
-   ```bash
-   tofu apply
-   ```
-   The agent does NOT run apply, even after merge. This is the human's responsibility.
-
-2. After apply, the human (or a future auto-applier with stricter guardrails) marks the issue as `applied` and closes it.
+Apply is **not** your action under any path. After the PR merges (auto under the
+ADR-0035 guard, or by a human when held), the **deploy cascade** applies it:
+`deploy.yml` runs `tofu apply -auto-approve` on dev on push to `main`, and on the
+prod env via the release path (`deploy-staging` → health-watch → `deploy-prod`).
+The agent never runs `tofu apply`, even after merge — that is owned by the deploy
+workflow's environment-gated pipeline, not by you.
 
 ## Output format
 

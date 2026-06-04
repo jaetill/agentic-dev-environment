@@ -1,6 +1,8 @@
 # ADR-0033: Opted-in features build by default — the plan-gate becomes opt-in
 
-- **Status:** Accepted — ratified by Jason 2026-05-31. Reverses the default set by [ADR-0017](0017-async-orchestration.md)'s feature plan-gate (features no longer *require* plan approval before building); the gate is preserved as an opt-in.
+> **Superseded by [ADR-0036](0036-human-intake-model.md) (2026-06-01):** the `plan-first` opt-in plan-gate is **retired entirely**. Feature planning (the *what*) moved to human intake (formulation → `approved`); with no feature carrying `plan-first`, the in-loop PLAN PHASE, its labels (`plan-first` / `awaiting-plan-approval` / `plan-approved`), and the `initial` job that ran them are removed. This ADR's reasoning — that a mid-stream plan-approval is a redundant checkpoint because the review battery is the real gate — stands and is what justified pushing planning all the way to intake. The historical text below is preserved as the record of the intermediate (opt-in) step.
+
+- **Status:** Superseded by [ADR-0036](0036-human-intake-model.md). (Originally Accepted — ratified by Jason 2026-05-31. Reversed the default set by [ADR-0017](0017-async-orchestration.md)'s feature plan-gate; the gate was preserved as an opt-in, now retired.)
 - **Date:** 2026-05-31
 - **Deciders:** Jason Tilley
 - **Tags:** ai-workflows, orchestration, autonomy

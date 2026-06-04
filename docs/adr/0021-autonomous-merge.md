@@ -5,6 +5,10 @@
 - **Deciders:** Jason Tilley
 - **Tags:** ai-workflows, governance, ci-cd, orchestration, autonomy
 
+> **Amended by [ADR-0039](0039-merge-is-autonomous-human-gate-moves-to-prod.md):** condition 1 ("linked issue is machine-origin") is relaxed to "linked issue is present" — origin no longer gates the merge. The human checkpoint moves off the merge and onto test→prod promotion for user-facing features (#179). The other conditions (checks green, no `requires-adr`) and the firewall holds are unchanged.
+
+> **Amended by [ADR-0041](0041-fleet-app-single-write-identity.md):** the gate's entry filter (implementer PRs identified by author `app/claude`) repoints to the fleet App's bot identity once the loop's write identity migrates. Pre-migration PRs keep the `app/claude` author; queries spanning the seam must OR both.
+
 > **Format:** MADR 4.x with the platform's three documented extensions. Single-decision ADR. This ADR *applies* an existing decision (ADR-0003) to a new path — it does not reopen the approval model.
 
 ## Context and Problem Statement
@@ -44,7 +48,7 @@ Chosen option: **Option A.** A job in the `triage-scan` promoter — the platfor
 
 Conditions 2 and 3 are not new — they are ADR-0003's existing mechanism. Condition 1 defers to ADR-0017's feature plan-gate; condition 4 defers to ADR-0019. What this ADR genuinely adds is the conditions-as-a-job for the implementer path, and the explicit acceptance of the closed loop.
 
-This is the operational form of commander's intent: a `defect`/`bug` fix within the implementer's inherent scope cap (50 LOC / 3 files / 1 component) is routine and ships; anything that redefines scope arrives as a `feature-request` (→ plan-gate) or trips `requires-adr` (→ human). The "ai-teacher should add financial planning" case reaches the human by a path that already exists.
+This is the operational form of commander's intent: a `defect`/`bug` fix within the implementer's inherent scope cap (per [ADR-0026](0026-agentic-implementer.md)) is routine and ships; anything that redefines scope arrives as a `feature-request` (→ plan-gate) or trips `requires-adr` (→ human). The "ai-teacher should add financial planning" case reaches the human by a path that already exists.
 
 **Pause control.** The job reads a repo/org variable `AUTONOMOUS_MERGE` (default `on`); setting it `off` halts auto-merge fleet-wide with no code change.
 

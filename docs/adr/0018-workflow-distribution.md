@@ -7,6 +7,8 @@
 
 > **Format:** MADR 4.x with the platform's three extensions. Single-decision ADR.
 
+> **Extended by [ADR-0034](0034-implementer-reusable-distributed.md):** `claude-implementer.yml` is brought under this model — its logic moves to `claude-implementer-reusable.yml` and every repo carries a thin caller. It was the last fleet workflow still inline-copied per repo.
+
 ## Context and Problem Statement
 
 [ADR-0015](0015-platform-as-plugin.md) eliminated drift for the platform's agents, hooks, commands, and skills by packaging them as a plugin — projects subscribe to one canonical source instead of holding copies. But the Claude Code plugin format does **not** carry `.github/workflows/`. Workflows were left on the old copy-paste model.

@@ -112,11 +112,11 @@ When Tier 1 decides narrative is needed:
    - **What this means for you** (1–2 paragraphs explaining what the release brings)
    - For breaking changes: a separate **Migration** subsection with explicit steps
    - For major versions: a sentence or two on the version's significance
-   - **Cleaned up while here** (when applicable): a short list of `deferred-until-adjacent` issues that the implementer bundled into feature PRs during this release window. Per ADR-0016 the deferral policy is silent housekeeping; surfacing it in release notes makes the policy visible to future-you. Query:
+   - **Cleaned up while here** (when applicable): a short list of low/nit (`severity:low`/`severity:nit`) issues that the implementer bundled into feature PRs during this release window. Per ADR-0016 the deferral policy is silent housekeeping; surfacing it in release notes makes the policy visible to future-you. Query:
 
      ```bash
-     gh issue list --state closed --label deferred-until-adjacent \
-       --search "closed:>=$LAST_RELEASE_DATE"
+     gh issue list --state closed \
+       --search "label:severity:low,severity:nit closed:>=$LAST_RELEASE_DATE"
      ```
 
      If empty, omit the section. If non-empty, list as bullets with issue numbers + one-line descriptions.

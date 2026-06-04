@@ -98,7 +98,7 @@ The following rules **must** be enabled on `main` for every project repo:
 
 > **Do _not_ require branches to be up to date before merging** — the GitHub `strict` status-check flag stays **off**. [ADR-0021](../adr/0021-autonomous-merge.md)'s autonomous auto-merge squash-merges fix PRs without rebasing behind branches; under `strict` mode a behind PR's passing checks report back to GitHub as "expected" and the merge is permanently blocked. `scripts/configure-branch-protection.ps1` enforces `strict = false` on every repo — do not re-enable it.
 
-> **Do _not_ require conversation resolution before merging** — `required_conversation_resolution` stays **off**. Per [ADR-0023](../adr/0023-origin-based-autonomy-boundary.md), the autonomous auto-merge (`gh pr merge --squash`) doesn't resolve PR review threads; if AI reviewers post any comment thread, an enabled repo blocks the loop's merge silently. Off everywhere fleet-wide.
+> **Do _not_ require conversation resolution before merging** — `required_conversation_resolution` stays **off**. Per [ADR-0021](../adr/0021-autonomous-merge.md) (as amended by [ADR-0039](../adr/0039-merge-is-autonomous-human-gate-moves-to-prod.md)), the autonomous auto-merge (`gh pr merge --squash`) doesn't resolve PR review threads; if AI reviewers post any comment thread, an enabled repo blocks the loop's merge silently. Off everywhere fleet-wide.
 
 These are settable via GitHub UI under Settings → Branches, or via Terraform / GitHub CLI as part of the bootstrap script.
 

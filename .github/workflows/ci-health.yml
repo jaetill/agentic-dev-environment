@@ -64,7 +64,7 @@ jobs:
           # The fleet — the 8 loop-participating repos. Matches the
           # triage-scan promoter's list exactly; genealogy is excluded (it
           # has no claude-* loop workflows) until it adopts the platform.
-          FLEET="agentic-dev-environment game-night-pwa meal-planner ai-teacher jaetill-portal splendor draft carto"
+          FLEET="game-night-pwa meal-planner ai-teacher jaetill-portal splendor draft carto agentic-dev-environment"
 
           # Collect qualifying failures across the whole fleet.
           all='[]'
