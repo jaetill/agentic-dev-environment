@@ -1,6 +1,6 @@
 # ADR-0041: The fleet App is the loop's single write identity — retire `app/claude` pushes
 
-- **Status:** Proposed — direction ratified by Jason in formulation of #183 (2026-06-04, option A); merge of this ADR's PR is the formal ratification
+- **Status:** Accepted — ratified by Jason's merge of PR #200, 2026-06-04 (48bbd21); implementation pending behind the #126/#128/#138 injection-hardening precondition
 - **Date:** 2026-06-04
 - **Deciders:** Jason Tilley
 - **Tags:** ai-workflows, security, identity, ci-cd

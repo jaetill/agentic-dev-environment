@@ -1,6 +1,6 @@
 # ADR-0039: Code merge is autonomous regardless of origin; the human gate moves to test→prod promotion
 
-- **Status:** Proposed — ratified on merge by Jason (this is a compositional self-change; his merge of the PR is the ratification, per ADR-0019 / ADR-0023)
+- **Status:** Accepted — ratified by Jason's directed merge of PR #180, 2026-06-04 (squash 6bf77e7); the gate change is live
 - **Date:** 2026-06-03
 - **Deciders:** Jason Tilley
 - **Tags:** ai-workflows, orchestration, governance, autonomy

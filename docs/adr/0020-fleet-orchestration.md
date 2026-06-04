@@ -7,6 +7,8 @@
 
 > **Amended by [ADR-0030](0030-all-dispatch-through-promoter.md):** dispatch routing changed — all implementer dispatch now goes through the promoter (no direct bypass). See the *Impacted ADRs* table in ADR-0030 for the specific change to this ADR.
 
+> **Amended by [ADR-0041](0041-fleet-app-single-write-identity.md):** the fleet App's role widens from dispatch/merge plumbing to the loop's **single write identity** — implementer pushes and PRs migrate from `app/claude` (the third-party Claude App) to the fleet App's bot identity, behind the #126/#128/#138 injection-hardening precondition.
+
 > **Format:** MADR 4.x with the platform's three extensions. This is a **bundled-sub-decision** ADR — five coupled decisions about running one loop across many repos.
 
 ## Context and Problem Statement
