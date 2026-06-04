@@ -66,6 +66,20 @@ Live exhibits (2026-06-03): game-night-pwa #132 and meal-planner #64 conflicted 
 - Labels `conflict-retry:1..7` created on first use; `docs/diagrams/autonomous-loop-flow.md` `CONF`/`CONFWAIT` + merge-gate `MFAIL` branch updated.
 - Compositional self-change: the implementation PR carries `compositional-self-change` and holds for human merge.
 
+## Pros and Cons of the Options
+
+### A — self-re-queue with a bounded retry counter (chosen)
+- Good: reuses the existing promotion path (no new machinery); bounded retries can't spin; escalates a persistent conflict to the human as a real signal.
+- Bad: up to 7 wasted builds on a pathological conflict before escalation (accepted — builds are cheap per ADR-0026).
+
+### B — event-driven precise retry
+- Good: lowest retry latency (re-dispatch the instant the blocker merges).
+- Bad: needs blocker-identification plus a merge watcher — real machinery for a "this cycle vs next cycle" gain.
+
+### C — status quo + honest diagram label
+- Good: zero code.
+- Bad: leaves the recovery human-gated — the friction the loop is meant to absorb.
+
 ## Links
 
 - [ADR-0026](0026-agentic-implementer.md) — optimistic concurrency; the no-conflict-resolution boundary preserved here.
