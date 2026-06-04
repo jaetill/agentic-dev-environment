@@ -4990,7 +4990,7 @@
       "id": 289,
       "type": "barchart",
       "title": "agentic-dev-environment",
-      "description": "Partition of open issues: Total = Waiting on Jason (needs-formulation / human-todo / requires-adr) + Promotion queue (undispatched, not human-held) + In flight (ready-for-implementer). Decompose 'In flight' further as hold states become labels.",
+      "description": "Every state bar is a DIRECT query; Total is the unrefutable is:issue is:open count. Unaccounted = Total - (Waiting + Queue + In flight): structurally 0 - when it rises, issues exist that the classification doesn't represent (label drift, a new state, or a failed query). Investigate Unaccounted > 0; never tune the other bars to hide it.",
       "datasource": {
         "type": "yesoreyeram-infinity-datasource",
         "uid": "grafanacloud-infinity"
@@ -5050,6 +5050,29 @@
           "columns": [
             {
               "selector": "total_count",
+              "text": "Total",
+              "type": "number"
+            }
+          ],
+          "url": "https://api.github.com/search/issues?q=repo:jaetill/agentic-dev-environment+is:issue+is:open&per_page=1",
+          "url_options": {
+            "method": "GET"
+          }
+        },
+        {
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "grafanacloud-infinity"
+          },
+          "type": "json",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "refId": "B",
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "total_count",
               "text": "Waiting on Jason",
               "type": "number"
             }
@@ -5068,7 +5091,7 @@
           "source": "url",
           "parser": "backend",
           "format": "table",
-          "refId": "B",
+          "refId": "C",
           "root_selector": "",
           "columns": [
             {
@@ -5091,7 +5114,7 @@
           "source": "url",
           "parser": "backend",
           "format": "table",
-          "refId": "C",
+          "refId": "D",
           "root_selector": "",
           "columns": [
             {
@@ -5116,23 +5139,55 @@
         {
           "id": "calculateField",
           "options": {
-            "mode": "reduceRow",
-            "reduce": {
-              "reducer": "sum"
+            "mode": "binary",
+            "binary": {
+              "left": "Total",
+              "operator": "-",
+              "right": "Waiting on Jason"
             },
-            "alias": "Total",
+            "alias": "_t1",
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "binary": {
+              "left": "_t1",
+              "operator": "-",
+              "right": "Promotion queue"
+            },
+            "alias": "_t2",
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "binary": {
+              "left": "_t2",
+              "operator": "-",
+              "right": "In flight"
+            },
+            "alias": "Unaccounted",
             "replaceFields": false
           }
         },
         {
           "id": "organize",
           "options": {
-            "excludeByName": {},
+            "excludeByName": {
+              "_t1": true,
+              "_t2": true
+            },
             "indexByName": {
               "Total": 0,
               "Waiting on Jason": 1,
               "Promotion queue": 2,
-              "In flight": 3
+              "In flight": 3,
+              "Unaccounted": 4
             },
             "renameByName": {}
           }
@@ -5150,7 +5205,7 @@
       "id": 290,
       "type": "barchart",
       "title": "game-night-pwa",
-      "description": "Partition of open issues: Total = Waiting on Jason (needs-formulation / human-todo / requires-adr) + Promotion queue (undispatched, not human-held) + In flight (ready-for-implementer). Decompose 'In flight' further as hold states become labels.",
+      "description": "Every state bar is a DIRECT query; Total is the unrefutable is:issue is:open count. Unaccounted = Total - (Waiting + Queue + In flight): structurally 0 - when it rises, issues exist that the classification doesn't represent (label drift, a new state, or a failed query). Investigate Unaccounted > 0; never tune the other bars to hide it.",
       "datasource": {
         "type": "yesoreyeram-infinity-datasource",
         "uid": "grafanacloud-infinity"
@@ -5210,6 +5265,29 @@
           "columns": [
             {
               "selector": "total_count",
+              "text": "Total",
+              "type": "number"
+            }
+          ],
+          "url": "https://api.github.com/search/issues?q=repo:jaetill/game-night-pwa+is:issue+is:open&per_page=1",
+          "url_options": {
+            "method": "GET"
+          }
+        },
+        {
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "grafanacloud-infinity"
+          },
+          "type": "json",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "refId": "B",
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "total_count",
               "text": "Waiting on Jason",
               "type": "number"
             }
@@ -5228,7 +5306,7 @@
           "source": "url",
           "parser": "backend",
           "format": "table",
-          "refId": "B",
+          "refId": "C",
           "root_selector": "",
           "columns": [
             {
@@ -5251,7 +5329,7 @@
           "source": "url",
           "parser": "backend",
           "format": "table",
-          "refId": "C",
+          "refId": "D",
           "root_selector": "",
           "columns": [
             {
@@ -5276,23 +5354,55 @@
         {
           "id": "calculateField",
           "options": {
-            "mode": "reduceRow",
-            "reduce": {
-              "reducer": "sum"
+            "mode": "binary",
+            "binary": {
+              "left": "Total",
+              "operator": "-",
+              "right": "Waiting on Jason"
             },
-            "alias": "Total",
+            "alias": "_t1",
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "binary": {
+              "left": "_t1",
+              "operator": "-",
+              "right": "Promotion queue"
+            },
+            "alias": "_t2",
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "binary": {
+              "left": "_t2",
+              "operator": "-",
+              "right": "In flight"
+            },
+            "alias": "Unaccounted",
             "replaceFields": false
           }
         },
         {
           "id": "organize",
           "options": {
-            "excludeByName": {},
+            "excludeByName": {
+              "_t1": true,
+              "_t2": true
+            },
             "indexByName": {
               "Total": 0,
               "Waiting on Jason": 1,
               "Promotion queue": 2,
-              "In flight": 3
+              "In flight": 3,
+              "Unaccounted": 4
             },
             "renameByName": {}
           }
@@ -5310,7 +5420,7 @@
       "id": 291,
       "type": "barchart",
       "title": "meal-planner",
-      "description": "Partition of open issues: Total = Waiting on Jason (needs-formulation / human-todo / requires-adr) + Promotion queue (undispatched, not human-held) + In flight (ready-for-implementer). Decompose 'In flight' further as hold states become labels.",
+      "description": "Every state bar is a DIRECT query; Total is the unrefutable is:issue is:open count. Unaccounted = Total - (Waiting + Queue + In flight): structurally 0 - when it rises, issues exist that the classification doesn't represent (label drift, a new state, or a failed query). Investigate Unaccounted > 0; never tune the other bars to hide it.",
       "datasource": {
         "type": "yesoreyeram-infinity-datasource",
         "uid": "grafanacloud-infinity"
@@ -5370,6 +5480,29 @@
           "columns": [
             {
               "selector": "total_count",
+              "text": "Total",
+              "type": "number"
+            }
+          ],
+          "url": "https://api.github.com/search/issues?q=repo:jaetill/meal-planner+is:issue+is:open&per_page=1",
+          "url_options": {
+            "method": "GET"
+          }
+        },
+        {
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "grafanacloud-infinity"
+          },
+          "type": "json",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "refId": "B",
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "total_count",
               "text": "Waiting on Jason",
               "type": "number"
             }
@@ -5388,7 +5521,7 @@
           "source": "url",
           "parser": "backend",
           "format": "table",
-          "refId": "B",
+          "refId": "C",
           "root_selector": "",
           "columns": [
             {
@@ -5411,7 +5544,7 @@
           "source": "url",
           "parser": "backend",
           "format": "table",
-          "refId": "C",
+          "refId": "D",
           "root_selector": "",
           "columns": [
             {
@@ -5436,23 +5569,55 @@
         {
           "id": "calculateField",
           "options": {
-            "mode": "reduceRow",
-            "reduce": {
-              "reducer": "sum"
+            "mode": "binary",
+            "binary": {
+              "left": "Total",
+              "operator": "-",
+              "right": "Waiting on Jason"
             },
-            "alias": "Total",
+            "alias": "_t1",
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "binary": {
+              "left": "_t1",
+              "operator": "-",
+              "right": "Promotion queue"
+            },
+            "alias": "_t2",
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "binary": {
+              "left": "_t2",
+              "operator": "-",
+              "right": "In flight"
+            },
+            "alias": "Unaccounted",
             "replaceFields": false
           }
         },
         {
           "id": "organize",
           "options": {
-            "excludeByName": {},
+            "excludeByName": {
+              "_t1": true,
+              "_t2": true
+            },
             "indexByName": {
               "Total": 0,
               "Waiting on Jason": 1,
               "Promotion queue": 2,
-              "In flight": 3
+              "In flight": 3,
+              "Unaccounted": 4
             },
             "renameByName": {}
           }
@@ -5470,7 +5635,7 @@
       "id": 292,
       "type": "barchart",
       "title": "ai-teacher",
-      "description": "Partition of open issues: Total = Waiting on Jason (needs-formulation / human-todo / requires-adr) + Promotion queue (undispatched, not human-held) + In flight (ready-for-implementer). Decompose 'In flight' further as hold states become labels.",
+      "description": "Every state bar is a DIRECT query; Total is the unrefutable is:issue is:open count. Unaccounted = Total - (Waiting + Queue + In flight): structurally 0 - when it rises, issues exist that the classification doesn't represent (label drift, a new state, or a failed query). Investigate Unaccounted > 0; never tune the other bars to hide it.",
       "datasource": {
         "type": "yesoreyeram-infinity-datasource",
         "uid": "grafanacloud-infinity"
@@ -5530,6 +5695,29 @@
           "columns": [
             {
               "selector": "total_count",
+              "text": "Total",
+              "type": "number"
+            }
+          ],
+          "url": "https://api.github.com/search/issues?q=repo:jaetill/ai-teacher+is:issue+is:open&per_page=1",
+          "url_options": {
+            "method": "GET"
+          }
+        },
+        {
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "grafanacloud-infinity"
+          },
+          "type": "json",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "refId": "B",
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "total_count",
               "text": "Waiting on Jason",
               "type": "number"
             }
@@ -5548,7 +5736,7 @@
           "source": "url",
           "parser": "backend",
           "format": "table",
-          "refId": "B",
+          "refId": "C",
           "root_selector": "",
           "columns": [
             {
@@ -5571,7 +5759,7 @@
           "source": "url",
           "parser": "backend",
           "format": "table",
-          "refId": "C",
+          "refId": "D",
           "root_selector": "",
           "columns": [
             {
@@ -5596,23 +5784,55 @@
         {
           "id": "calculateField",
           "options": {
-            "mode": "reduceRow",
-            "reduce": {
-              "reducer": "sum"
+            "mode": "binary",
+            "binary": {
+              "left": "Total",
+              "operator": "-",
+              "right": "Waiting on Jason"
             },
-            "alias": "Total",
+            "alias": "_t1",
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "binary": {
+              "left": "_t1",
+              "operator": "-",
+              "right": "Promotion queue"
+            },
+            "alias": "_t2",
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "binary": {
+              "left": "_t2",
+              "operator": "-",
+              "right": "In flight"
+            },
+            "alias": "Unaccounted",
             "replaceFields": false
           }
         },
         {
           "id": "organize",
           "options": {
-            "excludeByName": {},
+            "excludeByName": {
+              "_t1": true,
+              "_t2": true
+            },
             "indexByName": {
               "Total": 0,
               "Waiting on Jason": 1,
               "Promotion queue": 2,
-              "In flight": 3
+              "In flight": 3,
+              "Unaccounted": 4
             },
             "renameByName": {}
           }
@@ -5630,7 +5850,7 @@
       "id": 293,
       "type": "barchart",
       "title": "jaetill-portal",
-      "description": "Partition of open issues: Total = Waiting on Jason (needs-formulation / human-todo / requires-adr) + Promotion queue (undispatched, not human-held) + In flight (ready-for-implementer). Decompose 'In flight' further as hold states become labels.",
+      "description": "Every state bar is a DIRECT query; Total is the unrefutable is:issue is:open count. Unaccounted = Total - (Waiting + Queue + In flight): structurally 0 - when it rises, issues exist that the classification doesn't represent (label drift, a new state, or a failed query). Investigate Unaccounted > 0; never tune the other bars to hide it.",
       "datasource": {
         "type": "yesoreyeram-infinity-datasource",
         "uid": "grafanacloud-infinity"
@@ -5690,6 +5910,29 @@
           "columns": [
             {
               "selector": "total_count",
+              "text": "Total",
+              "type": "number"
+            }
+          ],
+          "url": "https://api.github.com/search/issues?q=repo:jaetill/jaetill-portal+is:issue+is:open&per_page=1",
+          "url_options": {
+            "method": "GET"
+          }
+        },
+        {
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "grafanacloud-infinity"
+          },
+          "type": "json",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "refId": "B",
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "total_count",
               "text": "Waiting on Jason",
               "type": "number"
             }
@@ -5708,7 +5951,7 @@
           "source": "url",
           "parser": "backend",
           "format": "table",
-          "refId": "B",
+          "refId": "C",
           "root_selector": "",
           "columns": [
             {
@@ -5731,7 +5974,7 @@
           "source": "url",
           "parser": "backend",
           "format": "table",
-          "refId": "C",
+          "refId": "D",
           "root_selector": "",
           "columns": [
             {
@@ -5756,23 +5999,55 @@
         {
           "id": "calculateField",
           "options": {
-            "mode": "reduceRow",
-            "reduce": {
-              "reducer": "sum"
+            "mode": "binary",
+            "binary": {
+              "left": "Total",
+              "operator": "-",
+              "right": "Waiting on Jason"
             },
-            "alias": "Total",
+            "alias": "_t1",
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "binary": {
+              "left": "_t1",
+              "operator": "-",
+              "right": "Promotion queue"
+            },
+            "alias": "_t2",
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "binary": {
+              "left": "_t2",
+              "operator": "-",
+              "right": "In flight"
+            },
+            "alias": "Unaccounted",
             "replaceFields": false
           }
         },
         {
           "id": "organize",
           "options": {
-            "excludeByName": {},
+            "excludeByName": {
+              "_t1": true,
+              "_t2": true
+            },
             "indexByName": {
               "Total": 0,
               "Waiting on Jason": 1,
               "Promotion queue": 2,
-              "In flight": 3
+              "In flight": 3,
+              "Unaccounted": 4
             },
             "renameByName": {}
           }
@@ -5790,7 +6065,7 @@
       "id": 294,
       "type": "barchart",
       "title": "splendor",
-      "description": "Partition of open issues: Total = Waiting on Jason (needs-formulation / human-todo / requires-adr) + Promotion queue (undispatched, not human-held) + In flight (ready-for-implementer). Decompose 'In flight' further as hold states become labels.",
+      "description": "Every state bar is a DIRECT query; Total is the unrefutable is:issue is:open count. Unaccounted = Total - (Waiting + Queue + In flight): structurally 0 - when it rises, issues exist that the classification doesn't represent (label drift, a new state, or a failed query). Investigate Unaccounted > 0; never tune the other bars to hide it.",
       "datasource": {
         "type": "yesoreyeram-infinity-datasource",
         "uid": "grafanacloud-infinity"
@@ -5850,6 +6125,29 @@
           "columns": [
             {
               "selector": "total_count",
+              "text": "Total",
+              "type": "number"
+            }
+          ],
+          "url": "https://api.github.com/search/issues?q=repo:jaetill/splendor+is:issue+is:open&per_page=1",
+          "url_options": {
+            "method": "GET"
+          }
+        },
+        {
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "grafanacloud-infinity"
+          },
+          "type": "json",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "refId": "B",
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "total_count",
               "text": "Waiting on Jason",
               "type": "number"
             }
@@ -5868,7 +6166,7 @@
           "source": "url",
           "parser": "backend",
           "format": "table",
-          "refId": "B",
+          "refId": "C",
           "root_selector": "",
           "columns": [
             {
@@ -5891,7 +6189,7 @@
           "source": "url",
           "parser": "backend",
           "format": "table",
-          "refId": "C",
+          "refId": "D",
           "root_selector": "",
           "columns": [
             {
@@ -5916,23 +6214,55 @@
         {
           "id": "calculateField",
           "options": {
-            "mode": "reduceRow",
-            "reduce": {
-              "reducer": "sum"
+            "mode": "binary",
+            "binary": {
+              "left": "Total",
+              "operator": "-",
+              "right": "Waiting on Jason"
             },
-            "alias": "Total",
+            "alias": "_t1",
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "binary": {
+              "left": "_t1",
+              "operator": "-",
+              "right": "Promotion queue"
+            },
+            "alias": "_t2",
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "binary": {
+              "left": "_t2",
+              "operator": "-",
+              "right": "In flight"
+            },
+            "alias": "Unaccounted",
             "replaceFields": false
           }
         },
         {
           "id": "organize",
           "options": {
-            "excludeByName": {},
+            "excludeByName": {
+              "_t1": true,
+              "_t2": true
+            },
             "indexByName": {
               "Total": 0,
               "Waiting on Jason": 1,
               "Promotion queue": 2,
-              "In flight": 3
+              "In flight": 3,
+              "Unaccounted": 4
             },
             "renameByName": {}
           }
@@ -5950,7 +6280,7 @@
       "id": 295,
       "type": "barchart",
       "title": "draft",
-      "description": "Partition of open issues: Total = Waiting on Jason (needs-formulation / human-todo / requires-adr) + Promotion queue (undispatched, not human-held) + In flight (ready-for-implementer). Decompose 'In flight' further as hold states become labels.",
+      "description": "Every state bar is a DIRECT query; Total is the unrefutable is:issue is:open count. Unaccounted = Total - (Waiting + Queue + In flight): structurally 0 - when it rises, issues exist that the classification doesn't represent (label drift, a new state, or a failed query). Investigate Unaccounted > 0; never tune the other bars to hide it.",
       "datasource": {
         "type": "yesoreyeram-infinity-datasource",
         "uid": "grafanacloud-infinity"
@@ -6010,6 +6340,29 @@
           "columns": [
             {
               "selector": "total_count",
+              "text": "Total",
+              "type": "number"
+            }
+          ],
+          "url": "https://api.github.com/search/issues?q=repo:jaetill/draft+is:issue+is:open&per_page=1",
+          "url_options": {
+            "method": "GET"
+          }
+        },
+        {
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "grafanacloud-infinity"
+          },
+          "type": "json",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "refId": "B",
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "total_count",
               "text": "Waiting on Jason",
               "type": "number"
             }
@@ -6028,7 +6381,7 @@
           "source": "url",
           "parser": "backend",
           "format": "table",
-          "refId": "B",
+          "refId": "C",
           "root_selector": "",
           "columns": [
             {
@@ -6051,7 +6404,7 @@
           "source": "url",
           "parser": "backend",
           "format": "table",
-          "refId": "C",
+          "refId": "D",
           "root_selector": "",
           "columns": [
             {
@@ -6076,23 +6429,55 @@
         {
           "id": "calculateField",
           "options": {
-            "mode": "reduceRow",
-            "reduce": {
-              "reducer": "sum"
+            "mode": "binary",
+            "binary": {
+              "left": "Total",
+              "operator": "-",
+              "right": "Waiting on Jason"
             },
-            "alias": "Total",
+            "alias": "_t1",
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "binary": {
+              "left": "_t1",
+              "operator": "-",
+              "right": "Promotion queue"
+            },
+            "alias": "_t2",
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "binary": {
+              "left": "_t2",
+              "operator": "-",
+              "right": "In flight"
+            },
+            "alias": "Unaccounted",
             "replaceFields": false
           }
         },
         {
           "id": "organize",
           "options": {
-            "excludeByName": {},
+            "excludeByName": {
+              "_t1": true,
+              "_t2": true
+            },
             "indexByName": {
               "Total": 0,
               "Waiting on Jason": 1,
               "Promotion queue": 2,
-              "In flight": 3
+              "In flight": 3,
+              "Unaccounted": 4
             },
             "renameByName": {}
           }
@@ -6110,7 +6495,7 @@
       "id": 296,
       "type": "barchart",
       "title": "carto",
-      "description": "Partition of open issues: Total = Waiting on Jason (needs-formulation / human-todo / requires-adr) + Promotion queue (undispatched, not human-held) + In flight (ready-for-implementer). Decompose 'In flight' further as hold states become labels.",
+      "description": "Every state bar is a DIRECT query; Total is the unrefutable is:issue is:open count. Unaccounted = Total - (Waiting + Queue + In flight): structurally 0 - when it rises, issues exist that the classification doesn't represent (label drift, a new state, or a failed query). Investigate Unaccounted > 0; never tune the other bars to hide it.",
       "datasource": {
         "type": "yesoreyeram-infinity-datasource",
         "uid": "grafanacloud-infinity"
@@ -6170,6 +6555,29 @@
           "columns": [
             {
               "selector": "total_count",
+              "text": "Total",
+              "type": "number"
+            }
+          ],
+          "url": "https://api.github.com/search/issues?q=repo:jaetill/carto+is:issue+is:open&per_page=1",
+          "url_options": {
+            "method": "GET"
+          }
+        },
+        {
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "grafanacloud-infinity"
+          },
+          "type": "json",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "refId": "B",
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "total_count",
               "text": "Waiting on Jason",
               "type": "number"
             }
@@ -6188,7 +6596,7 @@
           "source": "url",
           "parser": "backend",
           "format": "table",
-          "refId": "B",
+          "refId": "C",
           "root_selector": "",
           "columns": [
             {
@@ -6211,7 +6619,7 @@
           "source": "url",
           "parser": "backend",
           "format": "table",
-          "refId": "C",
+          "refId": "D",
           "root_selector": "",
           "columns": [
             {
@@ -6236,23 +6644,55 @@
         {
           "id": "calculateField",
           "options": {
-            "mode": "reduceRow",
-            "reduce": {
-              "reducer": "sum"
+            "mode": "binary",
+            "binary": {
+              "left": "Total",
+              "operator": "-",
+              "right": "Waiting on Jason"
             },
-            "alias": "Total",
+            "alias": "_t1",
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "binary": {
+              "left": "_t1",
+              "operator": "-",
+              "right": "Promotion queue"
+            },
+            "alias": "_t2",
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "binary": {
+              "left": "_t2",
+              "operator": "-",
+              "right": "In flight"
+            },
+            "alias": "Unaccounted",
             "replaceFields": false
           }
         },
         {
           "id": "organize",
           "options": {
-            "excludeByName": {},
+            "excludeByName": {
+              "_t1": true,
+              "_t2": true
+            },
             "indexByName": {
               "Total": 0,
               "Waiting on Jason": 1,
               "Promotion queue": 2,
-              "In flight": 3
+              "In flight": 3,
+              "Unaccounted": 4
             },
             "renameByName": {}
           }
