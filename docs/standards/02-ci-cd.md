@@ -9,14 +9,16 @@ How code goes from commit to production. The platform's working assumption is th
 
 | Concern | Choice |
 |---|---|
-| Environments | `dev+staging+prod` (live-data projects); `dev+prod` (experiments). Project-configurable. |
-| Promotion | Fully automated, trigger-based throughout |
-| Approval gates | AI is the deploy gate. Human only via ADR for 5 specific change categories (see §4). |
+| Environments | **Project-chosen count — one environment is fully compliant.** The invariant is not topology, it is the gate (next rows). Multi-env shapes (`dev+prod`, `dev+staging+prod`) are opt-in upgrades per [ADR-0043](../adr/0043-prod-deploys-gate-on-environment-protection.md). |
+| Promotion | Fully automated up to prod; **the prod deploy waits for human approval** (GitHub Environment protection, ADR-0043) |
+| Approval gates | AI gates code (review battery + auto-merge); **a human gates ship-to-users** (the protected prod deploy). Human also via ADR for 5 specific change categories (see §4). |
 | Deploy strategy | Per-stack defaults with automated rollback |
 | CI gates on PR | Lint + type + test + security + AI-review (code-reviewer + security-reviewer) + destructive-change detector |
 | Visibility | Digest (daily/weekly), decision queue, incident-only pings |
 
 ## 1. Environment topology
+
+> **The platform's one invariant (ADR-0043): the production deploy is human-gated** via a required-reviewer rule on the prod GitHub Environment. Everything else on this page — how many environments, whether promotion is staged — is a per-project ergonomic choice, not a requirement. The minimal compliant shape is a **single environment whose deploy job is the protected prod deploy**: every merge waits for one approval click, and that is a perfectly good permanent end-state for low-merge-volume projects. Adding a test target + gated promotion (so routine merges flow ungated to test and only promotions wait) is an **opt-in upgrade** that pays off when merge volume makes per-merge clicks expensive — e.g., a fleet driven by the autonomous loop. Nothing below forces two environments on an adopter.
 
 ### Live-data projects (e.g., Game Night)
 
@@ -40,7 +42,11 @@ Three environments. `dev` is a free-for-all (every merge). `staging` exists so t
 
 Two environments: `dev` and `prod`. No staging — testing happens on dev. Suitable for personal experiments where breakage is recoverable and there's no user data to protect.
 
-The choice between topologies is per-project, made at scaffold time.
+### Minimal projects
+
+One environment: prod only, with the deploy job behind the protected environment (ADR-0043 phase-1 shape). Every merge's deploy waits for the maintainer's approval. Right-sized for static sites, tools, and anything where the approval click costs less than a second environment.
+
+The choice between topologies is per-project, made at scaffold time — and revisitable: the protection rule migrates from the deploy job to a promotion job if the project later adds a test target (ADR-0043 phase 2).
 
 ### Environment configuration
 
@@ -49,9 +55,9 @@ The choice between topologies is per-project, made at scaffold time.
 - Each environment has its own deployment URL/endpoint and observability scope.
 - 12-factor: configuration is in env vars, never in code. The same artifact (commit SHA / tag) deploys to all envs with different config injected.
 
-## 2. Promotion mechanism — fully automated
+## 2. Promotion mechanism — automated up to the prod gate
 
-**Promote artifacts, not branches.** The same commit/tag flows through every environment. No environment-specific branches.
+**Promote artifacts, not branches.** The same commit/tag flows through every environment. No environment-specific branches. Every step is trigger-automated **except the final one**: the prod deploy/promotion waits for the maintainer's environment-protection approval (ADR-0043).
 
 | Trigger | Effect |
 |---|---|
