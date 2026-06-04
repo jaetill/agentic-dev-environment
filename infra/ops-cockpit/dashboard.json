@@ -4990,7 +4990,7 @@
       "id": 289,
       "type": "barchart",
       "title": "agentic-dev-environment",
-      "description": "Every state bar is a DIRECT POSITIVE query mirroring the per-repo stat rows (Promotion queue == the Consideration-queue panel's definition; In flight == label:ready-for-implementer). Unaccounted = Total - (Waiting + Queue + In flight): the issues NO state represents (untriaged/no-label, low/nit deferred, dep-watch, anything new). Nonzero Unaccounted is the pain-point signal - investigate it; negative means states overlap. Never widen a state bar just to shrink it.",
+      "description": "ONE GraphQL call per panel (4 aliased searches - 8 calls/refresh fleet-wide vs the REST search API's 30/min budget that previously starved the row). State bars are direct positive queries mirroring the stat rows; Unaccounted = Total - sum = issues no state represents (untriaged/no-label etc.). Nonzero Unaccounted is the pain-point signal; negative means states overlap. Never widen a state bar to shrink it.",
       "datasource": {
         "type": "yesoreyeram-infinity-datasource",
         "uid": "grafanacloud-infinity"
@@ -5046,96 +5046,38 @@
           "parser": "backend",
           "format": "table",
           "refId": "A",
-          "root_selector": "",
+          "root_selector": "data",
           "columns": [
             {
-              "selector": "total_count",
+              "selector": "total.issueCount",
               "text": "Total",
               "type": "number"
-            }
-          ],
-          "url": "https://api.github.com/search/issues?q=repo:jaetill/agentic-dev-environment+is:issue+is:open&per_page=1",
-          "url_options": {
-            "method": "GET"
-          }
-        },
-        {
-          "datasource": {
-            "type": "yesoreyeram-infinity-datasource",
-            "uid": "grafanacloud-infinity"
-          },
-          "type": "json",
-          "source": "url",
-          "parser": "backend",
-          "format": "table",
-          "refId": "B",
-          "root_selector": "",
-          "columns": [
+            },
             {
-              "selector": "total_count",
+              "selector": "waiting.issueCount",
               "text": "Waiting on Jason",
               "type": "number"
-            }
-          ],
-          "url": "https://api.github.com/search/issues?q=repo:jaetill/agentic-dev-environment+is:issue+is:open+label:needs-formulation,human-todo,requires-adr&per_page=1",
-          "url_options": {
-            "method": "GET"
-          }
-        },
-        {
-          "datasource": {
-            "type": "yesoreyeram-infinity-datasource",
-            "uid": "grafanacloud-infinity"
-          },
-          "type": "json",
-          "source": "url",
-          "parser": "backend",
-          "format": "table",
-          "refId": "C",
-          "root_selector": "",
-          "columns": [
+            },
             {
-              "selector": "total_count",
+              "selector": "queue.issueCount",
               "text": "Promotion queue",
               "type": "number"
-            }
-          ],
-          "url": "https://api.github.com/search/issues?q=repo:jaetill/agentic-dev-environment+is:issue+is:open+label:severity:medium,severity:high,triage:medium,approved+-label:ready-for-implementer&per_page=1",
-          "url_options": {
-            "method": "GET"
-          }
-        },
-        {
-          "datasource": {
-            "type": "yesoreyeram-infinity-datasource",
-            "uid": "grafanacloud-infinity"
-          },
-          "type": "json",
-          "source": "url",
-          "parser": "backend",
-          "format": "table",
-          "refId": "D",
-          "root_selector": "",
-          "columns": [
+            },
             {
-              "selector": "total_count",
+              "selector": "inflight.issueCount",
               "text": "In flight",
               "type": "number"
             }
           ],
-          "url": "https://api.github.com/search/issues?q=repo:jaetill/agentic-dev-environment+is:issue+is:open+label:ready-for-implementer&per_page=1",
+          "url": "https://api.github.com/graphql",
           "url_options": {
-            "method": "GET"
+            "method": "POST",
+            "body_type": "graphql",
+            "body_graphql_query": "query { total: search(query: \"repo:jaetill/agentic-dev-environment is:issue state:open\", type: ISSUE) { issueCount } waiting: search(query: \"repo:jaetill/agentic-dev-environment is:issue state:open label:needs-formulation,human-todo,requires-adr\", type: ISSUE) { issueCount } queue: search(query: \"repo:jaetill/agentic-dev-environment is:issue state:open label:severity:medium,severity:high,triage:medium,approved -label:ready-for-implementer\", type: ISSUE) { issueCount } inflight: search(query: \"repo:jaetill/agentic-dev-environment is:issue state:open label:ready-for-implementer\", type: ISSUE) { issueCount } }"
           }
         }
       ],
       "transformations": [
-        {
-          "id": "concatenate",
-          "options": {
-            "frameNameMode": "drop"
-          }
-        },
         {
           "id": "calculateField",
           "options": {
@@ -5205,7 +5147,7 @@
       "id": 290,
       "type": "barchart",
       "title": "game-night-pwa",
-      "description": "Every state bar is a DIRECT POSITIVE query mirroring the per-repo stat rows (Promotion queue == the Consideration-queue panel's definition; In flight == label:ready-for-implementer). Unaccounted = Total - (Waiting + Queue + In flight): the issues NO state represents (untriaged/no-label, low/nit deferred, dep-watch, anything new). Nonzero Unaccounted is the pain-point signal - investigate it; negative means states overlap. Never widen a state bar just to shrink it.",
+      "description": "ONE GraphQL call per panel (4 aliased searches - 8 calls/refresh fleet-wide vs the REST search API's 30/min budget that previously starved the row). State bars are direct positive queries mirroring the stat rows; Unaccounted = Total - sum = issues no state represents (untriaged/no-label etc.). Nonzero Unaccounted is the pain-point signal; negative means states overlap. Never widen a state bar to shrink it.",
       "datasource": {
         "type": "yesoreyeram-infinity-datasource",
         "uid": "grafanacloud-infinity"
@@ -5261,96 +5203,38 @@
           "parser": "backend",
           "format": "table",
           "refId": "A",
-          "root_selector": "",
+          "root_selector": "data",
           "columns": [
             {
-              "selector": "total_count",
+              "selector": "total.issueCount",
               "text": "Total",
               "type": "number"
-            }
-          ],
-          "url": "https://api.github.com/search/issues?q=repo:jaetill/game-night-pwa+is:issue+is:open&per_page=1",
-          "url_options": {
-            "method": "GET"
-          }
-        },
-        {
-          "datasource": {
-            "type": "yesoreyeram-infinity-datasource",
-            "uid": "grafanacloud-infinity"
-          },
-          "type": "json",
-          "source": "url",
-          "parser": "backend",
-          "format": "table",
-          "refId": "B",
-          "root_selector": "",
-          "columns": [
+            },
             {
-              "selector": "total_count",
+              "selector": "waiting.issueCount",
               "text": "Waiting on Jason",
               "type": "number"
-            }
-          ],
-          "url": "https://api.github.com/search/issues?q=repo:jaetill/game-night-pwa+is:issue+is:open+label:needs-formulation,human-todo,requires-adr&per_page=1",
-          "url_options": {
-            "method": "GET"
-          }
-        },
-        {
-          "datasource": {
-            "type": "yesoreyeram-infinity-datasource",
-            "uid": "grafanacloud-infinity"
-          },
-          "type": "json",
-          "source": "url",
-          "parser": "backend",
-          "format": "table",
-          "refId": "C",
-          "root_selector": "",
-          "columns": [
+            },
             {
-              "selector": "total_count",
+              "selector": "queue.issueCount",
               "text": "Promotion queue",
               "type": "number"
-            }
-          ],
-          "url": "https://api.github.com/search/issues?q=repo:jaetill/game-night-pwa+is:issue+is:open+label:severity:medium,severity:high,triage:medium,approved+-label:ready-for-implementer&per_page=1",
-          "url_options": {
-            "method": "GET"
-          }
-        },
-        {
-          "datasource": {
-            "type": "yesoreyeram-infinity-datasource",
-            "uid": "grafanacloud-infinity"
-          },
-          "type": "json",
-          "source": "url",
-          "parser": "backend",
-          "format": "table",
-          "refId": "D",
-          "root_selector": "",
-          "columns": [
+            },
             {
-              "selector": "total_count",
+              "selector": "inflight.issueCount",
               "text": "In flight",
               "type": "number"
             }
           ],
-          "url": "https://api.github.com/search/issues?q=repo:jaetill/game-night-pwa+is:issue+is:open+label:ready-for-implementer&per_page=1",
+          "url": "https://api.github.com/graphql",
           "url_options": {
-            "method": "GET"
+            "method": "POST",
+            "body_type": "graphql",
+            "body_graphql_query": "query { total: search(query: \"repo:jaetill/game-night-pwa is:issue state:open\", type: ISSUE) { issueCount } waiting: search(query: \"repo:jaetill/game-night-pwa is:issue state:open label:needs-formulation,human-todo,requires-adr\", type: ISSUE) { issueCount } queue: search(query: \"repo:jaetill/game-night-pwa is:issue state:open label:severity:medium,severity:high,triage:medium,approved -label:ready-for-implementer\", type: ISSUE) { issueCount } inflight: search(query: \"repo:jaetill/game-night-pwa is:issue state:open label:ready-for-implementer\", type: ISSUE) { issueCount } }"
           }
         }
       ],
       "transformations": [
-        {
-          "id": "concatenate",
-          "options": {
-            "frameNameMode": "drop"
-          }
-        },
         {
           "id": "calculateField",
           "options": {
@@ -5420,7 +5304,7 @@
       "id": 291,
       "type": "barchart",
       "title": "meal-planner",
-      "description": "Every state bar is a DIRECT POSITIVE query mirroring the per-repo stat rows (Promotion queue == the Consideration-queue panel's definition; In flight == label:ready-for-implementer). Unaccounted = Total - (Waiting + Queue + In flight): the issues NO state represents (untriaged/no-label, low/nit deferred, dep-watch, anything new). Nonzero Unaccounted is the pain-point signal - investigate it; negative means states overlap. Never widen a state bar just to shrink it.",
+      "description": "ONE GraphQL call per panel (4 aliased searches - 8 calls/refresh fleet-wide vs the REST search API's 30/min budget that previously starved the row). State bars are direct positive queries mirroring the stat rows; Unaccounted = Total - sum = issues no state represents (untriaged/no-label etc.). Nonzero Unaccounted is the pain-point signal; negative means states overlap. Never widen a state bar to shrink it.",
       "datasource": {
         "type": "yesoreyeram-infinity-datasource",
         "uid": "grafanacloud-infinity"
@@ -5476,96 +5360,38 @@
           "parser": "backend",
           "format": "table",
           "refId": "A",
-          "root_selector": "",
+          "root_selector": "data",
           "columns": [
             {
-              "selector": "total_count",
+              "selector": "total.issueCount",
               "text": "Total",
               "type": "number"
-            }
-          ],
-          "url": "https://api.github.com/search/issues?q=repo:jaetill/meal-planner+is:issue+is:open&per_page=1",
-          "url_options": {
-            "method": "GET"
-          }
-        },
-        {
-          "datasource": {
-            "type": "yesoreyeram-infinity-datasource",
-            "uid": "grafanacloud-infinity"
-          },
-          "type": "json",
-          "source": "url",
-          "parser": "backend",
-          "format": "table",
-          "refId": "B",
-          "root_selector": "",
-          "columns": [
+            },
             {
-              "selector": "total_count",
+              "selector": "waiting.issueCount",
               "text": "Waiting on Jason",
               "type": "number"
-            }
-          ],
-          "url": "https://api.github.com/search/issues?q=repo:jaetill/meal-planner+is:issue+is:open+label:needs-formulation,human-todo,requires-adr&per_page=1",
-          "url_options": {
-            "method": "GET"
-          }
-        },
-        {
-          "datasource": {
-            "type": "yesoreyeram-infinity-datasource",
-            "uid": "grafanacloud-infinity"
-          },
-          "type": "json",
-          "source": "url",
-          "parser": "backend",
-          "format": "table",
-          "refId": "C",
-          "root_selector": "",
-          "columns": [
+            },
             {
-              "selector": "total_count",
+              "selector": "queue.issueCount",
               "text": "Promotion queue",
               "type": "number"
-            }
-          ],
-          "url": "https://api.github.com/search/issues?q=repo:jaetill/meal-planner+is:issue+is:open+label:severity:medium,severity:high,triage:medium,approved+-label:ready-for-implementer&per_page=1",
-          "url_options": {
-            "method": "GET"
-          }
-        },
-        {
-          "datasource": {
-            "type": "yesoreyeram-infinity-datasource",
-            "uid": "grafanacloud-infinity"
-          },
-          "type": "json",
-          "source": "url",
-          "parser": "backend",
-          "format": "table",
-          "refId": "D",
-          "root_selector": "",
-          "columns": [
+            },
             {
-              "selector": "total_count",
+              "selector": "inflight.issueCount",
               "text": "In flight",
               "type": "number"
             }
           ],
-          "url": "https://api.github.com/search/issues?q=repo:jaetill/meal-planner+is:issue+is:open+label:ready-for-implementer&per_page=1",
+          "url": "https://api.github.com/graphql",
           "url_options": {
-            "method": "GET"
+            "method": "POST",
+            "body_type": "graphql",
+            "body_graphql_query": "query { total: search(query: \"repo:jaetill/meal-planner is:issue state:open\", type: ISSUE) { issueCount } waiting: search(query: \"repo:jaetill/meal-planner is:issue state:open label:needs-formulation,human-todo,requires-adr\", type: ISSUE) { issueCount } queue: search(query: \"repo:jaetill/meal-planner is:issue state:open label:severity:medium,severity:high,triage:medium,approved -label:ready-for-implementer\", type: ISSUE) { issueCount } inflight: search(query: \"repo:jaetill/meal-planner is:issue state:open label:ready-for-implementer\", type: ISSUE) { issueCount } }"
           }
         }
       ],
       "transformations": [
-        {
-          "id": "concatenate",
-          "options": {
-            "frameNameMode": "drop"
-          }
-        },
         {
           "id": "calculateField",
           "options": {
@@ -5635,7 +5461,7 @@
       "id": 292,
       "type": "barchart",
       "title": "ai-teacher",
-      "description": "Every state bar is a DIRECT POSITIVE query mirroring the per-repo stat rows (Promotion queue == the Consideration-queue panel's definition; In flight == label:ready-for-implementer). Unaccounted = Total - (Waiting + Queue + In flight): the issues NO state represents (untriaged/no-label, low/nit deferred, dep-watch, anything new). Nonzero Unaccounted is the pain-point signal - investigate it; negative means states overlap. Never widen a state bar just to shrink it.",
+      "description": "ONE GraphQL call per panel (4 aliased searches - 8 calls/refresh fleet-wide vs the REST search API's 30/min budget that previously starved the row). State bars are direct positive queries mirroring the stat rows; Unaccounted = Total - sum = issues no state represents (untriaged/no-label etc.). Nonzero Unaccounted is the pain-point signal; negative means states overlap. Never widen a state bar to shrink it.",
       "datasource": {
         "type": "yesoreyeram-infinity-datasource",
         "uid": "grafanacloud-infinity"
@@ -5691,96 +5517,38 @@
           "parser": "backend",
           "format": "table",
           "refId": "A",
-          "root_selector": "",
+          "root_selector": "data",
           "columns": [
             {
-              "selector": "total_count",
+              "selector": "total.issueCount",
               "text": "Total",
               "type": "number"
-            }
-          ],
-          "url": "https://api.github.com/search/issues?q=repo:jaetill/ai-teacher+is:issue+is:open&per_page=1",
-          "url_options": {
-            "method": "GET"
-          }
-        },
-        {
-          "datasource": {
-            "type": "yesoreyeram-infinity-datasource",
-            "uid": "grafanacloud-infinity"
-          },
-          "type": "json",
-          "source": "url",
-          "parser": "backend",
-          "format": "table",
-          "refId": "B",
-          "root_selector": "",
-          "columns": [
+            },
             {
-              "selector": "total_count",
+              "selector": "waiting.issueCount",
               "text": "Waiting on Jason",
               "type": "number"
-            }
-          ],
-          "url": "https://api.github.com/search/issues?q=repo:jaetill/ai-teacher+is:issue+is:open+label:needs-formulation,human-todo,requires-adr&per_page=1",
-          "url_options": {
-            "method": "GET"
-          }
-        },
-        {
-          "datasource": {
-            "type": "yesoreyeram-infinity-datasource",
-            "uid": "grafanacloud-infinity"
-          },
-          "type": "json",
-          "source": "url",
-          "parser": "backend",
-          "format": "table",
-          "refId": "C",
-          "root_selector": "",
-          "columns": [
+            },
             {
-              "selector": "total_count",
+              "selector": "queue.issueCount",
               "text": "Promotion queue",
               "type": "number"
-            }
-          ],
-          "url": "https://api.github.com/search/issues?q=repo:jaetill/ai-teacher+is:issue+is:open+label:severity:medium,severity:high,triage:medium,approved+-label:ready-for-implementer&per_page=1",
-          "url_options": {
-            "method": "GET"
-          }
-        },
-        {
-          "datasource": {
-            "type": "yesoreyeram-infinity-datasource",
-            "uid": "grafanacloud-infinity"
-          },
-          "type": "json",
-          "source": "url",
-          "parser": "backend",
-          "format": "table",
-          "refId": "D",
-          "root_selector": "",
-          "columns": [
+            },
             {
-              "selector": "total_count",
+              "selector": "inflight.issueCount",
               "text": "In flight",
               "type": "number"
             }
           ],
-          "url": "https://api.github.com/search/issues?q=repo:jaetill/ai-teacher+is:issue+is:open+label:ready-for-implementer&per_page=1",
+          "url": "https://api.github.com/graphql",
           "url_options": {
-            "method": "GET"
+            "method": "POST",
+            "body_type": "graphql",
+            "body_graphql_query": "query { total: search(query: \"repo:jaetill/ai-teacher is:issue state:open\", type: ISSUE) { issueCount } waiting: search(query: \"repo:jaetill/ai-teacher is:issue state:open label:needs-formulation,human-todo,requires-adr\", type: ISSUE) { issueCount } queue: search(query: \"repo:jaetill/ai-teacher is:issue state:open label:severity:medium,severity:high,triage:medium,approved -label:ready-for-implementer\", type: ISSUE) { issueCount } inflight: search(query: \"repo:jaetill/ai-teacher is:issue state:open label:ready-for-implementer\", type: ISSUE) { issueCount } }"
           }
         }
       ],
       "transformations": [
-        {
-          "id": "concatenate",
-          "options": {
-            "frameNameMode": "drop"
-          }
-        },
         {
           "id": "calculateField",
           "options": {
@@ -5850,7 +5618,7 @@
       "id": 293,
       "type": "barchart",
       "title": "jaetill-portal",
-      "description": "Every state bar is a DIRECT POSITIVE query mirroring the per-repo stat rows (Promotion queue == the Consideration-queue panel's definition; In flight == label:ready-for-implementer). Unaccounted = Total - (Waiting + Queue + In flight): the issues NO state represents (untriaged/no-label, low/nit deferred, dep-watch, anything new). Nonzero Unaccounted is the pain-point signal - investigate it; negative means states overlap. Never widen a state bar just to shrink it.",
+      "description": "ONE GraphQL call per panel (4 aliased searches - 8 calls/refresh fleet-wide vs the REST search API's 30/min budget that previously starved the row). State bars are direct positive queries mirroring the stat rows; Unaccounted = Total - sum = issues no state represents (untriaged/no-label etc.). Nonzero Unaccounted is the pain-point signal; negative means states overlap. Never widen a state bar to shrink it.",
       "datasource": {
         "type": "yesoreyeram-infinity-datasource",
         "uid": "grafanacloud-infinity"
@@ -5906,96 +5674,38 @@
           "parser": "backend",
           "format": "table",
           "refId": "A",
-          "root_selector": "",
+          "root_selector": "data",
           "columns": [
             {
-              "selector": "total_count",
+              "selector": "total.issueCount",
               "text": "Total",
               "type": "number"
-            }
-          ],
-          "url": "https://api.github.com/search/issues?q=repo:jaetill/jaetill-portal+is:issue+is:open&per_page=1",
-          "url_options": {
-            "method": "GET"
-          }
-        },
-        {
-          "datasource": {
-            "type": "yesoreyeram-infinity-datasource",
-            "uid": "grafanacloud-infinity"
-          },
-          "type": "json",
-          "source": "url",
-          "parser": "backend",
-          "format": "table",
-          "refId": "B",
-          "root_selector": "",
-          "columns": [
+            },
             {
-              "selector": "total_count",
+              "selector": "waiting.issueCount",
               "text": "Waiting on Jason",
               "type": "number"
-            }
-          ],
-          "url": "https://api.github.com/search/issues?q=repo:jaetill/jaetill-portal+is:issue+is:open+label:needs-formulation,human-todo,requires-adr&per_page=1",
-          "url_options": {
-            "method": "GET"
-          }
-        },
-        {
-          "datasource": {
-            "type": "yesoreyeram-infinity-datasource",
-            "uid": "grafanacloud-infinity"
-          },
-          "type": "json",
-          "source": "url",
-          "parser": "backend",
-          "format": "table",
-          "refId": "C",
-          "root_selector": "",
-          "columns": [
+            },
             {
-              "selector": "total_count",
+              "selector": "queue.issueCount",
               "text": "Promotion queue",
               "type": "number"
-            }
-          ],
-          "url": "https://api.github.com/search/issues?q=repo:jaetill/jaetill-portal+is:issue+is:open+label:severity:medium,severity:high,triage:medium,approved+-label:ready-for-implementer&per_page=1",
-          "url_options": {
-            "method": "GET"
-          }
-        },
-        {
-          "datasource": {
-            "type": "yesoreyeram-infinity-datasource",
-            "uid": "grafanacloud-infinity"
-          },
-          "type": "json",
-          "source": "url",
-          "parser": "backend",
-          "format": "table",
-          "refId": "D",
-          "root_selector": "",
-          "columns": [
+            },
             {
-              "selector": "total_count",
+              "selector": "inflight.issueCount",
               "text": "In flight",
               "type": "number"
             }
           ],
-          "url": "https://api.github.com/search/issues?q=repo:jaetill/jaetill-portal+is:issue+is:open+label:ready-for-implementer&per_page=1",
+          "url": "https://api.github.com/graphql",
           "url_options": {
-            "method": "GET"
+            "method": "POST",
+            "body_type": "graphql",
+            "body_graphql_query": "query { total: search(query: \"repo:jaetill/jaetill-portal is:issue state:open\", type: ISSUE) { issueCount } waiting: search(query: \"repo:jaetill/jaetill-portal is:issue state:open label:needs-formulation,human-todo,requires-adr\", type: ISSUE) { issueCount } queue: search(query: \"repo:jaetill/jaetill-portal is:issue state:open label:severity:medium,severity:high,triage:medium,approved -label:ready-for-implementer\", type: ISSUE) { issueCount } inflight: search(query: \"repo:jaetill/jaetill-portal is:issue state:open label:ready-for-implementer\", type: ISSUE) { issueCount } }"
           }
         }
       ],
       "transformations": [
-        {
-          "id": "concatenate",
-          "options": {
-            "frameNameMode": "drop"
-          }
-        },
         {
           "id": "calculateField",
           "options": {
@@ -6065,7 +5775,7 @@
       "id": 294,
       "type": "barchart",
       "title": "splendor",
-      "description": "Every state bar is a DIRECT POSITIVE query mirroring the per-repo stat rows (Promotion queue == the Consideration-queue panel's definition; In flight == label:ready-for-implementer). Unaccounted = Total - (Waiting + Queue + In flight): the issues NO state represents (untriaged/no-label, low/nit deferred, dep-watch, anything new). Nonzero Unaccounted is the pain-point signal - investigate it; negative means states overlap. Never widen a state bar just to shrink it.",
+      "description": "ONE GraphQL call per panel (4 aliased searches - 8 calls/refresh fleet-wide vs the REST search API's 30/min budget that previously starved the row). State bars are direct positive queries mirroring the stat rows; Unaccounted = Total - sum = issues no state represents (untriaged/no-label etc.). Nonzero Unaccounted is the pain-point signal; negative means states overlap. Never widen a state bar to shrink it.",
       "datasource": {
         "type": "yesoreyeram-infinity-datasource",
         "uid": "grafanacloud-infinity"
@@ -6121,96 +5831,38 @@
           "parser": "backend",
           "format": "table",
           "refId": "A",
-          "root_selector": "",
+          "root_selector": "data",
           "columns": [
             {
-              "selector": "total_count",
+              "selector": "total.issueCount",
               "text": "Total",
               "type": "number"
-            }
-          ],
-          "url": "https://api.github.com/search/issues?q=repo:jaetill/splendor+is:issue+is:open&per_page=1",
-          "url_options": {
-            "method": "GET"
-          }
-        },
-        {
-          "datasource": {
-            "type": "yesoreyeram-infinity-datasource",
-            "uid": "grafanacloud-infinity"
-          },
-          "type": "json",
-          "source": "url",
-          "parser": "backend",
-          "format": "table",
-          "refId": "B",
-          "root_selector": "",
-          "columns": [
+            },
             {
-              "selector": "total_count",
+              "selector": "waiting.issueCount",
               "text": "Waiting on Jason",
               "type": "number"
-            }
-          ],
-          "url": "https://api.github.com/search/issues?q=repo:jaetill/splendor+is:issue+is:open+label:needs-formulation,human-todo,requires-adr&per_page=1",
-          "url_options": {
-            "method": "GET"
-          }
-        },
-        {
-          "datasource": {
-            "type": "yesoreyeram-infinity-datasource",
-            "uid": "grafanacloud-infinity"
-          },
-          "type": "json",
-          "source": "url",
-          "parser": "backend",
-          "format": "table",
-          "refId": "C",
-          "root_selector": "",
-          "columns": [
+            },
             {
-              "selector": "total_count",
+              "selector": "queue.issueCount",
               "text": "Promotion queue",
               "type": "number"
-            }
-          ],
-          "url": "https://api.github.com/search/issues?q=repo:jaetill/splendor+is:issue+is:open+label:severity:medium,severity:high,triage:medium,approved+-label:ready-for-implementer&per_page=1",
-          "url_options": {
-            "method": "GET"
-          }
-        },
-        {
-          "datasource": {
-            "type": "yesoreyeram-infinity-datasource",
-            "uid": "grafanacloud-infinity"
-          },
-          "type": "json",
-          "source": "url",
-          "parser": "backend",
-          "format": "table",
-          "refId": "D",
-          "root_selector": "",
-          "columns": [
+            },
             {
-              "selector": "total_count",
+              "selector": "inflight.issueCount",
               "text": "In flight",
               "type": "number"
             }
           ],
-          "url": "https://api.github.com/search/issues?q=repo:jaetill/splendor+is:issue+is:open+label:ready-for-implementer&per_page=1",
+          "url": "https://api.github.com/graphql",
           "url_options": {
-            "method": "GET"
+            "method": "POST",
+            "body_type": "graphql",
+            "body_graphql_query": "query { total: search(query: \"repo:jaetill/splendor is:issue state:open\", type: ISSUE) { issueCount } waiting: search(query: \"repo:jaetill/splendor is:issue state:open label:needs-formulation,human-todo,requires-adr\", type: ISSUE) { issueCount } queue: search(query: \"repo:jaetill/splendor is:issue state:open label:severity:medium,severity:high,triage:medium,approved -label:ready-for-implementer\", type: ISSUE) { issueCount } inflight: search(query: \"repo:jaetill/splendor is:issue state:open label:ready-for-implementer\", type: ISSUE) { issueCount } }"
           }
         }
       ],
       "transformations": [
-        {
-          "id": "concatenate",
-          "options": {
-            "frameNameMode": "drop"
-          }
-        },
         {
           "id": "calculateField",
           "options": {
@@ -6280,7 +5932,7 @@
       "id": 295,
       "type": "barchart",
       "title": "draft",
-      "description": "Every state bar is a DIRECT POSITIVE query mirroring the per-repo stat rows (Promotion queue == the Consideration-queue panel's definition; In flight == label:ready-for-implementer). Unaccounted = Total - (Waiting + Queue + In flight): the issues NO state represents (untriaged/no-label, low/nit deferred, dep-watch, anything new). Nonzero Unaccounted is the pain-point signal - investigate it; negative means states overlap. Never widen a state bar just to shrink it.",
+      "description": "ONE GraphQL call per panel (4 aliased searches - 8 calls/refresh fleet-wide vs the REST search API's 30/min budget that previously starved the row). State bars are direct positive queries mirroring the stat rows; Unaccounted = Total - sum = issues no state represents (untriaged/no-label etc.). Nonzero Unaccounted is the pain-point signal; negative means states overlap. Never widen a state bar to shrink it.",
       "datasource": {
         "type": "yesoreyeram-infinity-datasource",
         "uid": "grafanacloud-infinity"
@@ -6336,96 +5988,38 @@
           "parser": "backend",
           "format": "table",
           "refId": "A",
-          "root_selector": "",
+          "root_selector": "data",
           "columns": [
             {
-              "selector": "total_count",
+              "selector": "total.issueCount",
               "text": "Total",
               "type": "number"
-            }
-          ],
-          "url": "https://api.github.com/search/issues?q=repo:jaetill/draft+is:issue+is:open&per_page=1",
-          "url_options": {
-            "method": "GET"
-          }
-        },
-        {
-          "datasource": {
-            "type": "yesoreyeram-infinity-datasource",
-            "uid": "grafanacloud-infinity"
-          },
-          "type": "json",
-          "source": "url",
-          "parser": "backend",
-          "format": "table",
-          "refId": "B",
-          "root_selector": "",
-          "columns": [
+            },
             {
-              "selector": "total_count",
+              "selector": "waiting.issueCount",
               "text": "Waiting on Jason",
               "type": "number"
-            }
-          ],
-          "url": "https://api.github.com/search/issues?q=repo:jaetill/draft+is:issue+is:open+label:needs-formulation,human-todo,requires-adr&per_page=1",
-          "url_options": {
-            "method": "GET"
-          }
-        },
-        {
-          "datasource": {
-            "type": "yesoreyeram-infinity-datasource",
-            "uid": "grafanacloud-infinity"
-          },
-          "type": "json",
-          "source": "url",
-          "parser": "backend",
-          "format": "table",
-          "refId": "C",
-          "root_selector": "",
-          "columns": [
+            },
             {
-              "selector": "total_count",
+              "selector": "queue.issueCount",
               "text": "Promotion queue",
               "type": "number"
-            }
-          ],
-          "url": "https://api.github.com/search/issues?q=repo:jaetill/draft+is:issue+is:open+label:severity:medium,severity:high,triage:medium,approved+-label:ready-for-implementer&per_page=1",
-          "url_options": {
-            "method": "GET"
-          }
-        },
-        {
-          "datasource": {
-            "type": "yesoreyeram-infinity-datasource",
-            "uid": "grafanacloud-infinity"
-          },
-          "type": "json",
-          "source": "url",
-          "parser": "backend",
-          "format": "table",
-          "refId": "D",
-          "root_selector": "",
-          "columns": [
+            },
             {
-              "selector": "total_count",
+              "selector": "inflight.issueCount",
               "text": "In flight",
               "type": "number"
             }
           ],
-          "url": "https://api.github.com/search/issues?q=repo:jaetill/draft+is:issue+is:open+label:ready-for-implementer&per_page=1",
+          "url": "https://api.github.com/graphql",
           "url_options": {
-            "method": "GET"
+            "method": "POST",
+            "body_type": "graphql",
+            "body_graphql_query": "query { total: search(query: \"repo:jaetill/draft is:issue state:open\", type: ISSUE) { issueCount } waiting: search(query: \"repo:jaetill/draft is:issue state:open label:needs-formulation,human-todo,requires-adr\", type: ISSUE) { issueCount } queue: search(query: \"repo:jaetill/draft is:issue state:open label:severity:medium,severity:high,triage:medium,approved -label:ready-for-implementer\", type: ISSUE) { issueCount } inflight: search(query: \"repo:jaetill/draft is:issue state:open label:ready-for-implementer\", type: ISSUE) { issueCount } }"
           }
         }
       ],
       "transformations": [
-        {
-          "id": "concatenate",
-          "options": {
-            "frameNameMode": "drop"
-          }
-        },
         {
           "id": "calculateField",
           "options": {
@@ -6495,7 +6089,7 @@
       "id": 296,
       "type": "barchart",
       "title": "carto",
-      "description": "Every state bar is a DIRECT POSITIVE query mirroring the per-repo stat rows (Promotion queue == the Consideration-queue panel's definition; In flight == label:ready-for-implementer). Unaccounted = Total - (Waiting + Queue + In flight): the issues NO state represents (untriaged/no-label, low/nit deferred, dep-watch, anything new). Nonzero Unaccounted is the pain-point signal - investigate it; negative means states overlap. Never widen a state bar just to shrink it.",
+      "description": "ONE GraphQL call per panel (4 aliased searches - 8 calls/refresh fleet-wide vs the REST search API's 30/min budget that previously starved the row). State bars are direct positive queries mirroring the stat rows; Unaccounted = Total - sum = issues no state represents (untriaged/no-label etc.). Nonzero Unaccounted is the pain-point signal; negative means states overlap. Never widen a state bar to shrink it.",
       "datasource": {
         "type": "yesoreyeram-infinity-datasource",
         "uid": "grafanacloud-infinity"
@@ -6551,96 +6145,38 @@
           "parser": "backend",
           "format": "table",
           "refId": "A",
-          "root_selector": "",
+          "root_selector": "data",
           "columns": [
             {
-              "selector": "total_count",
+              "selector": "total.issueCount",
               "text": "Total",
               "type": "number"
-            }
-          ],
-          "url": "https://api.github.com/search/issues?q=repo:jaetill/carto+is:issue+is:open&per_page=1",
-          "url_options": {
-            "method": "GET"
-          }
-        },
-        {
-          "datasource": {
-            "type": "yesoreyeram-infinity-datasource",
-            "uid": "grafanacloud-infinity"
-          },
-          "type": "json",
-          "source": "url",
-          "parser": "backend",
-          "format": "table",
-          "refId": "B",
-          "root_selector": "",
-          "columns": [
+            },
             {
-              "selector": "total_count",
+              "selector": "waiting.issueCount",
               "text": "Waiting on Jason",
               "type": "number"
-            }
-          ],
-          "url": "https://api.github.com/search/issues?q=repo:jaetill/carto+is:issue+is:open+label:needs-formulation,human-todo,requires-adr&per_page=1",
-          "url_options": {
-            "method": "GET"
-          }
-        },
-        {
-          "datasource": {
-            "type": "yesoreyeram-infinity-datasource",
-            "uid": "grafanacloud-infinity"
-          },
-          "type": "json",
-          "source": "url",
-          "parser": "backend",
-          "format": "table",
-          "refId": "C",
-          "root_selector": "",
-          "columns": [
+            },
             {
-              "selector": "total_count",
+              "selector": "queue.issueCount",
               "text": "Promotion queue",
               "type": "number"
-            }
-          ],
-          "url": "https://api.github.com/search/issues?q=repo:jaetill/carto+is:issue+is:open+label:severity:medium,severity:high,triage:medium,approved+-label:ready-for-implementer&per_page=1",
-          "url_options": {
-            "method": "GET"
-          }
-        },
-        {
-          "datasource": {
-            "type": "yesoreyeram-infinity-datasource",
-            "uid": "grafanacloud-infinity"
-          },
-          "type": "json",
-          "source": "url",
-          "parser": "backend",
-          "format": "table",
-          "refId": "D",
-          "root_selector": "",
-          "columns": [
+            },
             {
-              "selector": "total_count",
+              "selector": "inflight.issueCount",
               "text": "In flight",
               "type": "number"
             }
           ],
-          "url": "https://api.github.com/search/issues?q=repo:jaetill/carto+is:issue+is:open+label:ready-for-implementer&per_page=1",
+          "url": "https://api.github.com/graphql",
           "url_options": {
-            "method": "GET"
+            "method": "POST",
+            "body_type": "graphql",
+            "body_graphql_query": "query { total: search(query: \"repo:jaetill/carto is:issue state:open\", type: ISSUE) { issueCount } waiting: search(query: \"repo:jaetill/carto is:issue state:open label:needs-formulation,human-todo,requires-adr\", type: ISSUE) { issueCount } queue: search(query: \"repo:jaetill/carto is:issue state:open label:severity:medium,severity:high,triage:medium,approved -label:ready-for-implementer\", type: ISSUE) { issueCount } inflight: search(query: \"repo:jaetill/carto is:issue state:open label:ready-for-implementer\", type: ISSUE) { issueCount } }"
           }
         }
       ],
       "transformations": [
-        {
-          "id": "concatenate",
-          "options": {
-            "frameNameMode": "drop"
-          }
-        },
         {
           "id": "calculateField",
           "options": {
