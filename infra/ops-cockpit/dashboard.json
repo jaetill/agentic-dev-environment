@@ -166,7 +166,7 @@
         "type": "grafana-github-datasource",
         "uid": "ffnagb7t8j5s0e"
       },
-      "description": "Open process-flaw issues. The AI team's improvement queue — should not pile up.",
+      "description": "Open process-flaw issues. The AI team's improvement queue \u2014 should not pile up.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -410,7 +410,7 @@
               "type": "value"
             }
           ],
-          "noValue": "—",
+          "noValue": "\u2014",
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -615,7 +615,7 @@
           "repository": "agentic-dev-environment"
         }
       ],
-      "title": "Loop runs — triage-scan heartbeat",
+      "title": "Loop runs \u2014 triage-scan heartbeat",
       "type": "table"
     },
     {
@@ -1256,7 +1256,7 @@
           "showLineNumbers": false,
           "showMiniMap": false
         },
-        "content": "### 🟡 Formulation — awaiting your scoping  ·  `label:needs-formulation`",
+        "content": "### \ud83d\udfe1 Formulation \u2014 awaiting your scoping  \u00b7  `label:needs-formulation`",
         "mode": "markdown"
       },
       "pluginVersion": "13.1.0-26564065169",
@@ -1903,7 +1903,7 @@
           "showLineNumbers": false,
           "showMiniMap": false
         },
-        "content": "### 🔵 Consideration queue — awaiting the promoter  ·  `severity:med/high · triage:med · approved` minus `ready-for-implementer`",
+        "content": "### \ud83d\udd35 Consideration queue \u2014 awaiting the promoter  \u00b7  `severity:med/high \u00b7 triage:med \u00b7 approved` minus `ready-for-implementer`",
         "mode": "markdown"
       },
       "pluginVersion": "13.1.0-26564065169",
@@ -2550,7 +2550,7 @@
           "showLineNumbers": false,
           "showMiniMap": false
         },
-        "content": "### 🟠 Self-change hold — awaiting architect ratification  ·  `label:compositional-self-change`  ·  platform repo only (app repos never self-modify — ADR-0019/0023)",
+        "content": "### \ud83d\udfe0 Self-change hold \u2014 awaiting architect ratification  \u00b7  `label:compositional-self-change`  \u00b7  platform repo only (app repos never self-modify \u2014 ADR-0019/0023)",
         "mode": "markdown"
       },
       "pluginVersion": "13.1.0-26564065169",
@@ -2646,7 +2646,7 @@
       },
       "id": 233,
       "options": {
-        "content": "### ⬛ Low / Nit — deferred by severity, drained on adjacency / active-cycle sweep  ·  `severity:low,severity:nit` (excludes `ready-for-implementer`)  ·  ADR-0037",
+        "content": "### \u2b1b Low / Nit \u2014 deferred by severity, drained on adjacency / active-cycle sweep  \u00b7  `severity:low,severity:nit` (excludes `ready-for-implementer`)  \u00b7  ADR-0037",
         "mode": "markdown"
       },
       "title": "",
@@ -3238,7 +3238,7 @@
       },
       "id": 234,
       "options": {
-        "content": "### ⚠️ Untriaged / off-loop — no labels, invisible to the loop  ·  `is:open is:issue no:label` (not on the workflow diagram)",
+        "content": "### \u26a0\ufe0f Untriaged / off-loop \u2014 no labels, invisible to the loop  \u00b7  `is:open is:issue no:label` (not on the workflow diagram)",
         "mode": "markdown"
       },
       "title": "",
@@ -3830,7 +3830,7 @@
       },
       "id": 235,
       "options": {
-        "content": "### 🟣 In flight — promoted & dispatched  ·  `label:ready-for-implementer`  ·  being built / reviewed / awaiting merge",
+        "content": "### \ud83d\udfe3 In flight \u2014 promoted & dispatched  \u00b7  `label:ready-for-implementer`  \u00b7  being built / reviewed / awaiting merge",
         "mode": "markdown"
       },
       "title": "",
@@ -4422,7 +4422,7 @@
       },
       "id": 237,
       "options": {
-        "content": "### 📦 dep-watch digest — weekly dependency digest (read-only info sink)  ·  `label:dep-watch`  ·  normally exactly 1/repo",
+        "content": "### \ud83d\udce6 dep-watch digest \u2014 weekly dependency digest (read-only info sink)  \u00b7  `label:dep-watch`  \u00b7  normally exactly 1/repo",
         "mode": "markdown"
       },
       "title": "",
@@ -4972,6 +4972,1739 @@
       "timeFrom": "5y",
       "title": "carto",
       "type": "stat"
+    },
+    {
+      "id": 288,
+      "type": "row",
+      "title": "Issue flow by project \u2014 Total / Waiting on Jason / Promotion queue / In flight (ADR-0043-era states)",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 84
+      },
+      "panels": []
+    },
+    {
+      "id": 289,
+      "type": "barchart",
+      "title": "agentic-dev-environment",
+      "description": "Every state bar is a DIRECT query; Total is the unrefutable is:issue is:open count. Unaccounted = Total - (Waiting + Queue + In flight): structurally 0 - when it rises, issues exist that the classification doesn't represent (label drift, a new state, or a failed query). Investigate Unaccounted > 0; never tune the other bars to hide it.",
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "grafanacloud-infinity"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 0,
+        "y": 85
+      },
+      "timeFrom": "5y",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "lineWidth": 1
+          },
+          "min": 0,
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "vertical",
+        "xTickLabelRotation": 0,
+        "showValue": "always",
+        "stacking": "none",
+        "groupWidth": 0.7,
+        "barWidth": 0.9,
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        },
+        "colorByField": "State"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "grafanacloud-infinity"
+          },
+          "type": "json",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "refId": "A",
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "total_count",
+              "text": "Total",
+              "type": "number"
+            }
+          ],
+          "url": "https://api.github.com/search/issues?q=repo:jaetill/agentic-dev-environment+is:issue+is:open&per_page=1",
+          "url_options": {
+            "method": "GET"
+          }
+        },
+        {
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "grafanacloud-infinity"
+          },
+          "type": "json",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "refId": "B",
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "total_count",
+              "text": "Waiting on Jason",
+              "type": "number"
+            }
+          ],
+          "url": "https://api.github.com/search/issues?q=repo:jaetill/agentic-dev-environment+is:issue+is:open+label:needs-formulation,human-todo,requires-adr&per_page=1",
+          "url_options": {
+            "method": "GET"
+          }
+        },
+        {
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "grafanacloud-infinity"
+          },
+          "type": "json",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "refId": "C",
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "total_count",
+              "text": "Promotion queue",
+              "type": "number"
+            }
+          ],
+          "url": "https://api.github.com/search/issues?q=repo:jaetill/agentic-dev-environment+is:issue+is:open+-label:needs-formulation+-label:human-todo+-label:requires-adr+-label:ready-for-implementer&per_page=1",
+          "url_options": {
+            "method": "GET"
+          }
+        },
+        {
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "grafanacloud-infinity"
+          },
+          "type": "json",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "refId": "D",
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "total_count",
+              "text": "In flight",
+              "type": "number"
+            }
+          ],
+          "url": "https://api.github.com/search/issues?q=repo:jaetill/agentic-dev-environment+is:issue+is:open+label:ready-for-implementer+-label:needs-formulation+-label:human-todo+-label:requires-adr&per_page=1",
+          "url_options": {
+            "method": "GET"
+          }
+        }
+      ],
+      "transformations": [
+        {
+          "id": "concatenate",
+          "options": {
+            "frameNameMode": "drop"
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "binary": {
+              "left": "Total",
+              "operator": "-",
+              "right": "Waiting on Jason"
+            },
+            "alias": "_t1",
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "binary": {
+              "left": "_t1",
+              "operator": "-",
+              "right": "Promotion queue"
+            },
+            "alias": "_t2",
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "binary": {
+              "left": "_t2",
+              "operator": "-",
+              "right": "In flight"
+            },
+            "alias": "Unaccounted",
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "_t1": true,
+              "_t2": true
+            },
+            "indexByName": {
+              "Total": 0,
+              "Waiting on Jason": 1,
+              "Promotion queue": 2,
+              "In flight": 3,
+              "Unaccounted": 4
+            },
+            "renameByName": {}
+          }
+        },
+        {
+          "id": "transpose",
+          "options": {
+            "firstFieldName": "State",
+            "restFieldsName": "Issues"
+          }
+        }
+      ]
+    },
+    {
+      "id": 290,
+      "type": "barchart",
+      "title": "game-night-pwa",
+      "description": "Every state bar is a DIRECT query; Total is the unrefutable is:issue is:open count. Unaccounted = Total - (Waiting + Queue + In flight): structurally 0 - when it rises, issues exist that the classification doesn't represent (label drift, a new state, or a failed query). Investigate Unaccounted > 0; never tune the other bars to hide it.",
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "grafanacloud-infinity"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 6,
+        "y": 85
+      },
+      "timeFrom": "5y",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "lineWidth": 1
+          },
+          "min": 0,
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "vertical",
+        "xTickLabelRotation": 0,
+        "showValue": "always",
+        "stacking": "none",
+        "groupWidth": 0.7,
+        "barWidth": 0.9,
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        },
+        "colorByField": "State"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "grafanacloud-infinity"
+          },
+          "type": "json",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "refId": "A",
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "total_count",
+              "text": "Total",
+              "type": "number"
+            }
+          ],
+          "url": "https://api.github.com/search/issues?q=repo:jaetill/game-night-pwa+is:issue+is:open&per_page=1",
+          "url_options": {
+            "method": "GET"
+          }
+        },
+        {
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "grafanacloud-infinity"
+          },
+          "type": "json",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "refId": "B",
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "total_count",
+              "text": "Waiting on Jason",
+              "type": "number"
+            }
+          ],
+          "url": "https://api.github.com/search/issues?q=repo:jaetill/game-night-pwa+is:issue+is:open+label:needs-formulation,human-todo,requires-adr&per_page=1",
+          "url_options": {
+            "method": "GET"
+          }
+        },
+        {
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "grafanacloud-infinity"
+          },
+          "type": "json",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "refId": "C",
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "total_count",
+              "text": "Promotion queue",
+              "type": "number"
+            }
+          ],
+          "url": "https://api.github.com/search/issues?q=repo:jaetill/game-night-pwa+is:issue+is:open+-label:needs-formulation+-label:human-todo+-label:requires-adr+-label:ready-for-implementer&per_page=1",
+          "url_options": {
+            "method": "GET"
+          }
+        },
+        {
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "grafanacloud-infinity"
+          },
+          "type": "json",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "refId": "D",
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "total_count",
+              "text": "In flight",
+              "type": "number"
+            }
+          ],
+          "url": "https://api.github.com/search/issues?q=repo:jaetill/game-night-pwa+is:issue+is:open+label:ready-for-implementer+-label:needs-formulation+-label:human-todo+-label:requires-adr&per_page=1",
+          "url_options": {
+            "method": "GET"
+          }
+        }
+      ],
+      "transformations": [
+        {
+          "id": "concatenate",
+          "options": {
+            "frameNameMode": "drop"
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "binary": {
+              "left": "Total",
+              "operator": "-",
+              "right": "Waiting on Jason"
+            },
+            "alias": "_t1",
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "binary": {
+              "left": "_t1",
+              "operator": "-",
+              "right": "Promotion queue"
+            },
+            "alias": "_t2",
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "binary": {
+              "left": "_t2",
+              "operator": "-",
+              "right": "In flight"
+            },
+            "alias": "Unaccounted",
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "_t1": true,
+              "_t2": true
+            },
+            "indexByName": {
+              "Total": 0,
+              "Waiting on Jason": 1,
+              "Promotion queue": 2,
+              "In flight": 3,
+              "Unaccounted": 4
+            },
+            "renameByName": {}
+          }
+        },
+        {
+          "id": "transpose",
+          "options": {
+            "firstFieldName": "State",
+            "restFieldsName": "Issues"
+          }
+        }
+      ]
+    },
+    {
+      "id": 291,
+      "type": "barchart",
+      "title": "meal-planner",
+      "description": "Every state bar is a DIRECT query; Total is the unrefutable is:issue is:open count. Unaccounted = Total - (Waiting + Queue + In flight): structurally 0 - when it rises, issues exist that the classification doesn't represent (label drift, a new state, or a failed query). Investigate Unaccounted > 0; never tune the other bars to hide it.",
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "grafanacloud-infinity"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 12,
+        "y": 85
+      },
+      "timeFrom": "5y",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "lineWidth": 1
+          },
+          "min": 0,
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "vertical",
+        "xTickLabelRotation": 0,
+        "showValue": "always",
+        "stacking": "none",
+        "groupWidth": 0.7,
+        "barWidth": 0.9,
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        },
+        "colorByField": "State"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "grafanacloud-infinity"
+          },
+          "type": "json",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "refId": "A",
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "total_count",
+              "text": "Total",
+              "type": "number"
+            }
+          ],
+          "url": "https://api.github.com/search/issues?q=repo:jaetill/meal-planner+is:issue+is:open&per_page=1",
+          "url_options": {
+            "method": "GET"
+          }
+        },
+        {
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "grafanacloud-infinity"
+          },
+          "type": "json",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "refId": "B",
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "total_count",
+              "text": "Waiting on Jason",
+              "type": "number"
+            }
+          ],
+          "url": "https://api.github.com/search/issues?q=repo:jaetill/meal-planner+is:issue+is:open+label:needs-formulation,human-todo,requires-adr&per_page=1",
+          "url_options": {
+            "method": "GET"
+          }
+        },
+        {
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "grafanacloud-infinity"
+          },
+          "type": "json",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "refId": "C",
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "total_count",
+              "text": "Promotion queue",
+              "type": "number"
+            }
+          ],
+          "url": "https://api.github.com/search/issues?q=repo:jaetill/meal-planner+is:issue+is:open+-label:needs-formulation+-label:human-todo+-label:requires-adr+-label:ready-for-implementer&per_page=1",
+          "url_options": {
+            "method": "GET"
+          }
+        },
+        {
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "grafanacloud-infinity"
+          },
+          "type": "json",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "refId": "D",
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "total_count",
+              "text": "In flight",
+              "type": "number"
+            }
+          ],
+          "url": "https://api.github.com/search/issues?q=repo:jaetill/meal-planner+is:issue+is:open+label:ready-for-implementer+-label:needs-formulation+-label:human-todo+-label:requires-adr&per_page=1",
+          "url_options": {
+            "method": "GET"
+          }
+        }
+      ],
+      "transformations": [
+        {
+          "id": "concatenate",
+          "options": {
+            "frameNameMode": "drop"
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "binary": {
+              "left": "Total",
+              "operator": "-",
+              "right": "Waiting on Jason"
+            },
+            "alias": "_t1",
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "binary": {
+              "left": "_t1",
+              "operator": "-",
+              "right": "Promotion queue"
+            },
+            "alias": "_t2",
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "binary": {
+              "left": "_t2",
+              "operator": "-",
+              "right": "In flight"
+            },
+            "alias": "Unaccounted",
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "_t1": true,
+              "_t2": true
+            },
+            "indexByName": {
+              "Total": 0,
+              "Waiting on Jason": 1,
+              "Promotion queue": 2,
+              "In flight": 3,
+              "Unaccounted": 4
+            },
+            "renameByName": {}
+          }
+        },
+        {
+          "id": "transpose",
+          "options": {
+            "firstFieldName": "State",
+            "restFieldsName": "Issues"
+          }
+        }
+      ]
+    },
+    {
+      "id": 292,
+      "type": "barchart",
+      "title": "ai-teacher",
+      "description": "Every state bar is a DIRECT query; Total is the unrefutable is:issue is:open count. Unaccounted = Total - (Waiting + Queue + In flight): structurally 0 - when it rises, issues exist that the classification doesn't represent (label drift, a new state, or a failed query). Investigate Unaccounted > 0; never tune the other bars to hide it.",
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "grafanacloud-infinity"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 18,
+        "y": 85
+      },
+      "timeFrom": "5y",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "lineWidth": 1
+          },
+          "min": 0,
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "vertical",
+        "xTickLabelRotation": 0,
+        "showValue": "always",
+        "stacking": "none",
+        "groupWidth": 0.7,
+        "barWidth": 0.9,
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        },
+        "colorByField": "State"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "grafanacloud-infinity"
+          },
+          "type": "json",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "refId": "A",
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "total_count",
+              "text": "Total",
+              "type": "number"
+            }
+          ],
+          "url": "https://api.github.com/search/issues?q=repo:jaetill/ai-teacher+is:issue+is:open&per_page=1",
+          "url_options": {
+            "method": "GET"
+          }
+        },
+        {
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "grafanacloud-infinity"
+          },
+          "type": "json",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "refId": "B",
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "total_count",
+              "text": "Waiting on Jason",
+              "type": "number"
+            }
+          ],
+          "url": "https://api.github.com/search/issues?q=repo:jaetill/ai-teacher+is:issue+is:open+label:needs-formulation,human-todo,requires-adr&per_page=1",
+          "url_options": {
+            "method": "GET"
+          }
+        },
+        {
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "grafanacloud-infinity"
+          },
+          "type": "json",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "refId": "C",
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "total_count",
+              "text": "Promotion queue",
+              "type": "number"
+            }
+          ],
+          "url": "https://api.github.com/search/issues?q=repo:jaetill/ai-teacher+is:issue+is:open+-label:needs-formulation+-label:human-todo+-label:requires-adr+-label:ready-for-implementer&per_page=1",
+          "url_options": {
+            "method": "GET"
+          }
+        },
+        {
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "grafanacloud-infinity"
+          },
+          "type": "json",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "refId": "D",
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "total_count",
+              "text": "In flight",
+              "type": "number"
+            }
+          ],
+          "url": "https://api.github.com/search/issues?q=repo:jaetill/ai-teacher+is:issue+is:open+label:ready-for-implementer+-label:needs-formulation+-label:human-todo+-label:requires-adr&per_page=1",
+          "url_options": {
+            "method": "GET"
+          }
+        }
+      ],
+      "transformations": [
+        {
+          "id": "concatenate",
+          "options": {
+            "frameNameMode": "drop"
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "binary": {
+              "left": "Total",
+              "operator": "-",
+              "right": "Waiting on Jason"
+            },
+            "alias": "_t1",
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "binary": {
+              "left": "_t1",
+              "operator": "-",
+              "right": "Promotion queue"
+            },
+            "alias": "_t2",
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "binary": {
+              "left": "_t2",
+              "operator": "-",
+              "right": "In flight"
+            },
+            "alias": "Unaccounted",
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "_t1": true,
+              "_t2": true
+            },
+            "indexByName": {
+              "Total": 0,
+              "Waiting on Jason": 1,
+              "Promotion queue": 2,
+              "In flight": 3,
+              "Unaccounted": 4
+            },
+            "renameByName": {}
+          }
+        },
+        {
+          "id": "transpose",
+          "options": {
+            "firstFieldName": "State",
+            "restFieldsName": "Issues"
+          }
+        }
+      ]
+    },
+    {
+      "id": 293,
+      "type": "barchart",
+      "title": "jaetill-portal",
+      "description": "Every state bar is a DIRECT query; Total is the unrefutable is:issue is:open count. Unaccounted = Total - (Waiting + Queue + In flight): structurally 0 - when it rises, issues exist that the classification doesn't represent (label drift, a new state, or a failed query). Investigate Unaccounted > 0; never tune the other bars to hide it.",
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "grafanacloud-infinity"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 0,
+        "y": 93
+      },
+      "timeFrom": "5y",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "lineWidth": 1
+          },
+          "min": 0,
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "vertical",
+        "xTickLabelRotation": 0,
+        "showValue": "always",
+        "stacking": "none",
+        "groupWidth": 0.7,
+        "barWidth": 0.9,
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        },
+        "colorByField": "State"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "grafanacloud-infinity"
+          },
+          "type": "json",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "refId": "A",
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "total_count",
+              "text": "Total",
+              "type": "number"
+            }
+          ],
+          "url": "https://api.github.com/search/issues?q=repo:jaetill/jaetill-portal+is:issue+is:open&per_page=1",
+          "url_options": {
+            "method": "GET"
+          }
+        },
+        {
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "grafanacloud-infinity"
+          },
+          "type": "json",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "refId": "B",
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "total_count",
+              "text": "Waiting on Jason",
+              "type": "number"
+            }
+          ],
+          "url": "https://api.github.com/search/issues?q=repo:jaetill/jaetill-portal+is:issue+is:open+label:needs-formulation,human-todo,requires-adr&per_page=1",
+          "url_options": {
+            "method": "GET"
+          }
+        },
+        {
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "grafanacloud-infinity"
+          },
+          "type": "json",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "refId": "C",
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "total_count",
+              "text": "Promotion queue",
+              "type": "number"
+            }
+          ],
+          "url": "https://api.github.com/search/issues?q=repo:jaetill/jaetill-portal+is:issue+is:open+-label:needs-formulation+-label:human-todo+-label:requires-adr+-label:ready-for-implementer&per_page=1",
+          "url_options": {
+            "method": "GET"
+          }
+        },
+        {
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "grafanacloud-infinity"
+          },
+          "type": "json",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "refId": "D",
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "total_count",
+              "text": "In flight",
+              "type": "number"
+            }
+          ],
+          "url": "https://api.github.com/search/issues?q=repo:jaetill/jaetill-portal+is:issue+is:open+label:ready-for-implementer+-label:needs-formulation+-label:human-todo+-label:requires-adr&per_page=1",
+          "url_options": {
+            "method": "GET"
+          }
+        }
+      ],
+      "transformations": [
+        {
+          "id": "concatenate",
+          "options": {
+            "frameNameMode": "drop"
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "binary": {
+              "left": "Total",
+              "operator": "-",
+              "right": "Waiting on Jason"
+            },
+            "alias": "_t1",
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "binary": {
+              "left": "_t1",
+              "operator": "-",
+              "right": "Promotion queue"
+            },
+            "alias": "_t2",
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "binary": {
+              "left": "_t2",
+              "operator": "-",
+              "right": "In flight"
+            },
+            "alias": "Unaccounted",
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "_t1": true,
+              "_t2": true
+            },
+            "indexByName": {
+              "Total": 0,
+              "Waiting on Jason": 1,
+              "Promotion queue": 2,
+              "In flight": 3,
+              "Unaccounted": 4
+            },
+            "renameByName": {}
+          }
+        },
+        {
+          "id": "transpose",
+          "options": {
+            "firstFieldName": "State",
+            "restFieldsName": "Issues"
+          }
+        }
+      ]
+    },
+    {
+      "id": 294,
+      "type": "barchart",
+      "title": "splendor",
+      "description": "Every state bar is a DIRECT query; Total is the unrefutable is:issue is:open count. Unaccounted = Total - (Waiting + Queue + In flight): structurally 0 - when it rises, issues exist that the classification doesn't represent (label drift, a new state, or a failed query). Investigate Unaccounted > 0; never tune the other bars to hide it.",
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "grafanacloud-infinity"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 6,
+        "y": 93
+      },
+      "timeFrom": "5y",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "lineWidth": 1
+          },
+          "min": 0,
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "vertical",
+        "xTickLabelRotation": 0,
+        "showValue": "always",
+        "stacking": "none",
+        "groupWidth": 0.7,
+        "barWidth": 0.9,
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        },
+        "colorByField": "State"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "grafanacloud-infinity"
+          },
+          "type": "json",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "refId": "A",
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "total_count",
+              "text": "Total",
+              "type": "number"
+            }
+          ],
+          "url": "https://api.github.com/search/issues?q=repo:jaetill/splendor+is:issue+is:open&per_page=1",
+          "url_options": {
+            "method": "GET"
+          }
+        },
+        {
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "grafanacloud-infinity"
+          },
+          "type": "json",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "refId": "B",
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "total_count",
+              "text": "Waiting on Jason",
+              "type": "number"
+            }
+          ],
+          "url": "https://api.github.com/search/issues?q=repo:jaetill/splendor+is:issue+is:open+label:needs-formulation,human-todo,requires-adr&per_page=1",
+          "url_options": {
+            "method": "GET"
+          }
+        },
+        {
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "grafanacloud-infinity"
+          },
+          "type": "json",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "refId": "C",
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "total_count",
+              "text": "Promotion queue",
+              "type": "number"
+            }
+          ],
+          "url": "https://api.github.com/search/issues?q=repo:jaetill/splendor+is:issue+is:open+-label:needs-formulation+-label:human-todo+-label:requires-adr+-label:ready-for-implementer&per_page=1",
+          "url_options": {
+            "method": "GET"
+          }
+        },
+        {
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "grafanacloud-infinity"
+          },
+          "type": "json",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "refId": "D",
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "total_count",
+              "text": "In flight",
+              "type": "number"
+            }
+          ],
+          "url": "https://api.github.com/search/issues?q=repo:jaetill/splendor+is:issue+is:open+label:ready-for-implementer+-label:needs-formulation+-label:human-todo+-label:requires-adr&per_page=1",
+          "url_options": {
+            "method": "GET"
+          }
+        }
+      ],
+      "transformations": [
+        {
+          "id": "concatenate",
+          "options": {
+            "frameNameMode": "drop"
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "binary": {
+              "left": "Total",
+              "operator": "-",
+              "right": "Waiting on Jason"
+            },
+            "alias": "_t1",
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "binary": {
+              "left": "_t1",
+              "operator": "-",
+              "right": "Promotion queue"
+            },
+            "alias": "_t2",
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "binary": {
+              "left": "_t2",
+              "operator": "-",
+              "right": "In flight"
+            },
+            "alias": "Unaccounted",
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "_t1": true,
+              "_t2": true
+            },
+            "indexByName": {
+              "Total": 0,
+              "Waiting on Jason": 1,
+              "Promotion queue": 2,
+              "In flight": 3,
+              "Unaccounted": 4
+            },
+            "renameByName": {}
+          }
+        },
+        {
+          "id": "transpose",
+          "options": {
+            "firstFieldName": "State",
+            "restFieldsName": "Issues"
+          }
+        }
+      ]
+    },
+    {
+      "id": 295,
+      "type": "barchart",
+      "title": "draft",
+      "description": "Every state bar is a DIRECT query; Total is the unrefutable is:issue is:open count. Unaccounted = Total - (Waiting + Queue + In flight): structurally 0 - when it rises, issues exist that the classification doesn't represent (label drift, a new state, or a failed query). Investigate Unaccounted > 0; never tune the other bars to hide it.",
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "grafanacloud-infinity"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 12,
+        "y": 93
+      },
+      "timeFrom": "5y",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "lineWidth": 1
+          },
+          "min": 0,
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "vertical",
+        "xTickLabelRotation": 0,
+        "showValue": "always",
+        "stacking": "none",
+        "groupWidth": 0.7,
+        "barWidth": 0.9,
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        },
+        "colorByField": "State"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "grafanacloud-infinity"
+          },
+          "type": "json",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "refId": "A",
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "total_count",
+              "text": "Total",
+              "type": "number"
+            }
+          ],
+          "url": "https://api.github.com/search/issues?q=repo:jaetill/draft+is:issue+is:open&per_page=1",
+          "url_options": {
+            "method": "GET"
+          }
+        },
+        {
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "grafanacloud-infinity"
+          },
+          "type": "json",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "refId": "B",
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "total_count",
+              "text": "Waiting on Jason",
+              "type": "number"
+            }
+          ],
+          "url": "https://api.github.com/search/issues?q=repo:jaetill/draft+is:issue+is:open+label:needs-formulation,human-todo,requires-adr&per_page=1",
+          "url_options": {
+            "method": "GET"
+          }
+        },
+        {
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "grafanacloud-infinity"
+          },
+          "type": "json",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "refId": "C",
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "total_count",
+              "text": "Promotion queue",
+              "type": "number"
+            }
+          ],
+          "url": "https://api.github.com/search/issues?q=repo:jaetill/draft+is:issue+is:open+-label:needs-formulation+-label:human-todo+-label:requires-adr+-label:ready-for-implementer&per_page=1",
+          "url_options": {
+            "method": "GET"
+          }
+        },
+        {
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "grafanacloud-infinity"
+          },
+          "type": "json",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "refId": "D",
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "total_count",
+              "text": "In flight",
+              "type": "number"
+            }
+          ],
+          "url": "https://api.github.com/search/issues?q=repo:jaetill/draft+is:issue+is:open+label:ready-for-implementer+-label:needs-formulation+-label:human-todo+-label:requires-adr&per_page=1",
+          "url_options": {
+            "method": "GET"
+          }
+        }
+      ],
+      "transformations": [
+        {
+          "id": "concatenate",
+          "options": {
+            "frameNameMode": "drop"
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "binary": {
+              "left": "Total",
+              "operator": "-",
+              "right": "Waiting on Jason"
+            },
+            "alias": "_t1",
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "binary": {
+              "left": "_t1",
+              "operator": "-",
+              "right": "Promotion queue"
+            },
+            "alias": "_t2",
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "binary": {
+              "left": "_t2",
+              "operator": "-",
+              "right": "In flight"
+            },
+            "alias": "Unaccounted",
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "_t1": true,
+              "_t2": true
+            },
+            "indexByName": {
+              "Total": 0,
+              "Waiting on Jason": 1,
+              "Promotion queue": 2,
+              "In flight": 3,
+              "Unaccounted": 4
+            },
+            "renameByName": {}
+          }
+        },
+        {
+          "id": "transpose",
+          "options": {
+            "firstFieldName": "State",
+            "restFieldsName": "Issues"
+          }
+        }
+      ]
+    },
+    {
+      "id": 296,
+      "type": "barchart",
+      "title": "carto",
+      "description": "Every state bar is a DIRECT query; Total is the unrefutable is:issue is:open count. Unaccounted = Total - (Waiting + Queue + In flight): structurally 0 - when it rises, issues exist that the classification doesn't represent (label drift, a new state, or a failed query). Investigate Unaccounted > 0; never tune the other bars to hide it.",
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "grafanacloud-infinity"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 18,
+        "y": 93
+      },
+      "timeFrom": "5y",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "lineWidth": 1
+          },
+          "min": 0,
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "vertical",
+        "xTickLabelRotation": 0,
+        "showValue": "always",
+        "stacking": "none",
+        "groupWidth": 0.7,
+        "barWidth": 0.9,
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        },
+        "colorByField": "State"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "grafanacloud-infinity"
+          },
+          "type": "json",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "refId": "A",
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "total_count",
+              "text": "Total",
+              "type": "number"
+            }
+          ],
+          "url": "https://api.github.com/search/issues?q=repo:jaetill/carto+is:issue+is:open&per_page=1",
+          "url_options": {
+            "method": "GET"
+          }
+        },
+        {
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "grafanacloud-infinity"
+          },
+          "type": "json",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "refId": "B",
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "total_count",
+              "text": "Waiting on Jason",
+              "type": "number"
+            }
+          ],
+          "url": "https://api.github.com/search/issues?q=repo:jaetill/carto+is:issue+is:open+label:needs-formulation,human-todo,requires-adr&per_page=1",
+          "url_options": {
+            "method": "GET"
+          }
+        },
+        {
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "grafanacloud-infinity"
+          },
+          "type": "json",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "refId": "C",
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "total_count",
+              "text": "Promotion queue",
+              "type": "number"
+            }
+          ],
+          "url": "https://api.github.com/search/issues?q=repo:jaetill/carto+is:issue+is:open+-label:needs-formulation+-label:human-todo+-label:requires-adr+-label:ready-for-implementer&per_page=1",
+          "url_options": {
+            "method": "GET"
+          }
+        },
+        {
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "grafanacloud-infinity"
+          },
+          "type": "json",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "refId": "D",
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "total_count",
+              "text": "In flight",
+              "type": "number"
+            }
+          ],
+          "url": "https://api.github.com/search/issues?q=repo:jaetill/carto+is:issue+is:open+label:ready-for-implementer+-label:needs-formulation+-label:human-todo+-label:requires-adr&per_page=1",
+          "url_options": {
+            "method": "GET"
+          }
+        }
+      ],
+      "transformations": [
+        {
+          "id": "concatenate",
+          "options": {
+            "frameNameMode": "drop"
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "binary": {
+              "left": "Total",
+              "operator": "-",
+              "right": "Waiting on Jason"
+            },
+            "alias": "_t1",
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "binary": {
+              "left": "_t1",
+              "operator": "-",
+              "right": "Promotion queue"
+            },
+            "alias": "_t2",
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "binary": {
+              "left": "_t2",
+              "operator": "-",
+              "right": "In flight"
+            },
+            "alias": "Unaccounted",
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "_t1": true,
+              "_t2": true
+            },
+            "indexByName": {
+              "Total": 0,
+              "Waiting on Jason": 1,
+              "Promotion queue": 2,
+              "In flight": 3,
+              "Unaccounted": 4
+            },
+            "renameByName": {}
+          }
+        },
+        {
+          "id": "transpose",
+          "options": {
+            "firstFieldName": "State",
+            "restFieldsName": "Issues"
+          }
+        }
+      ]
     }
   ],
   "preload": false,
@@ -5058,6 +6791,6 @@
     ]
   },
   "timezone": "browser",
-  "title": "Ops Cockpit — autonomous loop",
+  "title": "Ops Cockpit \u2014 autonomous loop",
   "uid": "ops-cockpit"
 }
