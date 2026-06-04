@@ -24,6 +24,19 @@ cap="${SIZE_CAP:-8}"
 RAIL_ENFORCERS='triage-bot architect'
 DENY='FLEET_MAX|scope[ _-]?cap|scope:iac|severity calibrat|severity:|auto[ -]?merge|compositional|self-change|competence|ratif|human[ -]?(origin|merge|ratif)|author_association|\bOWNER\b|origin:|permission|secret|token|bypassPermission|force-?merge|admin-?merge|plan-approved|ready-for-implementer|claude-(sonnet|opus|haiku)|model tier|FLEET_TOKEN|--add-label'
 
+# ADR-0023 compositional-path guard: any changed file in the team's gates
+# (.github/workflows/), standards (docs/standards/), ADRs (docs/adr/), or the
+# agent-team hierarchy (plugins/ai-team/) is a compositional self-change
+# requiring human review. Agent files (plugins/ai-team/agents/*.md) are handled
+# below by the ADR-0032 additive self-change lane and are skipped here.
+while IFS= read -r f; do
+  [[ -z "$f" ]] && continue
+  [[ "$f" =~ ^plugins/ai-team/agents/[^/]+\.md$ ]] && continue  # ADR-0032 lane
+  if [[ "$f" =~ ^\.github/workflows/ || "$f" =~ ^docs/(standards|adr)/ || "$f" =~ ^plugins/ai-team/ ]]; then
+    echo "OUT_OF_LANE: compositional-path ($f)"; exit 1
+  fi
+done <<< "$CHANGED_FILES"
+
 agent_files=()
 other=0
 while IFS= read -r f; do
