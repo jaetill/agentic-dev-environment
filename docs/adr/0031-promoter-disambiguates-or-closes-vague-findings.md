@@ -5,6 +5,8 @@
 - **Deciders:** Jason Tilley
 - **Tags:** ai-workflows, orchestration, signal-to-noise, autonomy
 
+> **Extended by [ADR-0040](0040-promoter-closes-stale-citation-findings.md):** the promoter gains a sibling disposition for *stale-citation* findings — a deterministic pre-LLM existence check closes findings whose cited files no longer exist on HEAD (no agent-quality feedback; the finding was correct when filed).
+
 ## Context and Problem Statement
 
 The promoter's eligibility pass ([`triage-bot.md`](../../plugins/ai-team/agents/triage-bot.md) §Process) had a terminal branch for a vague candidate: *"do NOT promote — comment exactly what is missing and leave it,"* drawn in the loop diagram as a node labelled "re-evaluated next cycle." Two flaws hide in that branch.
