@@ -1840,6 +1840,138 @@
           }
         }
       ]
+    },
+    {
+      "id": 297,
+      "type": "row",
+      "title": "Fleet throughput \u2014 progress vs intake (30-day snapshot)",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 101
+      },
+      "panels": []
+    },
+    {
+      "id": 298,
+      "type": "barchart",
+      "title": "Fleet throughput \u00b7 30 days ending 2026-06-04 (snapshot)",
+      "description": "Fleet-wide flow for 2026-05-05..2026-06-04. Opened/Closed = issues; PRs merged = throughput; Net backlog \u0394 = Opened\u2212Closed (negative = shrinking). Dates fixed at build time (Infinity doesn't interpolate time macros in the GraphQL body); title states the window so staleness is visible. Rolling-window fix tracked separately.",
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "afo51rbbobke8a"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 102
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "lineWidth": 1
+          },
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "vertical",
+        "showValue": "always",
+        "stacking": "none",
+        "groupWidth": 0.7,
+        "barWidth": 0.85,
+        "colorByField": "Metric",
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "afo51rbbobke8a"
+          },
+          "type": "graphql",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "root_selector": "data",
+          "columns": [
+            {
+              "selector": "opened.issueCount",
+              "text": "Opened",
+              "type": "number"
+            },
+            {
+              "selector": "closed.issueCount",
+              "text": "Closed",
+              "type": "number"
+            },
+            {
+              "selector": "merged.issueCount",
+              "text": "PRs merged",
+              "type": "number"
+            }
+          ],
+          "url": "https://api.github.com/graphql",
+          "url_options": {
+            "method": "POST",
+            "body_type": "graphql",
+            "body_graphql_query": "query { opened: search(query: \"user:jaetill is:issue created: 2026-05-05..2026-06-04\", type: ISSUE) { issueCount } closed: search(query: \"user:jaetill is:issue closed: 2026-05-05..2026-06-04\", type: ISSUE) { issueCount } merged: search(query: \"user:jaetill is:pr is:merged merged: 2026-05-05..2026-06-04\", type: ISSUE) { issueCount } }"
+          }
+        }
+      ],
+      "transformations": [
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "binary": {
+              "left": "Opened",
+              "operator": "-",
+              "right": "Closed"
+            },
+            "alias": "Net backlog \u0394",
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {},
+            "indexByName": {
+              "Opened": 0,
+              "Closed": 1,
+              "PRs merged": 2,
+              "Net backlog \u0394": 3
+            },
+            "renameByName": {}
+          }
+        },
+        {
+          "id": "transpose",
+          "options": {
+            "firstFieldName": "Metric",
+            "restFieldsName": "Count"
+          }
+        }
+      ]
     }
   ],
   "preload": false,
