@@ -23,6 +23,12 @@ variable "github_branch" {
   default     = "main"
 }
 
+variable "github_environments" {
+  type        = list(string)
+  description = "GitHub Environments whose deploy jobs may assume this role. Jobs running in an environment present an environment-form OIDC sub (repo:<org/repo>:environment:<name>) instead of the ref form, so gated prod deploys (ADR-0043) need this. Default matches the platform's protected prod environment."
+  default     = ["production"]
+}
+
 variable "additional_policy_arns" {
   type        = list(string)
   description = "Additional IAM policy ARNs to attach to the role (project-specific permissions)"
