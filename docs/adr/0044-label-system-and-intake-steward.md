@@ -23,6 +23,12 @@ Root cause, in one sentence: **no actor owns admission, and no law governs what 
 - Vocabulary must not grow by improvisation (the zombie's dialect) — growth needs a rule.
 - Token economy: deterministic before LLM, always (ADR-0040's precedent).
 
+## Considered Options
+
+- **Keep the flat ad-hoc label set (status quo)** — let each actor mint labels as needed.
+- **Axis system + label law + intake-steward (chosen)** — orthogonal axes, one value per axis, labels only for resting states, and an agent that owns admission.
+- **Axis system without an admission owner** — define the axes but leave labeling to the existing actors (no steward).
+
 ## Decision Outcome — six sub-decisions
 
 ### 1. The label law
@@ -75,6 +81,20 @@ Old labels with **live consumers** (Sentry's alert rules mint `source:sentry`; a
 - Separate splendor PR: delete `claude-triage-bot.yml`.
 - Phase-B approved issues filed with this ADR: merge-when-green + `hold:*` gate change; consumer repoints (Sentry config, auto-pickup matchers, cockpit queries); superseded-label deletion.
 - Amends/extends: [ADR-0016](0016-finding-lifecycle-calibration-deferral.md) (label vocabulary), [ADR-0036](0036-human-intake-model.md) (fills the formulation-mechanism placeholder; capture now enforced by the steward), [ADR-0021](0021-autonomous-merge.md)/[ADR-0039](0039-merge-is-autonomous-human-gate-moves-to-prod.md) (merge timing, phase B), [ADR-0030](0030-all-dispatch-through-promoter.md) (the zombie was its last unconverted holdout).
+
+## Pros and Cons of the Options
+
+### Keep the flat ad-hoc label set
+- Good: no migration.
+- Bad: five competing dialects, dashboards that can't trust a label, immortal/invisible states, no owner for admission — the status quo this ADR exists to end.
+
+### Axis system + label law + intake-steward (chosen)
+- Good: every permutation is a legal sentence or a lint error; dashboards inherit exact-match truth; externals surface; drift is caught at the door.
+- Bad: a dual-label transition window and one more standing workflow (deterministic, observable).
+
+### Axis system without an admission owner
+- Good: cleaner vocabulary with less machinery.
+- Bad: leaves the root cause — human/external/agent filings still reconcile to nothing, so idle-forever issues persist.
 
 ## Links
 
