@@ -4990,7 +4990,7 @@
       "id": 289,
       "type": "barchart",
       "title": "agentic-dev-environment",
-      "description": "Every state bar is a DIRECT query; Total is the unrefutable is:issue is:open count. Unaccounted = Total - (Waiting + Queue + In flight): structurally 0 - when it rises, issues exist that the classification doesn't represent (label drift, a new state, or a failed query). Investigate Unaccounted > 0; never tune the other bars to hide it.",
+      "description": "Every state bar is a DIRECT POSITIVE query mirroring the per-repo stat rows (Promotion queue == the Consideration-queue panel's definition; In flight == label:ready-for-implementer). Unaccounted = Total - (Waiting + Queue + In flight): the issues NO state represents (untriaged/no-label, low/nit deferred, dep-watch, anything new). Nonzero Unaccounted is the pain-point signal - investigate it; negative means states overlap. Never widen a state bar just to shrink it.",
       "datasource": {
         "type": "yesoreyeram-infinity-datasource",
         "uid": "grafanacloud-infinity"
@@ -5100,7 +5100,7 @@
               "type": "number"
             }
           ],
-          "url": "https://api.github.com/search/issues?q=repo:jaetill/agentic-dev-environment+is:issue+is:open+-label:needs-formulation+-label:human-todo+-label:requires-adr+-label:ready-for-implementer&per_page=1",
+          "url": "https://api.github.com/search/issues?q=repo:jaetill/agentic-dev-environment+is:issue+is:open+label:severity:medium,severity:high,triage:medium,approved+-label:ready-for-implementer&per_page=1",
           "url_options": {
             "method": "GET"
           }
@@ -5123,7 +5123,7 @@
               "type": "number"
             }
           ],
-          "url": "https://api.github.com/search/issues?q=repo:jaetill/agentic-dev-environment+is:issue+is:open+label:ready-for-implementer+-label:needs-formulation+-label:human-todo+-label:requires-adr&per_page=1",
+          "url": "https://api.github.com/search/issues?q=repo:jaetill/agentic-dev-environment+is:issue+is:open+label:ready-for-implementer&per_page=1",
           "url_options": {
             "method": "GET"
           }
@@ -5205,7 +5205,7 @@
       "id": 290,
       "type": "barchart",
       "title": "game-night-pwa",
-      "description": "Every state bar is a DIRECT query; Total is the unrefutable is:issue is:open count. Unaccounted = Total - (Waiting + Queue + In flight): structurally 0 - when it rises, issues exist that the classification doesn't represent (label drift, a new state, or a failed query). Investigate Unaccounted > 0; never tune the other bars to hide it.",
+      "description": "Every state bar is a DIRECT POSITIVE query mirroring the per-repo stat rows (Promotion queue == the Consideration-queue panel's definition; In flight == label:ready-for-implementer). Unaccounted = Total - (Waiting + Queue + In flight): the issues NO state represents (untriaged/no-label, low/nit deferred, dep-watch, anything new). Nonzero Unaccounted is the pain-point signal - investigate it; negative means states overlap. Never widen a state bar just to shrink it.",
       "datasource": {
         "type": "yesoreyeram-infinity-datasource",
         "uid": "grafanacloud-infinity"
@@ -5315,7 +5315,7 @@
               "type": "number"
             }
           ],
-          "url": "https://api.github.com/search/issues?q=repo:jaetill/game-night-pwa+is:issue+is:open+-label:needs-formulation+-label:human-todo+-label:requires-adr+-label:ready-for-implementer&per_page=1",
+          "url": "https://api.github.com/search/issues?q=repo:jaetill/game-night-pwa+is:issue+is:open+label:severity:medium,severity:high,triage:medium,approved+-label:ready-for-implementer&per_page=1",
           "url_options": {
             "method": "GET"
           }
@@ -5338,7 +5338,7 @@
               "type": "number"
             }
           ],
-          "url": "https://api.github.com/search/issues?q=repo:jaetill/game-night-pwa+is:issue+is:open+label:ready-for-implementer+-label:needs-formulation+-label:human-todo+-label:requires-adr&per_page=1",
+          "url": "https://api.github.com/search/issues?q=repo:jaetill/game-night-pwa+is:issue+is:open+label:ready-for-implementer&per_page=1",
           "url_options": {
             "method": "GET"
           }
@@ -5420,7 +5420,7 @@
       "id": 291,
       "type": "barchart",
       "title": "meal-planner",
-      "description": "Every state bar is a DIRECT query; Total is the unrefutable is:issue is:open count. Unaccounted = Total - (Waiting + Queue + In flight): structurally 0 - when it rises, issues exist that the classification doesn't represent (label drift, a new state, or a failed query). Investigate Unaccounted > 0; never tune the other bars to hide it.",
+      "description": "Every state bar is a DIRECT POSITIVE query mirroring the per-repo stat rows (Promotion queue == the Consideration-queue panel's definition; In flight == label:ready-for-implementer). Unaccounted = Total - (Waiting + Queue + In flight): the issues NO state represents (untriaged/no-label, low/nit deferred, dep-watch, anything new). Nonzero Unaccounted is the pain-point signal - investigate it; negative means states overlap. Never widen a state bar just to shrink it.",
       "datasource": {
         "type": "yesoreyeram-infinity-datasource",
         "uid": "grafanacloud-infinity"
@@ -5530,7 +5530,7 @@
               "type": "number"
             }
           ],
-          "url": "https://api.github.com/search/issues?q=repo:jaetill/meal-planner+is:issue+is:open+-label:needs-formulation+-label:human-todo+-label:requires-adr+-label:ready-for-implementer&per_page=1",
+          "url": "https://api.github.com/search/issues?q=repo:jaetill/meal-planner+is:issue+is:open+label:severity:medium,severity:high,triage:medium,approved+-label:ready-for-implementer&per_page=1",
           "url_options": {
             "method": "GET"
           }
@@ -5553,7 +5553,7 @@
               "type": "number"
             }
           ],
-          "url": "https://api.github.com/search/issues?q=repo:jaetill/meal-planner+is:issue+is:open+label:ready-for-implementer+-label:needs-formulation+-label:human-todo+-label:requires-adr&per_page=1",
+          "url": "https://api.github.com/search/issues?q=repo:jaetill/meal-planner+is:issue+is:open+label:ready-for-implementer&per_page=1",
           "url_options": {
             "method": "GET"
           }
@@ -5635,7 +5635,7 @@
       "id": 292,
       "type": "barchart",
       "title": "ai-teacher",
-      "description": "Every state bar is a DIRECT query; Total is the unrefutable is:issue is:open count. Unaccounted = Total - (Waiting + Queue + In flight): structurally 0 - when it rises, issues exist that the classification doesn't represent (label drift, a new state, or a failed query). Investigate Unaccounted > 0; never tune the other bars to hide it.",
+      "description": "Every state bar is a DIRECT POSITIVE query mirroring the per-repo stat rows (Promotion queue == the Consideration-queue panel's definition; In flight == label:ready-for-implementer). Unaccounted = Total - (Waiting + Queue + In flight): the issues NO state represents (untriaged/no-label, low/nit deferred, dep-watch, anything new). Nonzero Unaccounted is the pain-point signal - investigate it; negative means states overlap. Never widen a state bar just to shrink it.",
       "datasource": {
         "type": "yesoreyeram-infinity-datasource",
         "uid": "grafanacloud-infinity"
@@ -5745,7 +5745,7 @@
               "type": "number"
             }
           ],
-          "url": "https://api.github.com/search/issues?q=repo:jaetill/ai-teacher+is:issue+is:open+-label:needs-formulation+-label:human-todo+-label:requires-adr+-label:ready-for-implementer&per_page=1",
+          "url": "https://api.github.com/search/issues?q=repo:jaetill/ai-teacher+is:issue+is:open+label:severity:medium,severity:high,triage:medium,approved+-label:ready-for-implementer&per_page=1",
           "url_options": {
             "method": "GET"
           }
@@ -5768,7 +5768,7 @@
               "type": "number"
             }
           ],
-          "url": "https://api.github.com/search/issues?q=repo:jaetill/ai-teacher+is:issue+is:open+label:ready-for-implementer+-label:needs-formulation+-label:human-todo+-label:requires-adr&per_page=1",
+          "url": "https://api.github.com/search/issues?q=repo:jaetill/ai-teacher+is:issue+is:open+label:ready-for-implementer&per_page=1",
           "url_options": {
             "method": "GET"
           }
@@ -5850,7 +5850,7 @@
       "id": 293,
       "type": "barchart",
       "title": "jaetill-portal",
-      "description": "Every state bar is a DIRECT query; Total is the unrefutable is:issue is:open count. Unaccounted = Total - (Waiting + Queue + In flight): structurally 0 - when it rises, issues exist that the classification doesn't represent (label drift, a new state, or a failed query). Investigate Unaccounted > 0; never tune the other bars to hide it.",
+      "description": "Every state bar is a DIRECT POSITIVE query mirroring the per-repo stat rows (Promotion queue == the Consideration-queue panel's definition; In flight == label:ready-for-implementer). Unaccounted = Total - (Waiting + Queue + In flight): the issues NO state represents (untriaged/no-label, low/nit deferred, dep-watch, anything new). Nonzero Unaccounted is the pain-point signal - investigate it; negative means states overlap. Never widen a state bar just to shrink it.",
       "datasource": {
         "type": "yesoreyeram-infinity-datasource",
         "uid": "grafanacloud-infinity"
@@ -5960,7 +5960,7 @@
               "type": "number"
             }
           ],
-          "url": "https://api.github.com/search/issues?q=repo:jaetill/jaetill-portal+is:issue+is:open+-label:needs-formulation+-label:human-todo+-label:requires-adr+-label:ready-for-implementer&per_page=1",
+          "url": "https://api.github.com/search/issues?q=repo:jaetill/jaetill-portal+is:issue+is:open+label:severity:medium,severity:high,triage:medium,approved+-label:ready-for-implementer&per_page=1",
           "url_options": {
             "method": "GET"
           }
@@ -5983,7 +5983,7 @@
               "type": "number"
             }
           ],
-          "url": "https://api.github.com/search/issues?q=repo:jaetill/jaetill-portal+is:issue+is:open+label:ready-for-implementer+-label:needs-formulation+-label:human-todo+-label:requires-adr&per_page=1",
+          "url": "https://api.github.com/search/issues?q=repo:jaetill/jaetill-portal+is:issue+is:open+label:ready-for-implementer&per_page=1",
           "url_options": {
             "method": "GET"
           }
@@ -6065,7 +6065,7 @@
       "id": 294,
       "type": "barchart",
       "title": "splendor",
-      "description": "Every state bar is a DIRECT query; Total is the unrefutable is:issue is:open count. Unaccounted = Total - (Waiting + Queue + In flight): structurally 0 - when it rises, issues exist that the classification doesn't represent (label drift, a new state, or a failed query). Investigate Unaccounted > 0; never tune the other bars to hide it.",
+      "description": "Every state bar is a DIRECT POSITIVE query mirroring the per-repo stat rows (Promotion queue == the Consideration-queue panel's definition; In flight == label:ready-for-implementer). Unaccounted = Total - (Waiting + Queue + In flight): the issues NO state represents (untriaged/no-label, low/nit deferred, dep-watch, anything new). Nonzero Unaccounted is the pain-point signal - investigate it; negative means states overlap. Never widen a state bar just to shrink it.",
       "datasource": {
         "type": "yesoreyeram-infinity-datasource",
         "uid": "grafanacloud-infinity"
@@ -6175,7 +6175,7 @@
               "type": "number"
             }
           ],
-          "url": "https://api.github.com/search/issues?q=repo:jaetill/splendor+is:issue+is:open+-label:needs-formulation+-label:human-todo+-label:requires-adr+-label:ready-for-implementer&per_page=1",
+          "url": "https://api.github.com/search/issues?q=repo:jaetill/splendor+is:issue+is:open+label:severity:medium,severity:high,triage:medium,approved+-label:ready-for-implementer&per_page=1",
           "url_options": {
             "method": "GET"
           }
@@ -6198,7 +6198,7 @@
               "type": "number"
             }
           ],
-          "url": "https://api.github.com/search/issues?q=repo:jaetill/splendor+is:issue+is:open+label:ready-for-implementer+-label:needs-formulation+-label:human-todo+-label:requires-adr&per_page=1",
+          "url": "https://api.github.com/search/issues?q=repo:jaetill/splendor+is:issue+is:open+label:ready-for-implementer&per_page=1",
           "url_options": {
             "method": "GET"
           }
@@ -6280,7 +6280,7 @@
       "id": 295,
       "type": "barchart",
       "title": "draft",
-      "description": "Every state bar is a DIRECT query; Total is the unrefutable is:issue is:open count. Unaccounted = Total - (Waiting + Queue + In flight): structurally 0 - when it rises, issues exist that the classification doesn't represent (label drift, a new state, or a failed query). Investigate Unaccounted > 0; never tune the other bars to hide it.",
+      "description": "Every state bar is a DIRECT POSITIVE query mirroring the per-repo stat rows (Promotion queue == the Consideration-queue panel's definition; In flight == label:ready-for-implementer). Unaccounted = Total - (Waiting + Queue + In flight): the issues NO state represents (untriaged/no-label, low/nit deferred, dep-watch, anything new). Nonzero Unaccounted is the pain-point signal - investigate it; negative means states overlap. Never widen a state bar just to shrink it.",
       "datasource": {
         "type": "yesoreyeram-infinity-datasource",
         "uid": "grafanacloud-infinity"
@@ -6390,7 +6390,7 @@
               "type": "number"
             }
           ],
-          "url": "https://api.github.com/search/issues?q=repo:jaetill/draft+is:issue+is:open+-label:needs-formulation+-label:human-todo+-label:requires-adr+-label:ready-for-implementer&per_page=1",
+          "url": "https://api.github.com/search/issues?q=repo:jaetill/draft+is:issue+is:open+label:severity:medium,severity:high,triage:medium,approved+-label:ready-for-implementer&per_page=1",
           "url_options": {
             "method": "GET"
           }
@@ -6413,7 +6413,7 @@
               "type": "number"
             }
           ],
-          "url": "https://api.github.com/search/issues?q=repo:jaetill/draft+is:issue+is:open+label:ready-for-implementer+-label:needs-formulation+-label:human-todo+-label:requires-adr&per_page=1",
+          "url": "https://api.github.com/search/issues?q=repo:jaetill/draft+is:issue+is:open+label:ready-for-implementer&per_page=1",
           "url_options": {
             "method": "GET"
           }
@@ -6495,7 +6495,7 @@
       "id": 296,
       "type": "barchart",
       "title": "carto",
-      "description": "Every state bar is a DIRECT query; Total is the unrefutable is:issue is:open count. Unaccounted = Total - (Waiting + Queue + In flight): structurally 0 - when it rises, issues exist that the classification doesn't represent (label drift, a new state, or a failed query). Investigate Unaccounted > 0; never tune the other bars to hide it.",
+      "description": "Every state bar is a DIRECT POSITIVE query mirroring the per-repo stat rows (Promotion queue == the Consideration-queue panel's definition; In flight == label:ready-for-implementer). Unaccounted = Total - (Waiting + Queue + In flight): the issues NO state represents (untriaged/no-label, low/nit deferred, dep-watch, anything new). Nonzero Unaccounted is the pain-point signal - investigate it; negative means states overlap. Never widen a state bar just to shrink it.",
       "datasource": {
         "type": "yesoreyeram-infinity-datasource",
         "uid": "grafanacloud-infinity"
@@ -6605,7 +6605,7 @@
               "type": "number"
             }
           ],
-          "url": "https://api.github.com/search/issues?q=repo:jaetill/carto+is:issue+is:open+-label:needs-formulation+-label:human-todo+-label:requires-adr+-label:ready-for-implementer&per_page=1",
+          "url": "https://api.github.com/search/issues?q=repo:jaetill/carto+is:issue+is:open+label:severity:medium,severity:high,triage:medium,approved+-label:ready-for-implementer&per_page=1",
           "url_options": {
             "method": "GET"
           }
@@ -6628,7 +6628,7 @@
               "type": "number"
             }
           ],
-          "url": "https://api.github.com/search/issues?q=repo:jaetill/carto+is:issue+is:open+label:ready-for-implementer+-label:needs-formulation+-label:human-todo+-label:requires-adr&per_page=1",
+          "url": "https://api.github.com/search/issues?q=repo:jaetill/carto+is:issue+is:open+label:ready-for-implementer&per_page=1",
           "url_options": {
             "method": "GET"
           }
