@@ -42,12 +42,24 @@ on:
     #   = 06:00-09:00 UTC (CDT) / 07:00-10:00 UTC (CST)
     #   CDT/CST union = 06:00-10:00 UTC; band starts 03:00 UTC
     - cron: '0,30 3-9 * * *'
+    # ADR-0044 §3 (merge-when-green): all-day sweep so a green PR never idles
+    # waiting for a triage window. ONLY the auto-merge job acts on these
+    # fires — triage/promotion remain window-gated (ADR-0017). Offset to
+    # :15/:45 so it doesn't stack on the window-band fires above.
+    - cron: '15,45 * * * *'
   workflow_dispatch:
     inputs:
       reason:
         description: 'Why this manual triage scan is being run'
         required: false
         type: string
+  # ADR-0044 §3: this repo's own review gate completing triggers an immediate
+  # merge sweep — true merge-on-green for platform PRs. (App-repo gates can't
+  # notify cross-repo without per-repo forwarders; their green PRs ride the
+  # all-day cron sweep instead, worst-case dwell ≈ one cron interval.)
+  workflow_run:
+    workflows: [pr-review]
+    types: [completed]
   # ADR-0030: trusted-origin events route through the promoter (no direct
   # bypass to the implementer). On the platform repo these fire same-repo;
   # app repos forward via repository_dispatch (model B — one central promoter).
@@ -108,9 +120,13 @@ jobs:
     # event-dispatch (ADR-0030); running the scan on them is redundant AND fails
     # when a bot filed the triggering issue (claude-code-action rejects a Bot
     # actor: "Workflow initiated by non-human actor").
+    # The ADR-0044 all-day merge-sweep cron ('15,45 * * * *') is excluded —
+    # its in-window fires must not double the LLM scan cadence; it exists for
+    # the auto-merge job only.
     if: |
       needs.window.outputs.in_window == 'true'
       && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+      && github.event.schedule != '15,45 * * * *'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -304,16 +320,23 @@ jobs:
   # ── Auto-merge — close the loop on routine implementer fix PRs (ADR-0021) ─
   # ADR-0003 set the approval model to AI shipping authority; ADR-0021 applies
   # it to the autonomous implementer's fix PRs. This job merges green,
-  # qualifying implementer PRs across the PROJECT fleet, AS THE FLEET APP — so
-  # the merge cascades to release-please + deploy (a GITHUB_TOKEN merge would
-  # trigger nothing downstream, ADR-0018). The gate is deterministic — issue
-  # type + check state + labels, no agent judgement. The platform repo is
-  # excluded: its PRs are self-modifications, human-merged per ADR-0019.
+  # qualifying implementer PRs across the fleet (platform repo included for
+  # routine work per ADR-0039), AS THE FLEET APP — so the merge cascades to
+  # release-please + deploy (a GITHUB_TOKEN merge would trigger nothing
+  # downstream, ADR-0018). The gate is deterministic — issue type + check
+  # state + labels, no agent judgement.
+  # ADR-0044 §3 (merge-when-green): this job is UN-WINDOWED — a green,
+  # ungated PR merges any time. It fires on every schedule (window bands +
+  # the all-day sweep cron), on workflow_dispatch, and event-driven on this
+  # repo's own gate completing (workflow_run). Gates that hold a green PR
+  # now mark it with an exact-match `hold:<reason>` label (strip-on-exit).
   # `vars.AUTONOMOUS_MERGE=off` pauses this job fleet-wide;
   # `vars.AUTONOMOUS_MERGE_CAP` (default 10) caps merges per run.
   auto-merge:
-    needs: window
-    if: needs.window.outputs.in_window == 'true'
+    if: |
+      github.event_name == 'schedule'
+      || github.event_name == 'workflow_dispatch'
+      || github.event_name == 'workflow_run'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -370,9 +393,11 @@ jobs:
               if [[ -z "$meta" ]]; then
                 echo "  $slug#$pr — could not read PR; hold"; held=$((held+1)); continue
               fi
-              # ADR-0021 cond. 3 — no requires-adr:* label (ADR-gated → human)
+              # ADR-0021 cond. 3 — no requires-adr:* label (ADR-gated → human).
+              # ADR-0044 §3: mark the resting state exact-match queryable.
               if echo "$meta" | jq -e '[.labels[].name] | any(startswith("requires-adr"))' >/dev/null 2>&1; then
-                echo "  $slug#$pr — requires-adr label; hold for human"; held=$((held+1)); continue
+                gh pr edit "$pr" --repo "$slug" --add-label "hold:adr" >/dev/null 2>&1 || true
+                echo "  $slug#$pr — requires-adr label; hold:adr for human"; held=$((held+1)); continue
               fi
               # ADR-0023 narrowed self-mod floor: compositional self-changes —
               # changes to the team's gates, agent roster, standards, or
@@ -380,7 +405,8 @@ jobs:
               # architect applies this label when it classifies the change as
               # compositional; auto-merge holds the PR for a human merge.
               if echo "$meta" | jq -e '[.labels[].name] | any(. == "compositional-self-change")' >/dev/null 2>&1; then
-                echo "  $slug#$pr — compositional-self-change label; hold for human (ADR-0023)"; held=$((held+1)); continue
+                gh pr edit "$pr" --repo "$slug" --add-label "hold:compositional" >/dev/null 2>&1 || true
+                echo "  $slug#$pr — compositional-self-change label; hold:compositional for human (ADR-0023)"; held=$((held+1)); continue
               fi
               # ADR-0021 cond. 1, as amended by ADR-0039: a linked issue must be
               # PRESENT for traceability, but its ORIGIN no longer gates the
@@ -418,7 +444,8 @@ jobs:
               case "$guard" in
                 NOT_SELF_CHANGE) ;;
                 IN_LANE*) echo "  $slug#$pr — additive self-change, $guard (ADR-0032)";;
-                *) echo "  $slug#$pr — self-change held for human ($guard)"; held=$((held+1)); continue;;
+                *) gh pr edit "$pr" --repo "$slug" --add-label "hold:compositional" >/dev/null 2>&1 || true
+                   echo "  $slug#$pr — self-change hold:compositional for human ($guard)"; held=$((held+1)); continue;;
               esac
               # ADR-0035 — scope:iac PRs auto-merge (== auto-apply on dev via the
               # push:[main] deploy cascade) ONLY behind an affirmative deterministic
@@ -432,7 +459,8 @@ jobs:
                 iac_buckets=$(gh pr checks "$pr" --repo "$slug" --json name,bucket \
                                 --jq '[.[] | select(.name | test("iac-additive-guard")) | .bucket]' 2>/dev/null || echo '[]')
                 if ! echo "$iac_buckets" | jq -e 'length > 0 and all(.[]; . == "pass")' >/dev/null 2>&1; then
-                  echo "  $slug#$pr — scope:iac requires a passing iac-additive-guard check (ADR-0035); hold"
+                  gh pr edit "$pr" --repo "$slug" --add-label "hold:iac-unverified" >/dev/null 2>&1 || true
+                  echo "  $slug#$pr — scope:iac requires a passing iac-additive-guard check (ADR-0035); hold:iac-unverified"
                   held=$((held+1)); continue
                 fi
                 echo "  $slug#$pr — iac-additive-guard passed (ADR-0035)"
@@ -450,7 +478,12 @@ jobs:
               if echo "$buckets" | grep -qvE '^(pass|skipping)$'; then
                 echo "  $slug#$pr — checks not all green; hold"; held=$((held+1)); continue
               fi
-              # All four conditions hold — merge as the fleet App.
+              # All four conditions hold — strip any stale hold:* marker
+              # (label law: strip-on-exit, ADR-0044) and merge as the fleet App.
+              stale_holds=$(echo "$meta" | jq -r '[.labels[].name | select(startswith("hold:"))] | join(",")' 2>/dev/null || true)
+              if [[ -n "$stale_holds" ]]; then
+                gh pr edit "$pr" --repo "$slug" --remove-label "$stale_holds" >/dev/null 2>&1 || true
+              fi
               if gh pr merge "$pr" --repo "$slug" --squash --delete-branch; then
                 echo "::notice::Auto-merged $slug#$pr (fix for #$issue) per ADR-0021."
                 merged=$((merged+1))
