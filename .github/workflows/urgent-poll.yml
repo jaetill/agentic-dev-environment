@@ -89,6 +89,39 @@ jobs:
               echo "  ${repo}#${num} — at cap (${active}+${dispatched}/${cap}); leaving un-promoted for the next poll."
               continue
             fi
+            # SECURITY — trusted applicator verification (#138, ADR-0030).
+            # GitHub triage-level write is enough to APPLY a label, and triage
+            # is commonly granted to active/external contributors. Without this
+            # check, such an actor could craft an issue, apply severity:critical
+            # (or source:sentry / source:cloudwatch), and trigger a privileged
+            # implementer run against arbitrary content. So dispatch only when
+            # one of the watched labels was applied by a TRUSTED source:
+            #   - jaetill                      — the maintainer/owner
+            #   - jaetill-ai-triage-team[bot]  — the fleet GitHub App
+            #   - sentry-io[bot]               — the Sentry GitHub integration
+            # (CloudWatch alarms route through the fleet App, covered above.)
+            # Extend this list ONLY for a verified machine source.
+            trusted_labelers=$'jaetill\njaetill-ai-triage-team[bot]\nsentry-io[bot]'
+            trusted=false
+            while IFS= read -r actor; do
+              [[ -z "$actor" ]] && continue
+              if grep -Fxq -- "$actor" <<< "$trusted_labelers"; then
+                trusted=true; break
+              fi
+            done < <(
+              gh api --paginate "repos/${repo}/issues/${num}/events" \
+                --jq '.[] | select(.event=="labeled")
+                          | select(.label.name=="severity:critical"
+                                or .label.name=="source:sentry"
+                                or .label.name=="source:cloudwatch")
+                          | .actor.login' 2>/dev/null || true
+            )
+            if [[ "$trusted" != "true" ]]; then
+              echo "::warning::${repo}#${num} — watched label not applied by a trusted source; skipping (authz, #138)."
+              gh issue comment "$num" --repo "$repo" \
+                --body "Not auto-dispatched: the urgent label was not applied by a trusted machine source (the fleet App, Sentry, or the maintainer). A maintainer can apply \`ready-for-implementer\` to dispatch intentionally (ADR-0030 / #138)." || true
+              continue
+            fi
             # Promote (durable) + dispatch together, so an issue is only marked
             # ready once it is actually being worked (a failed-dispatch issue is
             # rare and surfaces to a human rather than silently stranding).
