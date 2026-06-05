@@ -57,8 +57,12 @@ echo ""
 if [[ -n "$status_summary" ]]; then
   echo "**Uncommitted changes:**"
   echo '```'
-  echo "$status_summary"
+  echo "$status_summary" | head -n 40
   echo '```'
+  status_line_count=$(echo "$status_summary" | wc -l | tr -d ' ')
+  if [[ "$status_line_count" -gt 40 ]]; then
+    echo "  … ($((status_line_count - 40)) more files not shown)"
+  fi
 fi
 
 if [[ ${#wip_branches[@]} -gt 0 ]]; then
