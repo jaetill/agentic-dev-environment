@@ -51,7 +51,7 @@ while IFS= read -r line; do
     # Strip at most one trailing punctuation char that may close a sentence
     # (e.g. "...at src/foo.js:42." or "...at src/foo.js:42,")
     # Using % (shortest suffix) not %% (longest) so file extensions are safe.
-    raw="${raw%[,.)}"
+    raw="${raw%[,.)]}"
     [[ -z "$raw" ]] && continue
     p="$(strip_line_number "$raw")"
     [[ -n "$p" ]] && paths+=("$p")

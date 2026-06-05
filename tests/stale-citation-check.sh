@@ -55,6 +55,28 @@ else
   fail "PRESENT: expected 'PRESENT' for title path that exists, got '$out'"
 fi
 
+# Trailing punctuation stripped before existence check (issue #265)
+out="$(run "x" "**File:** ${REAL_FILE}:10.")"
+if [[ "$out" == "PRESENT" ]]; then
+  pass "PRESENT: trailing period stripped before existence check"
+else
+  fail "PRESENT: trailing period should be stripped, got '$out'"
+fi
+
+out="$(run "x" "**File:** ${REAL_FILE}:10,")"
+if [[ "$out" == "PRESENT" ]]; then
+  pass "PRESENT: trailing comma stripped before existence check"
+else
+  fail "PRESENT: trailing comma should be stripped, got '$out'"
+fi
+
+out="$(run "x" "**File:** ${REAL_FILE}:10)")"
+if [[ "$out" == "PRESENT" ]]; then
+  pass "PRESENT: trailing close-paren stripped before existence check"
+else
+  fail "PRESENT: trailing close-paren should be stripped, got '$out'"
+fi
+
 # Mixed: one present + one absent → PRESENT (any surviving path = not stale)
 out="$(run "x" "$(printf '**File:** %s:1\n**File:** src/__deleted__/gone.ts:9' "$REAL_FILE")")"
 if [[ "$out" == "PRESENT" ]]; then
