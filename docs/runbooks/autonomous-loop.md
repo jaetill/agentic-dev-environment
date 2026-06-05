@@ -15,7 +15,7 @@ If someone asks "did the loop run last night / at 0900," the answer lives in **G
 
 | Workflow | Trigger | What it does |
 |---|---|---|
-| `triage-scan.yml` | cron (two windows) + `workflow_dispatch` | runs the **fleet promoter** (scans every portfolio repo, labels eligible agent-discovered issues `ready-for-implementer`, dispatches the target repo's `claude-implementer.yml` — ADR-0020) and the **fleet auto-merger** (squash-merges green, qualifying implementer fix PRs as the fleet App; `vars.AUTONOMOUS_MERGE=off` pauses it — ADR-0021) |
+| `triage-scan.yml` | cron (two windows) + `workflow_dispatch` | runs the **fleet promoter** (scans every portfolio repo, labels eligible agent-discovered issues `ready-for-implementer`, dispatches the target repo's `claude-implementer.yml` — ADR-0020) and the **fleet auto-merger** (squash-merges green, qualifying implementer fix PRs as the fleet App; un-windowed per ADR-0044 §3 — all-day cron + event-driven on this repo's gate; `vars.AUTONOMOUS_MERGE=off` pauses it — ADR-0021) |
 | `claude-implementer.yml` | `issues: opened`/`labeled` + `issue_comment` + `workflow_dispatch` | picks up a human-filed or promoted issue and opens an implementation PR; also runs the fix-iteration loop |
 | `ci-health.yml` | cron | fleet-wide watcher; observes every repo's non-PR workflow runs and files a consolidated platform-repo issue on failure, labelled `triage:medium` so the promoter routes it (ADR-0020) |
 | `claude-pr-review.yml` | `workflow_call` (reusable) | the review gate, invoked by each project's caller stub |
@@ -32,6 +32,8 @@ Autonomous work runs only inside two America/Chicago windows:
 | `work-hours` | 09:00–12:00 Mon–Fri | Jason is at work |
 
 All other time is quiet by design (ADR-0017, sub-decision 2).
+
+**Exception — merge-when-green (ADR-0044 §3):** the auto-merge sweep is **un-windowed**. A green, ungated implementer PR merges any time: the sweep runs on an all-day cron (`15,45 * * * *`) and fires event-driven when this repo's own `pr-review` gate completes. Windows still gate triage, promotion, and dispatch — new *work* starts only in-window; finished work ships immediately. Gates that hold a green PR mark it `hold:<reason>` (`hold:adr`, `hold:compositional`, `hold:iac-unverified`, `hold:checks-escalated`), stripped on exit.
 
 ### Cron vs. window — why a run can "succeed" but do nothing
 
