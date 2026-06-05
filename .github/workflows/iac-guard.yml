@@ -69,10 +69,15 @@ jobs:
           set -euo pipefail
           # Export caller-supplied environment (TF_VAR_* a root module requires
           # but keeps out of source). Values never echoed; Actions masks them.
+          # NB: explicit if, not `[[ ... ]] && continue` — under set -e a
+          # false test in that idiom returns 1 as the statement's exit code
+          # and kills the shell on every VALID line (game-night#168's first
+          # guard run died here silently).
           if [[ -n "${EXTRA_TF_ENV:-}" ]]; then
             while IFS= read -r kv; do
-              [[ -z "$kv" || "$kv" != *=* ]] && continue
-              export "${kv?}"
+              if [[ -n "$kv" && "$kv" == *=* ]]; then
+                export "${kv?}"
+              fi
             done <<< "$EXTRA_TF_ENV"
           fi
           cd "${{ inputs.tf-dir }}"
