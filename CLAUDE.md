@@ -21,6 +21,14 @@ Uncommitted work is **invisible to the next session**: an agent sees committed h
 - **Inventory unmerged work at session start.** Before starting new work, run `git status` and check open branches/PRs across the repos in play; surface anything stale rather than building on top of forgotten WIP.
 - **Never write through the Linux sandbox mount for a Windows-mounted repo.** The mount can serve stale views; writes through it (`sed -i`, `cp`, shell redirects) can truncate real files. Use the Edit/Write tools for file changes, run `git` via Windows (PowerShell), and verify diffs with Windows `git` — not sandbox `git`.
 
+## Merge discipline — the checks are the proofreader
+
+Two fleet-wide merge freezes (2026-06-02 and 2026-06-05) had the same anatomy: an ADR landed on `main` missing checker-required content, and because `validate`/`adr-format-check` run against the **whole tree**, every subsequent platform PR went red. Both times the gate had caught the problem on the offending PR — and was bypassed with `--admin`. So:
+
+- **Never `--admin`-merge before the checks finish.** The skip-and-block deadlock that justified reflexive `--admin` was fixed by ADR-0024; platform PRs now reach `mergeState: CLEAN` on their own. Wait for `validate`, `adr-format-check`, `agent-frontmatter-check`, and `link-check` to pass, then merge normally. `--admin` is for genuine emergencies and for the human ratifying a held compositional PR — never to outrun a pending check.
+- **Draft ADRs from `docs/adr/template.md`, never freehand.** The template carries the sections the checker enforces (`Considered Options`, `Pros and Cons of the Options`). A fast ADR that skips them freezes the fleet's merges hours later.
+- **New agent files copy an existing agent's frontmatter block** (`name`/`description`/`model`/`tools`/`primary_context`) — `agent-frontmatter-check` requires it.
+
 ## Communication style with the user
 
 - Lead with the answer, then explain.
