@@ -1217,7 +1217,7 @@
           "url_options": {
             "method": "POST",
             "body_type": "graphql",
-            "body_graphql_query": "query { total: search(query: \"repo:jaetill/agentic-dev-environment is:issue state:open\", type: ISSUE) { issueCount } waiting: search(query: \"repo:jaetill/agentic-dev-environment is:issue state:open label:needs-formulation,human-todo,requires-adr\", type: ISSUE) { issueCount } queue: search(query: \"repo:jaetill/agentic-dev-environment is:issue state:open label:severity:medium,severity:high,triage:medium,approved -label:ready-for-implementer\", type: ISSUE) { issueCount } inflight: search(query: \"repo:jaetill/agentic-dev-environment is:issue state:open label:ready-for-implementer\", type: ISSUE) { issueCount } lownit: search(query: \"repo:jaetill/agentic-dev-environment is:issue state:open label:severity:low,severity:nit -label:ready-for-implementer\", type: ISSUE) { issueCount } }"
+            "body_graphql_query": "query { total: search(query: \"repo:jaetill/agentic-dev-environment is:issue state:open\", type: ISSUE) { issueCount } waiting: search(query: \"repo:jaetill/agentic-dev-environment is:issue state:open label:needs-formulation,human-todo,requires-adr\", type: ISSUE) { issueCount } queue: search(query: \"repo:jaetill/agentic-dev-environment is:issue state:open label:severity:medium,severity:high,triage:medium,approved -label:ready-for-implementer -label:needs-formulation -label:human-todo -label:requires-adr\", type: ISSUE) { issueCount } inflight: search(query: \"repo:jaetill/agentic-dev-environment is:issue state:open label:ready-for-implementer\", type: ISSUE) { issueCount } lownit: search(query: \"repo:jaetill/agentic-dev-environment is:issue state:open label:severity:low,severity:nit -label:ready-for-implementer\", type: ISSUE) { issueCount } }"
           }
         }
       ],
@@ -1394,7 +1394,7 @@
           "url_options": {
             "method": "POST",
             "body_type": "graphql",
-            "body_graphql_query": "query { total: search(query: \"repo:jaetill/game-night-pwa is:issue state:open\", type: ISSUE) { issueCount } waiting: search(query: \"repo:jaetill/game-night-pwa is:issue state:open label:needs-formulation,human-todo,requires-adr\", type: ISSUE) { issueCount } queue: search(query: \"repo:jaetill/game-night-pwa is:issue state:open label:severity:medium,severity:high,triage:medium,approved -label:ready-for-implementer\", type: ISSUE) { issueCount } inflight: search(query: \"repo:jaetill/game-night-pwa is:issue state:open label:ready-for-implementer\", type: ISSUE) { issueCount } lownit: search(query: \"repo:jaetill/game-night-pwa is:issue state:open label:severity:low,severity:nit -label:ready-for-implementer\", type: ISSUE) { issueCount } }"
+            "body_graphql_query": "query { total: search(query: \"repo:jaetill/game-night-pwa is:issue state:open\", type: ISSUE) { issueCount } waiting: search(query: \"repo:jaetill/game-night-pwa is:issue state:open label:needs-formulation,human-todo,requires-adr\", type: ISSUE) { issueCount } queue: search(query: \"repo:jaetill/game-night-pwa is:issue state:open label:severity:medium,severity:high,triage:medium,approved -label:ready-for-implementer -label:needs-formulation -label:human-todo -label:requires-adr\", type: ISSUE) { issueCount } inflight: search(query: \"repo:jaetill/game-night-pwa is:issue state:open label:ready-for-implementer\", type: ISSUE) { issueCount } lownit: search(query: \"repo:jaetill/game-night-pwa is:issue state:open label:severity:low,severity:nit -label:ready-for-implementer\", type: ISSUE) { issueCount } }"
           }
         }
       ],
@@ -1571,7 +1571,7 @@
           "url_options": {
             "method": "POST",
             "body_type": "graphql",
-            "body_graphql_query": "query { total: search(query: \"repo:jaetill/meal-planner is:issue state:open\", type: ISSUE) { issueCount } waiting: search(query: \"repo:jaetill/meal-planner is:issue state:open label:needs-formulation,human-todo,requires-adr\", type: ISSUE) { issueCount } queue: search(query: \"repo:jaetill/meal-planner is:issue state:open label:severity:medium,severity:high,triage:medium,approved -label:ready-for-implementer\", type: ISSUE) { issueCount } inflight: search(query: \"repo:jaetill/meal-planner is:issue state:open label:ready-for-implementer\", type: ISSUE) { issueCount } lownit: search(query: \"repo:jaetill/meal-planner is:issue state:open label:severity:low,severity:nit -label:ready-for-implementer\", type: ISSUE) { issueCount } }"
+            "body_graphql_query": "query { total: search(query: \"repo:jaetill/meal-planner is:issue state:open\", type: ISSUE) { issueCount } waiting: search(query: \"repo:jaetill/meal-planner is:issue state:open label:needs-formulation,human-todo,requires-adr\", type: ISSUE) { issueCount } queue: search(query: \"repo:jaetill/meal-planner is:issue state:open label:severity:medium,severity:high,triage:medium,approved -label:ready-for-implementer -label:needs-formulation -label:human-todo -label:requires-adr\", type: ISSUE) { issueCount } inflight: search(query: \"repo:jaetill/meal-planner is:issue state:open label:ready-for-implementer\", type: ISSUE) { issueCount } lownit: search(query: \"repo:jaetill/meal-planner is:issue state:open label:severity:low,severity:nit -label:ready-for-implementer\", type: ISSUE) { issueCount } }"
           }
         }
       ],
@@ -1748,7 +1748,7 @@
           "url_options": {
             "method": "POST",
             "body_type": "graphql",
-            "body_graphql_query": "query { total: search(query: \"repo:jaetill/ai-teacher is:issue state:open\", type: ISSUE) { issueCount } waiting: search(query: \"repo:jaetill/ai-teacher is:issue state:open label:needs-formulation,human-todo,requires-adr\", type: ISSUE) { issueCount } queue: search(query: \"repo:jaetill/ai-teacher is:issue state:open label:severity:medium,severity:high,triage:medium,approved -label:ready-for-implementer\", type: ISSUE) { issueCount } inflight: search(query: \"repo:jaetill/ai-teacher is:issue state:open label:ready-for-implementer\", type: ISSUE) { issueCount } lownit: search(query: \"repo:jaetill/ai-teacher is:issue state:open label:severity:low,severity:nit -label:ready-for-implementer\", type: ISSUE) { issueCount } }"
+            "body_graphql_query": "query { total: search(query: \"repo:jaetill/ai-teacher is:issue state:open\", type: ISSUE) { issueCount } waiting: search(query: \"repo:jaetill/ai-teacher is:issue state:open label:needs-formulation,human-todo,requires-adr\", type: ISSUE) { issueCount } queue: search(query: \"repo:jaetill/ai-teacher is:issue state:open label:severity:medium,severity:high,triage:medium,approved -label:ready-for-implementer -label:needs-formulation -label:human-todo -label:requires-adr\", type: ISSUE) { issueCount } inflight: search(query: \"repo:jaetill/ai-teacher is:issue state:open label:ready-for-implementer\", type: ISSUE) { issueCount } lownit: search(query: \"repo:jaetill/ai-teacher is:issue state:open label:severity:low,severity:nit -label:ready-for-implementer\", type: ISSUE) { issueCount } }"
           }
         }
       ],
@@ -1925,7 +1925,7 @@
           "url_options": {
             "method": "POST",
             "body_type": "graphql",
-            "body_graphql_query": "query { total: search(query: \"repo:jaetill/jaetill-portal is:issue state:open\", type: ISSUE) { issueCount } waiting: search(query: \"repo:jaetill/jaetill-portal is:issue state:open label:needs-formulation,human-todo,requires-adr\", type: ISSUE) { issueCount } queue: search(query: \"repo:jaetill/jaetill-portal is:issue state:open label:severity:medium,severity:high,triage:medium,approved -label:ready-for-implementer\", type: ISSUE) { issueCount } inflight: search(query: \"repo:jaetill/jaetill-portal is:issue state:open label:ready-for-implementer\", type: ISSUE) { issueCount } lownit: search(query: \"repo:jaetill/jaetill-portal is:issue state:open label:severity:low,severity:nit -label:ready-for-implementer\", type: ISSUE) { issueCount } }"
+            "body_graphql_query": "query { total: search(query: \"repo:jaetill/jaetill-portal is:issue state:open\", type: ISSUE) { issueCount } waiting: search(query: \"repo:jaetill/jaetill-portal is:issue state:open label:needs-formulation,human-todo,requires-adr\", type: ISSUE) { issueCount } queue: search(query: \"repo:jaetill/jaetill-portal is:issue state:open label:severity:medium,severity:high,triage:medium,approved -label:ready-for-implementer -label:needs-formulation -label:human-todo -label:requires-adr\", type: ISSUE) { issueCount } inflight: search(query: \"repo:jaetill/jaetill-portal is:issue state:open label:ready-for-implementer\", type: ISSUE) { issueCount } lownit: search(query: \"repo:jaetill/jaetill-portal is:issue state:open label:severity:low,severity:nit -label:ready-for-implementer\", type: ISSUE) { issueCount } }"
           }
         }
       ],
@@ -2102,7 +2102,7 @@
           "url_options": {
             "method": "POST",
             "body_type": "graphql",
-            "body_graphql_query": "query { total: search(query: \"repo:jaetill/splendor is:issue state:open\", type: ISSUE) { issueCount } waiting: search(query: \"repo:jaetill/splendor is:issue state:open label:needs-formulation,human-todo,requires-adr\", type: ISSUE) { issueCount } queue: search(query: \"repo:jaetill/splendor is:issue state:open label:severity:medium,severity:high,triage:medium,approved -label:ready-for-implementer\", type: ISSUE) { issueCount } inflight: search(query: \"repo:jaetill/splendor is:issue state:open label:ready-for-implementer\", type: ISSUE) { issueCount } lownit: search(query: \"repo:jaetill/splendor is:issue state:open label:severity:low,severity:nit -label:ready-for-implementer\", type: ISSUE) { issueCount } }"
+            "body_graphql_query": "query { total: search(query: \"repo:jaetill/splendor is:issue state:open\", type: ISSUE) { issueCount } waiting: search(query: \"repo:jaetill/splendor is:issue state:open label:needs-formulation,human-todo,requires-adr\", type: ISSUE) { issueCount } queue: search(query: \"repo:jaetill/splendor is:issue state:open label:severity:medium,severity:high,triage:medium,approved -label:ready-for-implementer -label:needs-formulation -label:human-todo -label:requires-adr\", type: ISSUE) { issueCount } inflight: search(query: \"repo:jaetill/splendor is:issue state:open label:ready-for-implementer\", type: ISSUE) { issueCount } lownit: search(query: \"repo:jaetill/splendor is:issue state:open label:severity:low,severity:nit -label:ready-for-implementer\", type: ISSUE) { issueCount } }"
           }
         }
       ],
@@ -2279,7 +2279,7 @@
           "url_options": {
             "method": "POST",
             "body_type": "graphql",
-            "body_graphql_query": "query { total: search(query: \"repo:jaetill/draft is:issue state:open\", type: ISSUE) { issueCount } waiting: search(query: \"repo:jaetill/draft is:issue state:open label:needs-formulation,human-todo,requires-adr\", type: ISSUE) { issueCount } queue: search(query: \"repo:jaetill/draft is:issue state:open label:severity:medium,severity:high,triage:medium,approved -label:ready-for-implementer\", type: ISSUE) { issueCount } inflight: search(query: \"repo:jaetill/draft is:issue state:open label:ready-for-implementer\", type: ISSUE) { issueCount } lownit: search(query: \"repo:jaetill/draft is:issue state:open label:severity:low,severity:nit -label:ready-for-implementer\", type: ISSUE) { issueCount } }"
+            "body_graphql_query": "query { total: search(query: \"repo:jaetill/draft is:issue state:open\", type: ISSUE) { issueCount } waiting: search(query: \"repo:jaetill/draft is:issue state:open label:needs-formulation,human-todo,requires-adr\", type: ISSUE) { issueCount } queue: search(query: \"repo:jaetill/draft is:issue state:open label:severity:medium,severity:high,triage:medium,approved -label:ready-for-implementer -label:needs-formulation -label:human-todo -label:requires-adr\", type: ISSUE) { issueCount } inflight: search(query: \"repo:jaetill/draft is:issue state:open label:ready-for-implementer\", type: ISSUE) { issueCount } lownit: search(query: \"repo:jaetill/draft is:issue state:open label:severity:low,severity:nit -label:ready-for-implementer\", type: ISSUE) { issueCount } }"
           }
         }
       ],
@@ -2456,7 +2456,7 @@
           "url_options": {
             "method": "POST",
             "body_type": "graphql",
-            "body_graphql_query": "query { total: search(query: \"repo:jaetill/carto is:issue state:open\", type: ISSUE) { issueCount } waiting: search(query: \"repo:jaetill/carto is:issue state:open label:needs-formulation,human-todo,requires-adr\", type: ISSUE) { issueCount } queue: search(query: \"repo:jaetill/carto is:issue state:open label:severity:medium,severity:high,triage:medium,approved -label:ready-for-implementer\", type: ISSUE) { issueCount } inflight: search(query: \"repo:jaetill/carto is:issue state:open label:ready-for-implementer\", type: ISSUE) { issueCount } lownit: search(query: \"repo:jaetill/carto is:issue state:open label:severity:low,severity:nit -label:ready-for-implementer\", type: ISSUE) { issueCount } }"
+            "body_graphql_query": "query { total: search(query: \"repo:jaetill/carto is:issue state:open\", type: ISSUE) { issueCount } waiting: search(query: \"repo:jaetill/carto is:issue state:open label:needs-formulation,human-todo,requires-adr\", type: ISSUE) { issueCount } queue: search(query: \"repo:jaetill/carto is:issue state:open label:severity:medium,severity:high,triage:medium,approved -label:ready-for-implementer -label:needs-formulation -label:human-todo -label:requires-adr\", type: ISSUE) { issueCount } inflight: search(query: \"repo:jaetill/carto is:issue state:open label:ready-for-implementer\", type: ISSUE) { issueCount } lownit: search(query: \"repo:jaetill/carto is:issue state:open label:severity:low,severity:nit -label:ready-for-implementer\", type: ISSUE) { issueCount } }"
           }
         }
       ],
