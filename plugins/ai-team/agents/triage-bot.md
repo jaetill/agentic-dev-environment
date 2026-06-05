@@ -188,14 +188,25 @@ Apply the `oscillation-detected` label (create it if missing) and skip this cand
 3. **Throttle.** Dispatch at most `$FLEET_MAX_DISPATCH` implementer runs across the whole fleet per run. Order by severity — every eligible `severity:high` before any `severity:medium`. When the cap is hit, stop; the next window takes the rest.
 
 4. **Promote and dispatch each eligible issue, within the cap.** The label is durable state; the dispatch is the trigger — per ADR-0020, a cross-repo label alone does not reliably wake a workflow:
-   ```bash
-   GH_TOKEN=$FLEET_TOKEN gh issue edit <n> --repo jaetill/<repo> --add-label ready-for-implementer
-   GH_TOKEN=$FLEET_TOKEN gh workflow run claude-implementer.yml --repo jaetill/<repo> -f issue_number=<n>
-   GH_TOKEN=$FLEET_TOKEN gh issue comment <n> --repo jaetill/<repo> --body "Auto-promoted and dispatched by the fleet promoter (ADR-0020)."
-   ```
+   1. Apply the label:
+      ```bash
+      GH_TOKEN=$FLEET_TOKEN gh issue edit <n> --repo jaetill/<repo> --add-label ready-for-implementer
+      ```
+   2. **Adjacency bundle (ADR-0029):** if this issue cites a file F (e.g. a `[code-review] F:line — …` title or a file path in the body), collect open low/nit findings (`severity:low,severity:nit`, excluding `ready-for-implementer`) in the same repo that cite the same file F — up to `min(floor(total/2), 4)`. They ride along in this dispatch and do NOT consume a budget slot. Never dispatch a nit on its own.
+   3. Dispatch the implementer, passing the adjacency bundle:
+      ```bash
+      GH_TOKEN=$FLEET_TOKEN gh workflow run claude-implementer.yml \
+        --repo jaetill/<repo> -f issue_number=<n> \
+        -f bundle_issues="<comma-separated nit numbers, or omit if none>"
+      ```
+   4. Comment:
+      ```bash
+      GH_TOKEN=$FLEET_TOKEN gh issue comment <n> --repo jaetill/<repo> \
+        --body "Auto-promoted and dispatched by the fleet promoter (ADR-0020). Adjacent nits bundled: <list or none> (ADR-0029)."
+      ```
    Confirm each `gh workflow run` exited 0 — a failed dispatch is a real failure to name in the summary.
 
-5. **Spare-capacity sweep.** If you dispatched fewer than `$FLEET_MAX_DISPATCH` real promotions, spend each remaining slot draining nits. For each spare slot, pick the fleet repo with the most open deferred (`label:severity:low,severity:nit -label:ready-for-implementer`) issues — **skip any repo whose count is zero** (a cleanup-sweep there is a wasted run) — and dispatch one cleanup-only run: `GH_TOKEN=$FLEET_TOKEN gh workflow run claude-implementer.yml --repo jaetill/<repo> -f mode=cleanup-sweep`. One per spare slot; never the same repo twice in a run; never exceed the cap.
+5. **Spare-capacity sweep (ADR-0028).** Only if you dispatched **at least one** real promotion this cycle AND have remaining budget, spend each spare slot draining nits — on a zero-promotion cycle, do NOT sweep (nits ride along only when the loop is already doing real work). For each spare slot, pick the fleet repo with the most open deferred (`label:severity:low,severity:nit -label:ready-for-implementer`) issues — **skip any repo whose count is zero** (a cleanup-sweep there is a wasted run) — and dispatch one cleanup-only run: `GH_TOKEN=$FLEET_TOKEN gh workflow run claude-implementer.yml --repo jaetill/<repo> -f mode=cleanup-sweep`. One per spare slot; never the same repo twice in a run; never exceed the cap.
 
 6. **When in doubt, do not promote.** An unpromoted issue waits one cycle — recoverable. A wrongly-promoted vague issue burns an implementer run somewhere in the fleet. The asymmetry favors caution, exactly as with severity calibration.
 
