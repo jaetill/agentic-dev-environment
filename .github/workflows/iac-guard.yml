@@ -23,6 +23,12 @@ on:
     secrets:
       aws-role-arn:
         required: true                # read-only role; the guard only plans
+      extra-tf-env:
+        # Optional newline-separated KEY=VALUE pairs exported into the plan
+        # environment — for root modules that require variables deliberately
+        # kept out of source (e.g. game-night-pwa's TF_VAR_grafana_external_id).
+        # Values live in the caller repo's secrets and are masked in logs.
+        required: false
 
 permissions:
   contents: read
@@ -57,8 +63,18 @@ jobs:
       - name: Plan and classify
         # Any failure to produce or classify a plan -> non-zero -> red check ->
         # the gate holds the PR for a human. Fail-safe by construction.
+        env:
+          EXTRA_TF_ENV: ${{ secrets.extra-tf-env }}
         run: |
           set -euo pipefail
+          # Export caller-supplied environment (TF_VAR_* a root module requires
+          # but keeps out of source). Values never echoed; Actions masks them.
+          if [[ -n "${EXTRA_TF_ENV:-}" ]]; then
+            while IFS= read -r kv; do
+              [[ -z "$kv" || "$kv" != *=* ]] && continue
+              export "${kv?}"
+            done <<< "$EXTRA_TF_ENV"
+          fi
           cd "${{ inputs.tf-dir }}"
           tofu init -input=false
           tofu plan -input=false -lock=false -out=tfplan
