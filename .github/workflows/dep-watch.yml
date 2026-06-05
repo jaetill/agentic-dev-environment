@@ -1,0 +1,110 @@
+name: dep-watch (reusable)
+# REUSABLE (ADR-0018 / ADR-0045) — single source of truth for the weekly
+# dependency watch across the fleet. App repos invoke it via a thin
+# `claude-dep-watcher.yml` caller with `secrets: inherit`. To change dep-watch
+# behaviour, edit THIS file only — inlined copies are the drift this eliminates
+# (the 2026-06-05 #158 incident: the same fix had to be re-applied per repo).
+#
+# WRITER ≠ PUBLISHER (security): npm advisory text is attacker-influenced input
+# to a bypassPermissions agent, so the LLM `generate` job runs with
+# contents: read ONLY and emits the report as an artifact. A separate
+# deterministic `publish` job (no LLM, fixed shell) holds contents: write and
+# pushes the rolling report to docs/dependency-report.md on reports/dep-watch
+# (ADR-0045 — digest issues retired). Same writer-not-approver shape as ADR-0035.
+
+on:
+  workflow_call:
+    inputs:
+      node-version:
+        type: string
+        required: false
+        default: "22"
+    # No `secrets:` block — callers use `secrets: inherit`.
+
+permissions: {}
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write   # claude-code-action OIDC
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+      - name: Run dep-watcher agent (read-only)
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          show_full_output: true
+          prompt: |
+            Act as the dep-watcher subagent defined in .claude/agents/dep-watcher.md.
+
+            Steps:
+            1. Find every npm manifest in the repo (`package.json` at the root and
+               in any subdirectory such as `lambda/`, excluding node_modules).
+            2. For each, run `npm outdated --json` and `npm audit --json --omit=dev`
+               (use `--prefix <dir>` for non-root manifests).
+            3. Classify each finding:
+               - CRITICAL/HIGH security advisory → flag for immediate update
+               - Major version bump available → note + breaking-change risk
+               - Minor/patch bump available → low priority, batch in monthly sweep
+            4. Write the FULL report to the file `dependency-report.md` in the
+               repository root via a Bash heredoc (replace the whole file —
+               rolling, latest state only). Do NOT run any git commands; a
+               separate workflow job publishes the file.
+
+            Report file must:
+              - Lead with `## Dependency Watch ($(date +%Y-%m-%d))`
+              - One section per manifest found
+              - Group findings by severity
+              - End with `No actionable findings.` if everything is current
+          claude_args: |
+            --model claude-sonnet-4-6
+            --permission-mode bypassPermissions
+            --allowed-tools Bash,Read,Glob,Grep
+            --append-system-prompt "Follow the platform standards in docs/standards/."
+      - name: Upload report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-report
+          path: dependency-report.md
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    needs: generate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write   # deterministic push only — no LLM in this job
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          name: dependency-report
+          path: ${{ runner.temp }}/depwatch
+      - name: Publish rolling report to reports/dep-watch
+        run: |
+          set -euo pipefail
+          git config user.name "dep-watch"
+          git config user.email "dep-watch@users.noreply.github.com"
+          git checkout -B reports/dep-watch origin/reports/dep-watch 2>/dev/null \
+            || git checkout -B reports/dep-watch
+          mkdir -p docs
+          cp "${RUNNER_TEMP}/depwatch/dependency-report.md" docs/dependency-report.md
+          git add docs/dependency-report.md
+          if git diff --cached --quiet; then
+            echo "Report unchanged; nothing to publish."
+            exit 0
+          fi
+          git commit -m "dep-watch: weekly report $(date +%Y-%m-%d)"
+          # reports/dep-watch is machine-owned and rolling; force-with-lease
+          # handles divergence without clobbering a concurrent push.
+          git push --force-with-lease origin reports/dep-watch
