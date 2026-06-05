@@ -1,6 +1,6 @@
 # Remote state per platform Standard 08 / ADR-0007.
 #
-# The ops cockpit is a fleet-level singleton â€” no env dimension â€” so the
+# The ops cockpit is a fleet-level singleton -- no env dimension -- so the
 # state key is a flat `ops-cockpit/` prefix rather than the usual
 # <project>/<env>/ pattern.
 #

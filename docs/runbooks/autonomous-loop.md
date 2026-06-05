@@ -57,6 +57,8 @@ So a scheduled `triage-scan` run shows `success` even when it did no work — th
 
    `triage` job `success` = the scan + promoter ran. `triage` job `skipped` = out of window.
 
+> **Future primary check — ops cockpit (Phase 1b):** `infra/ops-cockpit/` is being built into a self-refreshing Grafana dashboard that will surface loop run health directly. Phase 1a is a placeholder only. Until Phase 1b panels ship, use `gh run list` as described above.
+
 ## How to trigger a run manually
 
 `workflow_dispatch` bypasses the window check (`window=manual`, always treated as in-window):
