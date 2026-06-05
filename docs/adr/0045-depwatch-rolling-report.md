@@ -11,6 +11,13 @@
 
 Each repo's weekly dep-watch run maintained a standing "Weekly dependency report" issue, edited in place forever. A never-closeable issue offends the backlog's hygiene (the human is a completionist; an issue that cannot reach zero is noise), pollutes issue counts and label queries, and required its own cockpit row just to say "1 per repo, as always."
 
+## Decision Drivers
+
+- The backlog must be able to reach zero open issues — a perpetual issue is permanent noise.
+- The digest is *information, not change*: it should not consume issue counts, label queries, review, or merge gates.
+- Latest state must stay easy to read, and history should be cheap to keep.
+- Actionable findings (CVEs, EOL, major bumps) must remain separate `severity:*` issues entering the implementer backlog — unaffected by where the digest lives.
+
 ## Considered Options
 
 - **Rolling file on a `reports/dep-watch` branch** — the digest is `docs/dependency-report.md`, rewritten each run; history is the branch's commit log.
