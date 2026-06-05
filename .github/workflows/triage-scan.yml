@@ -532,20 +532,32 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.fleet-token.outputs.token }}
           FLEET_MAX_DISPATCH: ${{ vars.FLEET_MAX_DISPATCH_PER_RUN || '6' }}
+          # Attacker-influenced values enter ONLY via env (never interpolated
+          # into the run script) — a repository_dispatch client_payload is
+          # caller-controlled, and the fleet App token is in scope here (#128, #126).
+          EVENT_NAME: ${{ github.event_name }}
+          PAYLOAD_REPO: ${{ github.event.client_payload.repo }}
+          PAYLOAD_ISSUE: ${{ github.event.client_payload.issue }}
+          THIS_REPO: ${{ github.repository }}
+          EVENT_ISSUE: ${{ github.event.issue.number }}
         run: |
           set -uo pipefail
           # Resolve target repo + issue. `issues` events are same-repo; an app
           # repo's repository_dispatch forwarder (model B) carries them in the
           # client_payload.
-          if [[ "${{ github.event_name }}" == "repository_dispatch" ]]; then
-            repo="${{ github.event.client_payload.repo }}"
-            issue="${{ github.event.client_payload.issue }}"
+          if [[ "$EVENT_NAME" == "repository_dispatch" ]]; then
+            repo="${PAYLOAD_REPO:-}"
+            issue="${PAYLOAD_ISSUE:-}"
           else
-            repo="${{ github.repository }}"
-            issue="${{ github.event.issue.number }}"
+            repo="${THIS_REPO:-}"
+            issue="${EVENT_ISSUE:-}"
           fi
           if [[ -z "${repo:-}" || -z "${issue:-}" ]]; then
             echo "::warning::event-dispatch: missing repo/issue; nothing to do."; exit 0
+          fi
+          # Validate shape before passing to gh: repo = owner/name, issue = numeric.
+          if [[ ! "$repo" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ || ! "$issue" =~ ^[0-9]+$ ]]; then
+            echo "::warning::event-dispatch: malformed repo ('$repo') or issue ('$issue'); refusing to dispatch."; exit 0
           fi
           echo "Trusted-origin event for ${repo}#${issue}."
           # Durable promotion state (idempotent).
