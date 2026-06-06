@@ -123,7 +123,10 @@ feedback_grafana_live_edit_must_update_tf). This PR closes the gap.
 
 If you didn't expect drift, check recent live edits via the Grafana
 audit log."
-          git push -u origin "$branch"
+          # --force-with-lease so a same-day re-run (workflow_dispatch retry,
+          # cron-vs-dispatch race) overwrites the prior draft commit cleanly
+          # instead of failing the non-fast-forward push - per code-review #317.
+          git push --force-with-lease -u origin "$branch"
 
           # Reuse an existing open drift PR if one already targets the same
           # daily branch (idempotent — rerunning the workflow doesn't open
