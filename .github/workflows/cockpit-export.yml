@@ -59,6 +59,17 @@ jobs:
             exit 0
           fi
 
+          # Pin GRAFANA_URL to https://*.grafana.net so a compromised-secret
+          # actor can't redirect curl -L at internal endpoints — per
+          # security-review #314. Same guard as cockpit-apply.yml.
+          case "$GRAFANA_URL" in
+            https://*.grafana.net) ;;
+            *)
+              echo "::error::GRAFANA_URL must be https://<stack>.grafana.net (got: $GRAFANA_URL); refusing to run"
+              exit 1
+              ;;
+          esac
+
           live=$(curl -sfL \
             -H "Authorization: Bearer $GRAFANA_API_KEY" \
             "$GRAFANA_URL/api/dashboards/uid/ops-cockpit")

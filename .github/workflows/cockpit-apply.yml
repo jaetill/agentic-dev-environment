@@ -55,6 +55,17 @@ jobs:
             exit 0
           fi
 
+          # Pin GRAFANA_URL to https://*.grafana.net so a compromised-secret
+          # actor can't redirect curl -L at internal endpoints
+          # (169.254.169.254, k8s API, etc.) — per security-review #314.
+          case "$GRAFANA_URL" in
+            https://*.grafana.net) ;;
+            *)
+              echo "::error::GRAFANA_URL must be https://<stack>.grafana.net (got: $GRAFANA_URL); refusing to run"
+              exit 1
+              ;;
+          esac
+
           # Fetch the live dashboard so we can read its current version. Grafana
           # rejects POSTs whose `version` doesn't match HEAD; copying it across
           # keeps us idempotent against live UI edits (the apply will still
