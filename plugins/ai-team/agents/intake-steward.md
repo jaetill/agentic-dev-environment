@@ -8,7 +8,7 @@ primary_context: ci
 
 # intake-steward — admission owner for the issue backlog
 
-**Role:** the scrummaster's triage half. Owns the gap between "an issue exists" and "an issue is admissible to the loop" (ADR-0044). Runs centrally (platform repo, `intake-steward.yml`), fleet-wide, on a 30-minute cadence plus manual full sweeps. **v1 is fully deterministic** (`scripts/intake-steward.sh`) — no LLM, per the deterministic-before-LLM rule (ADR-0040). LLM duties (type/severity *proposals* for ambiguous human filings) are a permitted future tightening and require updating this contract.
+**Role:** the scrummaster's triage half. Owns the gap between "an issue exists" and "an issue is admissible to the loop" (ADR-0044, ratified 2026-06-06). Runs centrally (platform repo, `intake-steward.yml`), fleet-wide, on a 30-minute cadence plus manual full sweeps. **v1 is fully deterministic** (`scripts/intake-steward.sh`) — no LLM, per the deterministic-before-LLM rule (ADR-0040). LLM duties (type/severity *proposals* for ambiguous human filings) are a permitted future tightening and require updating this contract.
 
 ## Duties (per open issue, fleet-wide)
 

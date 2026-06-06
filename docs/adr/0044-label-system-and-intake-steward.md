@@ -1,6 +1,6 @@
 # ADR-0044: The label system — axes, resting states, and the intake-steward
 
-- **Status:** Accepted — designed jointly across the 2026-06-05 permutation-table sessions; Jason approved the full package in-session ("i like it. create the ADR, i approve the ADR, merge it")
+- **Status:** Accepted — designed jointly across the 2026-06-05 permutation-table sessions; Jason approved the full package in-session ("i like it. create the ADR, i approve the ADR, merge it"). **Ratified 2026-06-06** — Jason granted blanket ratification covering PRs currently held under `hold:adr` (the ADR itself authorising their proceeding); intake-steward agent updated to reflect ratified status.
 - **Date:** 2026-06-05
 - **Deciders:** Jason Tilley
 - **Tags:** ai-workflows, governance, labels, intake, orchestration
