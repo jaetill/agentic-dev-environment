@@ -141,7 +141,25 @@ genealogy is excluded — it has no implementer workflow yet. `$FLEET_TOKEN` in 
    - **Medium or High severity.** It carries `severity:medium`, `severity:high`, or `triage:medium`. ADR-0020 folds `severity:high` in — it previously had no automatic path. `severity:critical` and `source:sentry` still auto-pick-up at the implementer; do not promote those.
    - **Not already promoted.** It does not already carry `ready-for-implementer`.
    - **Survived one cycle.** It was created before the *previous* triage-scan run — never promote an issue in the same scan that could have filed it. Compare `createdAt` against ~35 minutes ago.
+   - **Stale-citation check (pre-LLM).** Before checking well-specified, run `scripts/stale-citation-check.sh` with `ISSUE_TITLE` and `ISSUE_BODY` set. See the **Stale-citation procedure** below.
    - **Well-specified.** A clear repro or acceptance criteria, a single bounded change. This is the judgement call. When a candidate is vague, do not promote it as-is — run the **vague-finding procedure** below instead of commenting-and-leaving.
+
+**Stale-citation procedure** ([ADR-0040](../../../docs/adr/0040-promoter-closes-stale-citation-findings.md)) — runs deterministically before any LLM evaluation, for each candidate that passes the agent-discovered / severity / not-promoted / survived-one-cycle gates:
+
+```bash
+result=$(ISSUE_TITLE="<title>" ISSUE_BODY="<body>" bash scripts/stale-citation-check.sh)
+```
+
+- **`STALE <path>...`** — all cited paths are absent from HEAD. The finding was correct when filed; the code was removed since. Auto-close the issue with a comment:
+  ```
+  Closing as stale citation (ADR-0040): the path(s) cited by this finding
+  (<path>) no longer exist on the default branch. Removing commit/PR:
+  <output of: git log --diff-filter=D --oneline -- <path> | head -1>
+  This issue is reopenable if the work returns.
+  ```
+  No agent-quality feedback is filed — the source agent's output was correct at filing time. Skip further evaluation.
+- **`PRESENT`** — at least one cited path still exists; line drift does not make a finding stale. Continue to the **Well-specified** / vague-finding check below.
+- **`NO_PATHS`** — no paths extractable. This is a vague finding; fall through to the **Vague-finding procedure** below (ADR-0031 owns it).
 
 **Vague-finding procedure** ([ADR-0031](../../../docs/adr/0031-promoter-disambiguates-or-closes-vague-findings.md)) — this branch reaches only *agent-discovered* work, so a vague finding here means one of the loop's own agents under-specified its output. Do **not** comment-and-leave: the body never changes, so re-evaluating it next cycle is a no-op, and re-commenting every cycle is spam. Instead:
 

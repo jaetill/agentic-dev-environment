@@ -7,7 +7,7 @@ fork shown is `scope:iac` (which agent builds it) and the no-app vs. app behavio
 folded into the review battery (ADR-0024). There is intentionally no per-repo split.
 
 Source of truth: `triage-scan.yml`, `claude-implementer.yml`, `claude-pr-review.yml`,
-and ADR-0016 / 0017 / 0019 / 0020 / 0021 / 0023 / 0024 / 0025 / 0026 / 0027 / 0028 / 0029 / 0030 / 0032 / 0035 / 0037 / 0038 / 0039.
+and ADR-0016 / 0017 / 0019 / 0020 / 0021 / 0023 / 0024 / 0025 / 0026 / 0027 / 0028 / 0029 / 0030 / 0031 / 0032 / 0035 / 0037 / 0038 / 0039 / 0040.
 
 > **Dispatch routing (ADR-0030):** machine-detected work (severity:critical, source:sentry/cloudwatch) flows through the promoter's deterministic, throttled dispatch — **event-dispatch** on the platform repo (immediate), a **central `*/15` urgent-poll** for app repos (they hold no cross-repo credential to be pushed). Human-approved work (`ready-for-implementer`) stays on each repo's **local** trigger — immediate, no throttle needed (humans don't storm). The fleet-wide `FLEET_MAX_DISPATCH` throttle is enforced centrally as a shared **in-flight ceiling** — all three dispatch paths (windowed promoter, event-dispatch, urgent-poll) count concurrent implementer runs through one source of truth (`scripts/fleet-inflight.sh`), so none can dispatch on top of the others' in-flight work.
 
@@ -71,7 +71,10 @@ flowchart TD
         QUEUE --> WIN
         WIN -->|no| WWAIT["Quiet — wait for next window"]
         WIN -->|yes| EVALALL["①·triage EVERY open finding · full pass<br/>exhaustive — the cap does NOT gate evaluation"]
-        EVALALL --> PROMO{"per item: promotion eligible? · Tier-2 judgement<br/>· agent-discovered finding (severity:med/high · triage:med)<br/>· OR an approved feature → ranks medium (ADR-0036)<br/>· not already ready-for-implementer<br/>· survived at least one cycle (older than ~35 min)<br/>· well-specified, single bounded change"}
+        EVALALL --> STALECHECK{"Stale-citation check · pre-LLM · ADR-0040<br/>scripts/stale-citation-check.sh<br/>do cited paths exist on HEAD?"}
+        STALECHECK -->|"STALE — all paths absent"| CLOSESTALE["Auto-close stale finding · comment<br/>names removing commit/PR · reopenable<br/>no agent-quality feedback"]
+        STALECHECK -->|"PRESENT / NO_PATHS"| PROMO
+        PROMO{"per item: promotion eligible? · Tier-2 judgement<br/>· agent-discovered finding (severity:med/high · triage:med)<br/>· OR an approved feature → ranks medium (ADR-0036)<br/>· not already ready-for-implementer<br/>· survived at least one cycle (older than ~35 min)<br/>· well-specified, single bounded change"}
         PROMO -->|"no — vague"| DISAMB{"Promoter can disambiguate<br/>from the code? · ADR-0031"}
         DISAMB -->|"yes — enrich body"| ENRICH["Rewrite issue with missing<br/>repro/acceptance criteria · comment"]
         ENRICH --> PROMSET
@@ -187,7 +190,7 @@ flowchart TD
     class CAPTURE,FORM,APPROVED,PARKED intake;
     class WWAIT,CAPWAIT,CONFWAIT,CAPM,DEFER,HCHK,DIGSINK,QUEUE wait;
 
-    class PF,EVENTDISP,WIN,EVALALL,PROMO,DISAMB,ENRICH,CLOSEV,AQUAL,PROMSET,RANK,DISPATCH,SWEEP promoter;
+    class PF,EVENTDISP,WIN,EVALALL,STALECHECK,CLOSESTALE,PROMO,DISAMB,ENRICH,CLOSEV,AQUAL,PROMSET,RANK,DISPATCH,SWEEP promoter;
     class IAC,IACIMPL,CG,ARCH,SCOPE,SLICE,BUILD,CONF,OPENPR,FIX,SWEEPIMPL implementer;
     class REVIEW,VERDICT,FIXIT reviewer;
     class MG0,MG1,MG2,MG3,MGIAC,IACGUARD,MGGUARD,MG4,MG5,DOMERGE,MFAIL,APPLY merger;
@@ -211,6 +214,7 @@ flowchart TD
 | deferred (severity:low/nit) | ⬛ | Low/Nit finding — defers by severity, drained later by cleanup-sweep (ADR-0016/0037). |
 | Parked (rejected idea) | 🟡 | A formulated idea the human rejected — closed + `parked` label, saved and reopenable on a re-request or second thoughts (ADR-0036). Not a failure, not deleted. |
 | Auto-closed (malformed finding) | 🟩 | Promoter couldn't disambiguate a vague agent finding — closed, and a fix to the source agent's contract dispatched (ADR-0031). |
+| Auto-closed (stale citation) | 🟩 | Promoter's pre-LLM existence check found all cited paths absent from HEAD — closed with a provenance comment naming the removing commit/PR (ADR-0040). Reopenable if the work returns. |
 
 ## Agent ownership (node colours)
 
@@ -218,7 +222,7 @@ Every **action/choice** node is coloured by the agent that owns it — so "is th
 
 | Agent | Colour | Owns (action/choice nodes) |
 |---|---|---|
-| promoter (`triage-bot`) | teal | the ② Promoter box — window, exhaustive triage, rank, dispatch, vague-handling, Pass-3 process-flaw scan, cleanup-sweep dispatch **+** `EVENTDISP` (still outside, pending the event-dispatch rework). Grey state-buffers: `DEFER` pool (inside ②), consideration `QUEUE` (①→② boundary) |
+| promoter (`triage-bot`) | teal | the ② Promoter box — window, exhaustive triage, stale-citation check, rank, dispatch, vague-handling, Pass-3 process-flaw scan, cleanup-sweep dispatch **+** `EVENTDISP` (still outside, pending the event-dispatch rework). Grey state-buffers: `DEFER` pool (inside ②), consideration `QUEUE` (①→② boundary) |
 | implementer (+ `iac-implementer`) | indigo | the ③ build flow + the Mode-B fix node |
 | reviewer agents | purple | the ④ review-battery decisions |
 | merger (fleet App) | steel-blue | the ⑤ auto-merge gate, incl. the ADR-0032 self-change guard |
@@ -234,5 +238,6 @@ The **source agents** (① — code-reviewer, ci-health, Sentry, dep-watch, …)
 - **The loop generates its own inputs.** The review battery files fresh defects (dashed edge back to sources) — this is why backlog can grow even while the loop runs; throughput, not correctness.
 - **Triage is exhaustive; only dispatch is capped — and it ranks first.** Each pass the promoter triages *every* open finding — promoting, deferring, enriching, or auto-closing as it goes — and applies `FLEET_MAX_DISPATCH` only at the end, to the *ranked* promotable set (phases ①→②→③ in the loop). It never stops evaluating because the cap is full, so nothing is skipped for triage; a beyond-cap promotion just waits and is re-ranked next pass, never dropped. Agent-quality self-fixes dispatch **cap-exempt** (dedup-bounded, ADR-0031), so a self-correction can't be starved by routine work.
 - **The loop fixes its own labor (ADR-0031).** A vague finding can only originate from one of the loop's own agents — the promoter never evaluates human-authored issues. So when the promoter can't enrich a vague finding from the code, it auto-closes it and dispatches a fix to the *source agent's* contract, same run. Repeated vague output converges to one tracked improvement instead of an immortal, re-commented backlog issue.
+- **Stale citations close themselves (ADR-0040).** Before any LLM evaluation, `scripts/stale-citation-check.sh` checks whether each candidate's cited paths still exist on HEAD. A finding whose file was deleted or reverted is immortal — "re-evaluate next cycle" is a no-op on an absent path. The deterministic check closes it with a provenance comment (the removing commit/PR) for zero LLM tokens, and shrinks the evaluation set every pass thereafter.
 - **Repo abstraction.** The promoter, implementer, review, and merge stages are identical across all fleet repos. The only repo-shaped decisions are `scope:iac` (routes to `iac-implementer`) and app-vs-no-app inside the review battery (resolved by ADR-0024 so required checks always report, never skip).
 - **The merge gate is mechanical.** No agent judgement — every branch is decidable from labels, whether a linked issue is present, and check state.
