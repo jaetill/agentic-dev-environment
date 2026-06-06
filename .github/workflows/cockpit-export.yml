@@ -1,6 +1,8 @@
 name: cockpit-export
 # Re-exports live Grafana dashboard → infra/ops-cockpit/dashboard.json daily
-# and commits any drift directly to main.
+# and OPENS A PR with any drift (does NOT push directly to main — branch
+# protection respects GITHUB_TOKEN writes; per code-review #313 and security-
+# review #312).
 #
 # This is the SAFETY NET, not the primary mechanism. The primary mechanism is
 # the agent-contract rule: any agent that edits the live cockpit via API or UI
@@ -11,16 +13,17 @@ name: cockpit-export
 # Why a safety net is still needed: if an agent edits live and forgets the
 # re-export, the file drifts. The drift was the root cause of the 2026-06-06
 # 'cockpit changes stuck' incident — 65-panel gap between v34 file and v55
-# live. This workflow guarantees drift can never outlive a day.
+# live. This workflow guarantees drift can never outlive a day, and routes
+# the correction through review so a compromised GRAFANA_API_KEY can't land
+# arbitrary JSON on main unreviewed.
 #
 # Direction: live → file. The COMPANION workflow cockpit-apply.yml runs the
 # OTHER direction (file → live) on push to main. Together: round-trip
-# consistency.
+# consistency through the normal PR gate.
 #
 # Required secrets (same as cockpit-apply.yml):
 #   - GRAFANA_URL
 #   - GRAFANA_API_KEY
-# Plus contents:write permission so the job can commit dashboard.json directly.
 
 on:
   schedule:
@@ -31,6 +34,7 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 concurrency:
   group: cockpit-export
@@ -42,9 +46,6 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
-        with:
-          # Need write access to push the commit.
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Export live → dashboard.json
         env:
@@ -69,14 +70,24 @@ jobs:
             | jq '.dashboard | del(.id, .version) | .uid = "ops-cockpit"' \
             > infra/ops-cockpit/dashboard.json
 
+          # Schema sanity check — refuse to commit a structurally broken file
+          # (defense against a compromised GRAFANA_API_KEY pushing garbage
+          # through this write path; per security-review #312).
+          jq -e \
+            '.uid == "ops-cockpit" and has("panels") and (.panels | type == "array" and length > 0)' \
+            infra/ops-cockpit/dashboard.json > /dev/null || {
+              echo "::error::exported dashboard.json failed schema sanity check (missing/empty panels or wrong uid); aborting"
+              exit 1
+            }
+
           echo "live version: $(echo "$live" | jq -r '.dashboard.version')"
           echo "panel count: $(jq '.panels | length' infra/ops-cockpit/dashboard.json)"
 
-      - name: Commit drift if any
+      - name: Open drift-correction PR if any
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          git config user.name 'github-actions[bot]'
-          git config user.email 'github-actions[bot]@users.noreply.github.com'
 
           if git diff --quiet infra/ops-cockpit/dashboard.json; then
             echo "no drift; nothing to commit"
@@ -85,20 +96,38 @@ jobs:
             exit 0
           fi
 
-          lines=$(git diff --stat infra/ops-cockpit/dashboard.json | tail -1)
-          echo "drift detected: $lines"
+          stat_line=$(git diff --stat infra/ops-cockpit/dashboard.json | tail -1)
+          echo "drift detected: $stat_line"
+
+          branch="chore/cockpit-drift-$(date +%Y%m%d)"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git checkout -b "$branch"
           git add infra/ops-cockpit/dashboard.json
           git commit -m "chore(cockpit): re-export live → dashboard.json (drift sweep)
 
 Caught by the daily cockpit-export safety net. An agent edited the live
 cockpit but didn't round-trip to Terraform in the same change (rule:
-feedback_grafana_live_edit_must_update_tf). This commit closes the gap.
+feedback_grafana_live_edit_must_update_tf). This PR closes the gap.
 
 If you didn't expect drift, check recent live edits via the Grafana
 audit log."
-          git push
+          git push -u origin "$branch"
 
-          echo "## Cockpit drift committed" >> "$GITHUB_STEP_SUMMARY"
-          echo "\`$lines\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "An agent edited live without re-exporting. Drift swept on the daily cron." >> "$GITHUB_STEP_SUMMARY"
+          # Reuse an existing open drift PR if one already targets the same
+          # daily branch (idempotent — rerunning the workflow doesn't open
+          # duplicates).
+          existing=$(gh pr list --head "$branch" --state open --json number --jq '.[0].number' || true)
+          if [ -n "$existing" ]; then
+            echo "drift PR already open: #$existing — updated branch in place"
+            url="https://github.com/${GITHUB_REPOSITORY}/pull/$existing"
+          else
+            url=$(gh pr create \
+              --title "chore(cockpit): drift sweep ($(date +%Y-%m-%d))" \
+              --body "Auto-generated by cockpit-export.yml. An agent edited the live cockpit without round-tripping to dashboard.json. Drift detected: \`$stat_line\`. Review the diff; if it reflects the intended live state, merge to re-converge." \
+              --label "scope:ci" || echo "")
+          fi
+
+          echo "## Cockpit drift PR opened" >> "$GITHUB_STEP_SUMMARY"
+          echo "- $stat_line" >> "$GITHUB_STEP_SUMMARY"
+          echo "- $url" >> "$GITHUB_STEP_SUMMARY"
