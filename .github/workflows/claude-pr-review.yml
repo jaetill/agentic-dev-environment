@@ -753,8 +753,18 @@ jobs:
             categories="$categories schema"
           fi
 
-          # API contract changes
-          api_changes=$(git diff --name-only "origin/${BASE_REF}...HEAD" | grep -E 'openapi\.(yml|yaml|json)|api/' || true)
+          # API contract changes — match only explicit CONTRACT artifacts, not
+          # any file living under an api/ directory. The old bare `api/` path
+          # match flagged EVERY edit to a framework route file (e.g. a Next.js
+          # `src/app/api/.../route.ts`) as an api-contract change — so a security
+          # bug-fix that merely adds an auth guard inside an existing route was
+          # ADR-gated and frozen (18 ai-teacher IDOR/auth fixes stuck, 2026-06-06).
+          # A *contract* change is the published shape of the API: an OpenAPI
+          # spec, a protobuf/GraphQL schema. Route-handler logic (auth, validation,
+          # bug fixes) is reviewed normally and merges without an ADR; a genuine
+          # breaking change is still caught by code-review + the test suite + the
+          # human test->prod gate (ADR-0039/0043).
+          api_changes=$(git diff --name-only "origin/${BASE_REF}...HEAD" | grep -E 'openapi\.(ya?ml|json)|\.proto$|schema\.graphql$' || true)
           if [[ -n "$api_changes" ]]; then
             requires_adr=true
             categories="$categories api-contract"
