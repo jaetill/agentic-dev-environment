@@ -1851,7 +1851,7 @@
       },
       "id": 297,
       "panels": [],
-      "title": "Fleet throughput — progress vs intake (30-day snapshot)",
+      "title": "Fleet throughput — progress vs intake (30 day / 7 day / 24 hour windows)",
       "type": "row"
     },
     {
@@ -1859,7 +1859,7 @@
         "type": "yesoreyeram-infinity-datasource",
         "uid": "afo51rbbobke8a"
       },
-      "description": "Fleet-wide flow for 2026-05-05..2026-06-04. Opened/Closed = issues; PRs merged = throughput; Net backlog Δ = Opened−Closed (negative = shrinking). Dates fixed at build time (Infinity doesn't interpolate time macros in the GraphQL body); title states the window so staleness is visible. Rolling-window fix tracked separately.",
+      "description": "Fleet-wide flow for 2026-05-07..2026-06-06. Opened/Closed = issues; PRs merged = throughput; Net backlog Δ = Opened−Closed (negative = shrinking). Dates fixed at build time (Infinity doesn't interpolate time macros in the GraphQL body); title states the window so staleness is visible. Rolling-window fix tracked separately.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1876,7 +1876,7 @@
       },
       "gridPos": {
         "h": 9,
-        "w": 24,
+        "w": 8,
         "x": 0,
         "y": 102
       },
@@ -1929,13 +1929,251 @@
           "type": "graphql",
           "url": "https://api.github.com/graphql",
           "url_options": {
-            "body_graphql_query": "query { opened: search(query: \"user:jaetill is:issue created:2026-05-06..2026-06-05\", type: ISSUE) { issueCount } closed: search(query: \"user:jaetill is:issue closed:2026-05-06..2026-06-05\", type: ISSUE) { issueCount } merged: search(query: \"user:jaetill is:pr is:merged merged:2026-05-06..2026-06-05\", type: ISSUE) { issueCount } }",
+            "body_graphql_query": "query { opened: search(query: \"user:jaetill is:issue created:2026-05-07..2026-06-06\", type: ISSUE) { issueCount } closed: search(query: \"user:jaetill is:issue closed:2026-05-07..2026-06-06\", type: ISSUE) { issueCount } merged: search(query: \"user:jaetill is:pr is:merged merged:2026-05-07..2026-06-06\", type: ISSUE) { issueCount } }",
             "body_type": "graphql",
             "method": "POST"
           }
         }
       ],
-      "title": "Fleet throughput · 30 days ending 2026-06-05 (snapshot)",
+      "title": "Fleet throughput · 30 days ending 2026-06-06 (snapshot)",
+      "transformations": [
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "Net backlog Δ",
+            "binary": {
+              "left": "Opened",
+              "operator": "-",
+              "right": "Closed"
+            },
+            "mode": "binary",
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {},
+            "indexByName": {
+              "Closed": 1,
+              "Net backlog Δ": 3,
+              "Opened": 0,
+              "PRs merged": 2
+            },
+            "renameByName": {}
+          }
+        },
+        {
+          "id": "transpose",
+          "options": {
+            "firstFieldName": "Metric",
+            "restFieldsName": "Count"
+          }
+        }
+      ],
+      "type": "barchart"
+    },
+    {
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "afo51rbbobke8a"
+      },
+      "description": "Fleet-wide flow for 2026-05-30..2026-06-06 (last 7 days). Opened/Closed = issues; PRs merged = throughput; Net backlog Δ = Opened−Closed (negative = shrinking). Dates fixed at build time (Infinity doesn't interpolate time macros in the GraphQL body); title states the window so staleness is visible.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "lineWidth": 1
+          },
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 8,
+        "x": 8,
+        "y": 102
+      },
+      "id": 299,
+      "options": {
+        "barWidth": 0.85,
+        "colorByField": "Metric",
+        "groupWidth": 0.7,
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "orientation": "vertical",
+        "showValue": "always",
+        "stacking": "none",
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "columns": [
+            {
+              "selector": "opened.issueCount",
+              "text": "Opened",
+              "type": "number"
+            },
+            {
+              "selector": "closed.issueCount",
+              "text": "Closed",
+              "type": "number"
+            },
+            {
+              "selector": "merged.issueCount",
+              "text": "PRs merged",
+              "type": "number"
+            }
+          ],
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "afo51rbbobke8a"
+          },
+          "format": "table",
+          "parser": "backend",
+          "refId": "A",
+          "root_selector": "data",
+          "source": "url",
+          "type": "graphql",
+          "url": "https://api.github.com/graphql",
+          "url_options": {
+            "body_graphql_query": "query { opened: search(query: \"user:jaetill is:issue created:2026-05-30..2026-06-06\", type: ISSUE) { issueCount } closed: search(query: \"user:jaetill is:issue closed:2026-05-30..2026-06-06\", type: ISSUE) { issueCount } merged: search(query: \"user:jaetill is:pr is:merged merged:2026-05-30..2026-06-06\", type: ISSUE) { issueCount } }",
+            "body_type": "graphql",
+            "method": "POST"
+          }
+        }
+      ],
+      "title": "Fleet throughput · 7 days ending 2026-06-06 (snapshot)",
+      "transformations": [
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "Net backlog Δ",
+            "binary": {
+              "left": "Opened",
+              "operator": "-",
+              "right": "Closed"
+            },
+            "mode": "binary",
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {},
+            "indexByName": {
+              "Closed": 1,
+              "Net backlog Δ": 3,
+              "Opened": 0,
+              "PRs merged": 2
+            },
+            "renameByName": {}
+          }
+        },
+        {
+          "id": "transpose",
+          "options": {
+            "firstFieldName": "Metric",
+            "restFieldsName": "Count"
+          }
+        }
+      ],
+      "type": "barchart"
+    },
+    {
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "afo51rbbobke8a"
+      },
+      "description": "Fleet-wide flow for 2026-06-05..2026-06-06 (last 24 hours). Opened/Closed = issues; PRs merged = throughput; Net backlog Δ = Opened−Closed (negative = shrinking). Dates fixed at build time (Infinity doesn't interpolate time macros in the GraphQL body); title states the window so staleness is visible.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "lineWidth": 1
+          },
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 8,
+        "x": 16,
+        "y": 102
+      },
+      "id": 300,
+      "options": {
+        "barWidth": 0.85,
+        "colorByField": "Metric",
+        "groupWidth": 0.7,
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "orientation": "vertical",
+        "showValue": "always",
+        "stacking": "none",
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "columns": [
+            {
+              "selector": "opened.issueCount",
+              "text": "Opened",
+              "type": "number"
+            },
+            {
+              "selector": "closed.issueCount",
+              "text": "Closed",
+              "type": "number"
+            },
+            {
+              "selector": "merged.issueCount",
+              "text": "PRs merged",
+              "type": "number"
+            }
+          ],
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "afo51rbbobke8a"
+          },
+          "format": "table",
+          "parser": "backend",
+          "refId": "A",
+          "root_selector": "data",
+          "source": "url",
+          "type": "graphql",
+          "url": "https://api.github.com/graphql",
+          "url_options": {
+            "body_graphql_query": "query { opened: search(query: \"user:jaetill is:issue created:2026-06-05..2026-06-06\", type: ISSUE) { issueCount } closed: search(query: \"user:jaetill is:issue closed:2026-06-05..2026-06-06\", type: ISSUE) { issueCount } merged: search(query: \"user:jaetill is:pr is:merged merged:2026-06-05..2026-06-06\", type: ISSUE) { issueCount } }",
+            "body_type": "graphql",
+            "method": "POST"
+          }
+        }
+      ],
+      "title": "Fleet throughput · 24 hours ending 2026-06-06 (snapshot)",
       "transformations": [
         {
           "id": "calculateField",
