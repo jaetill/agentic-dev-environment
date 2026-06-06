@@ -56,7 +56,7 @@ A permission fix, a typo, a missing tool grant, or applying a pattern the team h
 
 Anything that changes the agent roster, what a role does, a gate, a review, a standard, or the security posture. This is an **architecture decision, not a patch.** It must:
 
-1. Be filed as a `needs-formulation` + `requires-adr` intake issue and enter **human formulation** ([ADR-0036](../adr/0036-human-intake-model.md)/[ADR-0038](../adr/0038-self-changes-route-through-formulation.md)) — not built, and not sent to a bespoke architect-stop. The agent that detects it files the issue and stops.
+1. Be filed as a `needs-formulation` + `requires-adr` + `compositional-self-change` intake issue and enter **human formulation** ([ADR-0036](../adr/0036-human-intake-model.md)/[ADR-0038](../adr/0038-self-changes-route-through-formulation.md)) — not built, and not sent to a bespoke architect-stop. The agent that detects it files the issue and stops.
 2. Be grounded in authoritative best practice — see *Grounding* below. The team **researches** the relevant best practice before proposing; it does not improvise.
 3. Be proposed as an ADR (and paired standard) with options and tradeoffs — the architect drafts it during formulation.
 4. Be ratified by a human before implementation — the human approves the formulated item (with its ratified ADR); only then does it build, and it still holds for human merge via the `compositional-self-change` label ([ADR-0019](../adr/0019-team-self-modification.md)/[ADR-0023](../adr/0023-origin-based-autonomy-boundary.md), preserved by [ADR-0039](../adr/0039-merge-is-autonomous-human-gate-moves-to-prod.md)).
