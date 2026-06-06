@@ -1,0 +1,104 @@
+name: cockpit-export
+# Re-exports live Grafana dashboard → infra/ops-cockpit/dashboard.json daily
+# and commits any drift directly to main.
+#
+# This is the SAFETY NET, not the primary mechanism. The primary mechanism is
+# the agent-contract rule: any agent that edits the live cockpit via API or UI
+# MUST re-export to dashboard.json in the SAME change. (Codified in
+# docs/runbooks/ops-cockpit.md and the intake-steward / cockpit-related
+# agent contracts.)
+#
+# Why a safety net is still needed: if an agent edits live and forgets the
+# re-export, the file drifts. The drift was the root cause of the 2026-06-06
+# 'cockpit changes stuck' incident — 65-panel gap between v34 file and v55
+# live. This workflow guarantees drift can never outlive a day.
+#
+# Direction: live → file. The COMPANION workflow cockpit-apply.yml runs the
+# OTHER direction (file → live) on push to main. Together: round-trip
+# consistency.
+#
+# Required secrets (same as cockpit-apply.yml):
+#   - GRAFANA_URL
+#   - GRAFANA_API_KEY
+# Plus contents:write permission so the job can commit dashboard.json directly.
+
+on:
+  schedule:
+    # Daily at 10:00 UTC (04:00 / 05:00 America/Chicago — outside both
+    # autonomous loop windows so commits don't collide with implementer work).
+    - cron: '0 10 * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: cockpit-export
+  cancel-in-progress: false
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Need write access to push the commit.
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Export live → dashboard.json
+        env:
+          GRAFANA_URL: ${{ secrets.GRAFANA_URL }}
+          GRAFANA_API_KEY: ${{ secrets.GRAFANA_API_KEY }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${GRAFANA_URL:-}" ] || [ -z "${GRAFANA_API_KEY:-}" ]; then
+            echo "::warning::GRAFANA_URL / GRAFANA_API_KEY not set; skipping export"
+            exit 0
+          fi
+
+          live=$(curl -sfL \
+            -H "Authorization: Bearer $GRAFANA_API_KEY" \
+            "$GRAFANA_URL/api/dashboards/uid/ops-cockpit")
+
+          # Strip id + version (provider manages them); keep uid. Pretty-print.
+          # Matches the export recipe in HANDOFF.md and the User-env tofu apply
+          # path so a manual apply downstream sees no churn.
+          echo "$live" \
+            | jq '.dashboard | del(.id, .version) | .uid = "ops-cockpit"' \
+            > infra/ops-cockpit/dashboard.json
+
+          echo "live version: $(echo "$live" | jq -r '.dashboard.version')"
+          echo "panel count: $(jq '.panels | length' infra/ops-cockpit/dashboard.json)"
+
+      - name: Commit drift if any
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+
+          if git diff --quiet infra/ops-cockpit/dashboard.json; then
+            echo "no drift; nothing to commit"
+            echo "## Cockpit export clean" >> "$GITHUB_STEP_SUMMARY"
+            echo "Live dashboard matches infra/ops-cockpit/dashboard.json." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          lines=$(git diff --stat infra/ops-cockpit/dashboard.json | tail -1)
+          echo "drift detected: $lines"
+          git add infra/ops-cockpit/dashboard.json
+          git commit -m "chore(cockpit): re-export live → dashboard.json (drift sweep)
+
+Caught by the daily cockpit-export safety net. An agent edited the live
+cockpit but didn't round-trip to Terraform in the same change (rule:
+feedback_grafana_live_edit_must_update_tf). This commit closes the gap.
+
+If you didn't expect drift, check recent live edits via the Grafana
+audit log."
+          git push
+
+          echo "## Cockpit drift committed" >> "$GITHUB_STEP_SUMMARY"
+          echo "\`$lines\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "An agent edited live without re-exporting. Drift swept on the daily cron." >> "$GITHUB_STEP_SUMMARY"
