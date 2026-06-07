@@ -310,6 +310,16 @@ jobs:
       && inputs.issue_number != ''
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    # Inherit workflow-level perms PLUS workflows:write so scope:ci fixes can
+    # push .github/workflows/* changes. Scoped to this job only — fix-iteration
+    # and cleanup-sweep handle attacker-influenced content (existing PRs, nit
+    # issues) and must NOT have workflows:write (per security-review #323).
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+      workflows: write
     steps:
       - uses: actions/checkout@v4
         with:
