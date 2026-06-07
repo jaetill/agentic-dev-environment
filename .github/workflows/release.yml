@@ -73,27 +73,11 @@ jobs:
           config-file: ${{ inputs.config-file }}
           manifest-file: ${{ inputs.manifest-file }}
 
-  # Per ADR-0010 §3: release-captain reviews the release PR (changelog narrative
-  # if warranted) and auto-merges when green unless `release-block` is applied.
-  # Now that the release PR is App-authored, its checks actually run, so this
-  # job has a green PR to act on. Auth via the OAuth token every repo already
-  # carries for claude-pr-review (ANTHROPIC_API_KEY is not provisioned fleet-wide).
-  release-captain:
-    needs: release-please
-    if: needs.release-please.outputs.pr != ''
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Run release-captain agent
-        uses: anthropics/claude-code-action@v1
-        with:
-          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          prompt: |
-            Act as the release-captain subagent defined in .claude/agents/release-captain.md.
-            release-please opened or updated PR ${{ fromJson(needs.release-please.outputs.pr).number }}.
-            Review the changelog, decide if narrative is warranted (per ADR-0010 §3 criteria),
-            and auto-merge ONLY once all required checks pass and no `release-block` label is applied.
-            If checks are still pending, leave the PR for the next sweep rather than force-merging.
-          claude_args: |
-            --model claude-haiku-4-5
-            --append-system-prompt "Tier 1 routine work; escalate to Sonnet if narrative drafting is needed per ADR-0010."
+  # NOTE: release-captain review of the release PR runs via each app repo's
+  # inline `.github/workflows/claude-release-captain.yml` on the
+  # `pull_request` event — that's where the agent CAN act. The previous
+  # in-reusable release-captain job (push-triggered via workflow_call)
+  # called `anthropics/claude-code-action@v1` from a `push` event, which the
+  # action rejects ("Unsupported event type: push"), so it failed on every
+  # release fleet-wide. Removed 2026-06-06; per-repo inline workflow is the
+  # path forward (ADR-0010 §3).
