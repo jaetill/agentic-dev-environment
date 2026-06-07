@@ -1,0 +1,100 @@
+name: cockpit-apply
+# Auto-applies infra/ops-cockpit/dashboard.json to Grafana Cloud on push to main.
+#
+# Problem this fixes: the cockpit's source of truth is dashboard.json, applied
+# via `tofu apply`. Without automation, a merged PR sits inert until someone
+# remembers to run apply with the right env vars. Two recent sessions ate this
+# loss — a PR landed green, the live dashboard didn't change, the work felt
+# stuck. (2026-06-06 throughput-bar PR is the immediate trigger.)
+#
+# Scope: dashboard JSON only. The TF module covers the Grafana folder, data
+# source, and dashboard wrapper — those rarely change and stay on manual
+# `tofu apply` (see infra/ops-cockpit/HANDOFF.md). 95%+ of cockpit changes are
+# panel edits; direct-push covers them without spinning up an OIDC role or
+# remote-state for one file.
+#
+# Required secrets (must be set on jaetill/agentic-dev-environment):
+#   - GRAFANA_URL       — e.g. https://jaetill.grafana.net (could be a var)
+#   - GRAFANA_API_KEY   — Grafana service-account token, Editor on the stack
+# Both must be present; if either is missing the job fails-soft with a warning
+# (intentional — don't break PRs if the cockpit secrets aren't provisioned yet).
+#
+# Out of scope (manual `tofu apply` still owns these):
+#   - Grafana folder/data source changes
+#   - Provider version bumps
+#   - main.tf / providers.tf / variables.tf / backend.tf edits
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'infra/ops-cockpit/dashboard.json'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2 # so we can diff the file in the commit msg
+
+      - name: Push dashboard.json to Grafana
+        env:
+          GRAFANA_URL: ${{ secrets.GRAFANA_URL }}
+          GRAFANA_API_KEY: ${{ secrets.GRAFANA_API_KEY }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${GRAFANA_URL:-}" ] || [ -z "${GRAFANA_API_KEY:-}" ]; then
+            echo "::warning::GRAFANA_URL or GRAFANA_API_KEY repo secret not set; skipping cockpit apply"
+            exit 0
+          fi
+
+          # Pin GRAFANA_URL to a strict https://<stack>.grafana.net pattern so
+          # a compromised-secret actor can't redirect curl -L at internal
+          # endpoints (169.254.169.254, k8s API, etc.) — per security-review
+          # #314. Bash `case` globs match `/` (security-review #318) so use a
+          # regex anchor with a constrained hostname character class.
+          if [[ ! "$GRAFANA_URL" =~ ^https://[a-z0-9-]+\.grafana\.net$ ]]; then
+            echo "::error::GRAFANA_URL must match https://<stack>.grafana.net with no path (got: $GRAFANA_URL); refusing to run"
+            exit 1
+          fi
+
+          # Fetch the live dashboard so we can read its current version. Grafana
+          # rejects POSTs whose `version` doesn't match HEAD; copying it across
+          # keeps us idempotent against live UI edits (the apply will still
+          # overwrite, but won't 412).
+          live=$(curl -sfL \
+            -H "Authorization: Bearer $GRAFANA_API_KEY" \
+            "$GRAFANA_URL/api/dashboards/uid/ops-cockpit")
+          current_version=$(echo "$live" | jq -r '.dashboard.version')
+          echo "live cockpit version before apply: $current_version"
+
+          # Build the POST body: file's dashboard JSON + live version + overwrite.
+          msg="cockpit-apply: ${GITHUB_SHA::7} - $(git log -1 --format=%s)"
+          jq -n \
+            --argjson dash "$(cat infra/ops-cockpit/dashboard.json)" \
+            --argjson v "$current_version" \
+            --arg msg "$msg" \
+            '{ dashboard: ($dash + {version: $v}), overwrite: true, message: $msg }' \
+            > payload.json
+
+          # POST. -fail on non-2xx so the job goes red if the apply rejects.
+          resp=$(curl -sfL -X POST \
+            -H "Authorization: Bearer $GRAFANA_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d @payload.json \
+            "$GRAFANA_URL/api/dashboards/db")
+          new_version=$(echo "$resp" | jq -r '.version')
+          status=$(echo "$resp" | jq -r '.status')
+
+          echo "apply complete: status=$status new version=$new_version"
+          echo "## Cockpit applied" >> "$GITHUB_STEP_SUMMARY"
+          echo "- live before: v$current_version" >> "$GITHUB_STEP_SUMMARY"
+          echo "- live after: v$new_version" >> "$GITHUB_STEP_SUMMARY"
+          echo "- message: $msg" >> "$GITHUB_STEP_SUMMARY"

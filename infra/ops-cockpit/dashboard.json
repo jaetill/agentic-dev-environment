@@ -57,7 +57,6 @@
         "x": 0,
         "y": 0
       },
-      "id": 4,
       "options": {
         "colorMode": "value",
         "graphMode": "none",
@@ -123,7 +122,6 @@
         "x": 16,
         "y": 0
       },
-      "id": 6,
       "options": {
         "colorMode": "value",
         "graphMode": "none",
@@ -203,7 +201,6 @@
         "x": 0,
         "y": 5
       },
-      "id": 2,
       "options": {
         "cellHeight": "sm",
         "showHeader": true,
@@ -319,7 +316,6 @@
         "x": 8,
         "y": 0
       },
-      "id": 8,
       "options": {
         "colorMode": "background",
         "graphMode": "none",
@@ -420,7 +416,6 @@
         "x": 0,
         "y": 84
       },
-      "id": 288,
       "panels": [],
       "title": "Issue flow by project — Total / Waiting on Jason / Promotion queue / In flight (ADR-0043-era states)",
       "type": "row"
@@ -452,7 +447,6 @@
         "x": 0,
         "y": 85
       },
-      "id": 289,
       "options": {
         "barWidth": 0.9,
         "colorByField": "State",
@@ -512,7 +506,7 @@
           "type": "graphql",
           "url": "https://api.github.com/graphql",
           "url_options": {
-            "body_graphql_query": "query { total: search(query: \"repo:jaetill/agentic-dev-environment is:issue state:open\", type: ISSUE) { issueCount } waiting: search(query: \"repo:jaetill/agentic-dev-environment is:issue state:open label:needs-formulation,human-todo,requires-adr\", type: ISSUE) { issueCount } queue: search(query: \"repo:jaetill/agentic-dev-environment is:issue state:open label:severity:medium,severity:high,triage:medium,approved -label:ready-for-implementer -label:needs-formulation -label:human-todo -label:requires-adr\", type: ISSUE) { issueCount } inflight: search(query: \"repo:jaetill/agentic-dev-environment is:issue state:open label:ready-for-implementer\", type: ISSUE) { issueCount } lownit: search(query: \"repo:jaetill/agentic-dev-environment is:issue state:open label:severity:low,severity:nit -label:ready-for-implementer\", type: ISSUE) { issueCount } }",
+            "body_graphql_query": "query { total: search(query: \"repo:jaetill/agentic-dev-environment is:issue state:open\", type: ISSUE) { issueCount } waiting: search(query: \"repo:jaetill/agentic-dev-environment is:issue state:open label:needs-formulation,human-todo,requires-adr\", type: ISSUE) { issueCount } queue: search(query: \"repo:jaetill/agentic-dev-environment is:issue state:open label:severity:medium,severity:high,triage:medium,approved -label:ready-for-implementer\", type: ISSUE) { issueCount } inflight: search(query: \"repo:jaetill/agentic-dev-environment is:issue state:open label:ready-for-implementer\", type: ISSUE) { issueCount } lownit: search(query: \"repo:jaetill/agentic-dev-environment is:issue state:open label:severity:low,severity:nit -label:ready-for-implementer\", type: ISSUE) { issueCount } }",
             "body_type": "graphql",
             "method": "POST"
           }
@@ -629,7 +623,6 @@
         "x": 6,
         "y": 85
       },
-      "id": 290,
       "options": {
         "barWidth": 0.9,
         "colorByField": "State",
@@ -689,7 +682,7 @@
           "type": "graphql",
           "url": "https://api.github.com/graphql",
           "url_options": {
-            "body_graphql_query": "query { total: search(query: \"repo:jaetill/game-night-pwa is:issue state:open\", type: ISSUE) { issueCount } waiting: search(query: \"repo:jaetill/game-night-pwa is:issue state:open label:needs-formulation,human-todo,requires-adr\", type: ISSUE) { issueCount } queue: search(query: \"repo:jaetill/game-night-pwa is:issue state:open label:severity:medium,severity:high,triage:medium,approved -label:ready-for-implementer -label:needs-formulation -label:human-todo -label:requires-adr\", type: ISSUE) { issueCount } inflight: search(query: \"repo:jaetill/game-night-pwa is:issue state:open label:ready-for-implementer\", type: ISSUE) { issueCount } lownit: search(query: \"repo:jaetill/game-night-pwa is:issue state:open label:severity:low,severity:nit -label:ready-for-implementer\", type: ISSUE) { issueCount } }",
+            "body_graphql_query": "query { total: search(query: \"repo:jaetill/game-night-pwa is:issue state:open\", type: ISSUE) { issueCount } waiting: search(query: \"repo:jaetill/game-night-pwa is:issue state:open label:needs-formulation,human-todo,requires-adr\", type: ISSUE) { issueCount } queue: search(query: \"repo:jaetill/game-night-pwa is:issue state:open label:severity:medium,severity:high,triage:medium,approved -label:ready-for-implementer\", type: ISSUE) { issueCount } inflight: search(query: \"repo:jaetill/game-night-pwa is:issue state:open label:ready-for-implementer\", type: ISSUE) { issueCount } lownit: search(query: \"repo:jaetill/game-night-pwa is:issue state:open label:severity:low,severity:nit -label:ready-for-implementer\", type: ISSUE) { issueCount } }",
             "body_type": "graphql",
             "method": "POST"
           }
@@ -806,7 +799,6 @@
         "x": 12,
         "y": 85
       },
-      "id": 291,
       "options": {
         "barWidth": 0.9,
         "colorByField": "State",
@@ -866,7 +858,7 @@
           "type": "graphql",
           "url": "https://api.github.com/graphql",
           "url_options": {
-            "body_graphql_query": "query { total: search(query: \"repo:jaetill/meal-planner is:issue state:open\", type: ISSUE) { issueCount } waiting: search(query: \"repo:jaetill/meal-planner is:issue state:open label:needs-formulation,human-todo,requires-adr\", type: ISSUE) { issueCount } queue: search(query: \"repo:jaetill/meal-planner is:issue state:open label:severity:medium,severity:high,triage:medium,approved -label:ready-for-implementer -label:needs-formulation -label:human-todo -label:requires-adr\", type: ISSUE) { issueCount } inflight: search(query: \"repo:jaetill/meal-planner is:issue state:open label:ready-for-implementer\", type: ISSUE) { issueCount } lownit: search(query: \"repo:jaetill/meal-planner is:issue state:open label:severity:low,severity:nit -label:ready-for-implementer\", type: ISSUE) { issueCount } }",
+            "body_graphql_query": "query { total: search(query: \"repo:jaetill/meal-planner is:issue state:open\", type: ISSUE) { issueCount } waiting: search(query: \"repo:jaetill/meal-planner is:issue state:open label:needs-formulation,human-todo,requires-adr\", type: ISSUE) { issueCount } queue: search(query: \"repo:jaetill/meal-planner is:issue state:open label:severity:medium,severity:high,triage:medium,approved -label:ready-for-implementer\", type: ISSUE) { issueCount } inflight: search(query: \"repo:jaetill/meal-planner is:issue state:open label:ready-for-implementer\", type: ISSUE) { issueCount } lownit: search(query: \"repo:jaetill/meal-planner is:issue state:open label:severity:low,severity:nit -label:ready-for-implementer\", type: ISSUE) { issueCount } }",
             "body_type": "graphql",
             "method": "POST"
           }
@@ -983,7 +975,6 @@
         "x": 18,
         "y": 85
       },
-      "id": 292,
       "options": {
         "barWidth": 0.9,
         "colorByField": "State",
@@ -1043,7 +1034,7 @@
           "type": "graphql",
           "url": "https://api.github.com/graphql",
           "url_options": {
-            "body_graphql_query": "query { total: search(query: \"repo:jaetill/ai-teacher is:issue state:open\", type: ISSUE) { issueCount } waiting: search(query: \"repo:jaetill/ai-teacher is:issue state:open label:needs-formulation,human-todo,requires-adr\", type: ISSUE) { issueCount } queue: search(query: \"repo:jaetill/ai-teacher is:issue state:open label:severity:medium,severity:high,triage:medium,approved -label:ready-for-implementer -label:needs-formulation -label:human-todo -label:requires-adr\", type: ISSUE) { issueCount } inflight: search(query: \"repo:jaetill/ai-teacher is:issue state:open label:ready-for-implementer\", type: ISSUE) { issueCount } lownit: search(query: \"repo:jaetill/ai-teacher is:issue state:open label:severity:low,severity:nit -label:ready-for-implementer\", type: ISSUE) { issueCount } }",
+            "body_graphql_query": "query { total: search(query: \"repo:jaetill/ai-teacher is:issue state:open\", type: ISSUE) { issueCount } waiting: search(query: \"repo:jaetill/ai-teacher is:issue state:open label:needs-formulation,human-todo,requires-adr\", type: ISSUE) { issueCount } queue: search(query: \"repo:jaetill/ai-teacher is:issue state:open label:severity:medium,severity:high,triage:medium,approved -label:ready-for-implementer\", type: ISSUE) { issueCount } inflight: search(query: \"repo:jaetill/ai-teacher is:issue state:open label:ready-for-implementer\", type: ISSUE) { issueCount } lownit: search(query: \"repo:jaetill/ai-teacher is:issue state:open label:severity:low,severity:nit -label:ready-for-implementer\", type: ISSUE) { issueCount } }",
             "body_type": "graphql",
             "method": "POST"
           }
@@ -1160,7 +1151,6 @@
         "x": 0,
         "y": 93
       },
-      "id": 293,
       "options": {
         "barWidth": 0.9,
         "colorByField": "State",
@@ -1220,7 +1210,7 @@
           "type": "graphql",
           "url": "https://api.github.com/graphql",
           "url_options": {
-            "body_graphql_query": "query { total: search(query: \"repo:jaetill/jaetill-portal is:issue state:open\", type: ISSUE) { issueCount } waiting: search(query: \"repo:jaetill/jaetill-portal is:issue state:open label:needs-formulation,human-todo,requires-adr\", type: ISSUE) { issueCount } queue: search(query: \"repo:jaetill/jaetill-portal is:issue state:open label:severity:medium,severity:high,triage:medium,approved -label:ready-for-implementer -label:needs-formulation -label:human-todo -label:requires-adr\", type: ISSUE) { issueCount } inflight: search(query: \"repo:jaetill/jaetill-portal is:issue state:open label:ready-for-implementer\", type: ISSUE) { issueCount } lownit: search(query: \"repo:jaetill/jaetill-portal is:issue state:open label:severity:low,severity:nit -label:ready-for-implementer\", type: ISSUE) { issueCount } }",
+            "body_graphql_query": "query { total: search(query: \"repo:jaetill/jaetill-portal is:issue state:open\", type: ISSUE) { issueCount } waiting: search(query: \"repo:jaetill/jaetill-portal is:issue state:open label:needs-formulation,human-todo,requires-adr\", type: ISSUE) { issueCount } queue: search(query: \"repo:jaetill/jaetill-portal is:issue state:open label:severity:medium,severity:high,triage:medium,approved -label:ready-for-implementer\", type: ISSUE) { issueCount } inflight: search(query: \"repo:jaetill/jaetill-portal is:issue state:open label:ready-for-implementer\", type: ISSUE) { issueCount } lownit: search(query: \"repo:jaetill/jaetill-portal is:issue state:open label:severity:low,severity:nit -label:ready-for-implementer\", type: ISSUE) { issueCount } }",
             "body_type": "graphql",
             "method": "POST"
           }
@@ -1337,7 +1327,6 @@
         "x": 6,
         "y": 93
       },
-      "id": 294,
       "options": {
         "barWidth": 0.9,
         "colorByField": "State",
@@ -1397,7 +1386,7 @@
           "type": "graphql",
           "url": "https://api.github.com/graphql",
           "url_options": {
-            "body_graphql_query": "query { total: search(query: \"repo:jaetill/splendor is:issue state:open\", type: ISSUE) { issueCount } waiting: search(query: \"repo:jaetill/splendor is:issue state:open label:needs-formulation,human-todo,requires-adr\", type: ISSUE) { issueCount } queue: search(query: \"repo:jaetill/splendor is:issue state:open label:severity:medium,severity:high,triage:medium,approved -label:ready-for-implementer -label:needs-formulation -label:human-todo -label:requires-adr\", type: ISSUE) { issueCount } inflight: search(query: \"repo:jaetill/splendor is:issue state:open label:ready-for-implementer\", type: ISSUE) { issueCount } lownit: search(query: \"repo:jaetill/splendor is:issue state:open label:severity:low,severity:nit -label:ready-for-implementer\", type: ISSUE) { issueCount } }",
+            "body_graphql_query": "query { total: search(query: \"repo:jaetill/splendor is:issue state:open\", type: ISSUE) { issueCount } waiting: search(query: \"repo:jaetill/splendor is:issue state:open label:needs-formulation,human-todo,requires-adr\", type: ISSUE) { issueCount } queue: search(query: \"repo:jaetill/splendor is:issue state:open label:severity:medium,severity:high,triage:medium,approved -label:ready-for-implementer\", type: ISSUE) { issueCount } inflight: search(query: \"repo:jaetill/splendor is:issue state:open label:ready-for-implementer\", type: ISSUE) { issueCount } lownit: search(query: \"repo:jaetill/splendor is:issue state:open label:severity:low,severity:nit -label:ready-for-implementer\", type: ISSUE) { issueCount } }",
             "body_type": "graphql",
             "method": "POST"
           }
@@ -1514,7 +1503,6 @@
         "x": 12,
         "y": 93
       },
-      "id": 295,
       "options": {
         "barWidth": 0.9,
         "colorByField": "State",
@@ -1574,7 +1562,7 @@
           "type": "graphql",
           "url": "https://api.github.com/graphql",
           "url_options": {
-            "body_graphql_query": "query { total: search(query: \"repo:jaetill/draft is:issue state:open\", type: ISSUE) { issueCount } waiting: search(query: \"repo:jaetill/draft is:issue state:open label:needs-formulation,human-todo,requires-adr\", type: ISSUE) { issueCount } queue: search(query: \"repo:jaetill/draft is:issue state:open label:severity:medium,severity:high,triage:medium,approved -label:ready-for-implementer -label:needs-formulation -label:human-todo -label:requires-adr\", type: ISSUE) { issueCount } inflight: search(query: \"repo:jaetill/draft is:issue state:open label:ready-for-implementer\", type: ISSUE) { issueCount } lownit: search(query: \"repo:jaetill/draft is:issue state:open label:severity:low,severity:nit -label:ready-for-implementer\", type: ISSUE) { issueCount } }",
+            "body_graphql_query": "query { total: search(query: \"repo:jaetill/draft is:issue state:open\", type: ISSUE) { issueCount } waiting: search(query: \"repo:jaetill/draft is:issue state:open label:needs-formulation,human-todo,requires-adr\", type: ISSUE) { issueCount } queue: search(query: \"repo:jaetill/draft is:issue state:open label:severity:medium,severity:high,triage:medium,approved -label:ready-for-implementer\", type: ISSUE) { issueCount } inflight: search(query: \"repo:jaetill/draft is:issue state:open label:ready-for-implementer\", type: ISSUE) { issueCount } lownit: search(query: \"repo:jaetill/draft is:issue state:open label:severity:low,severity:nit -label:ready-for-implementer\", type: ISSUE) { issueCount } }",
             "body_type": "graphql",
             "method": "POST"
           }
@@ -1691,7 +1679,6 @@
         "x": 18,
         "y": 93
       },
-      "id": 296,
       "options": {
         "barWidth": 0.9,
         "colorByField": "State",
@@ -1751,7 +1738,7 @@
           "type": "graphql",
           "url": "https://api.github.com/graphql",
           "url_options": {
-            "body_graphql_query": "query { total: search(query: \"repo:jaetill/carto is:issue state:open\", type: ISSUE) { issueCount } waiting: search(query: \"repo:jaetill/carto is:issue state:open label:needs-formulation,human-todo,requires-adr\", type: ISSUE) { issueCount } queue: search(query: \"repo:jaetill/carto is:issue state:open label:severity:medium,severity:high,triage:medium,approved -label:ready-for-implementer -label:needs-formulation -label:human-todo -label:requires-adr\", type: ISSUE) { issueCount } inflight: search(query: \"repo:jaetill/carto is:issue state:open label:ready-for-implementer\", type: ISSUE) { issueCount } lownit: search(query: \"repo:jaetill/carto is:issue state:open label:severity:low,severity:nit -label:ready-for-implementer\", type: ISSUE) { issueCount } }",
+            "body_graphql_query": "query { total: search(query: \"repo:jaetill/carto is:issue state:open\", type: ISSUE) { issueCount } waiting: search(query: \"repo:jaetill/carto is:issue state:open label:needs-formulation,human-todo,requires-adr\", type: ISSUE) { issueCount } queue: search(query: \"repo:jaetill/carto is:issue state:open label:severity:medium,severity:high,triage:medium,approved -label:ready-for-implementer\", type: ISSUE) { issueCount } inflight: search(query: \"repo:jaetill/carto is:issue state:open label:ready-for-implementer\", type: ISSUE) { issueCount } lownit: search(query: \"repo:jaetill/carto is:issue state:open label:severity:low,severity:nit -label:ready-for-implementer\", type: ISSUE) { issueCount } }",
             "body_type": "graphql",
             "method": "POST"
           }
@@ -1849,9 +1836,8 @@
         "x": 0,
         "y": 101
       },
-      "id": 297,
       "panels": [],
-      "title": "Fleet throughput — progress vs intake (30-day snapshot)",
+      "title": "Fleet throughput - progress vs intake (30 day / 7 day / 24 hour windows)",
       "type": "row"
     },
     {
@@ -1876,11 +1862,10 @@
       },
       "gridPos": {
         "h": 9,
-        "w": 24,
+        "w": 8,
         "x": 0,
         "y": 102
       },
-      "id": 298,
       "options": {
         "barWidth": 0.85,
         "colorByField": "Metric",
@@ -1929,13 +1914,249 @@
           "type": "graphql",
           "url": "https://api.github.com/graphql",
           "url_options": {
-            "body_graphql_query": "query { opened: search(query: \"user:jaetill is:issue created:2026-05-06..2026-06-05\", type: ISSUE) { issueCount } closed: search(query: \"user:jaetill is:issue closed:2026-05-06..2026-06-05\", type: ISSUE) { issueCount } merged: search(query: \"user:jaetill is:pr is:merged merged:2026-05-06..2026-06-05\", type: ISSUE) { issueCount } }",
+            "body_graphql_query": "query { opened: search(query: \"user:jaetill is:issue created:2026-05-07..2026-06-06\", type: ISSUE) { issueCount } closed: search(query: \"user:jaetill is:issue closed:2026-05-07..2026-06-06\", type: ISSUE) { issueCount } merged: search(query: \"user:jaetill is:pr is:merged merged:2026-05-07..2026-06-06\", type: ISSUE) { issueCount } }",
             "body_type": "graphql",
             "method": "POST"
           }
         }
       ],
-      "title": "Fleet throughput · 30 days ending 2026-06-05 (snapshot)",
+      "title": "Fleet throughput - 30 days ending 2026-06-06 (snapshot)",
+      "transformations": [
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "Net backlog Δ",
+            "binary": {
+              "left": "Opened",
+              "operator": "-",
+              "right": "Closed"
+            },
+            "mode": "binary",
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {},
+            "indexByName": {
+              "Closed": 1,
+              "Net backlog Δ": 3,
+              "Opened": 0,
+              "PRs merged": 2
+            },
+            "renameByName": {}
+          }
+        },
+        {
+          "id": "transpose",
+          "options": {
+            "firstFieldName": "Metric",
+            "restFieldsName": "Count"
+          }
+        }
+      ],
+      "type": "barchart"
+    },
+    {
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "afo51rbbobke8a"
+      },
+      "description": "Fleet-wide flow for 2026-05-30..2026-06-06 (last 7 days). Opened/Closed = issues; PRs merged = throughput; Net backlog delta = Opened-Closed. Dates fixed at build time.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "lineWidth": 1
+          },
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 8,
+        "x": 8,
+        "y": 102
+      },
+      "options": {
+        "barWidth": 0.85,
+        "colorByField": "Metric",
+        "groupWidth": 0.7,
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "orientation": "vertical",
+        "showValue": "always",
+        "stacking": "none",
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "columns": [
+            {
+              "selector": "opened.issueCount",
+              "text": "Opened",
+              "type": "number"
+            },
+            {
+              "selector": "closed.issueCount",
+              "text": "Closed",
+              "type": "number"
+            },
+            {
+              "selector": "merged.issueCount",
+              "text": "PRs merged",
+              "type": "number"
+            }
+          ],
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "afo51rbbobke8a"
+          },
+          "format": "table",
+          "parser": "backend",
+          "refId": "A",
+          "root_selector": "data",
+          "source": "url",
+          "type": "graphql",
+          "url": "https://api.github.com/graphql",
+          "url_options": {
+            "body_graphql_query": "query { opened: search(query: \"user:jaetill is:issue created:2026-05-30..2026-06-06\", type: ISSUE) { issueCount } closed: search(query: \"user:jaetill is:issue closed:2026-05-30..2026-06-06\", type: ISSUE) { issueCount } merged: search(query: \"user:jaetill is:pr is:merged merged:2026-05-30..2026-06-06\", type: ISSUE) { issueCount } }",
+            "body_type": "graphql",
+            "method": "POST"
+          }
+        }
+      ],
+      "title": "Fleet throughput - 7 days ending 2026-06-06 (snapshot)",
+      "transformations": [
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "Net backlog Δ",
+            "binary": {
+              "left": "Opened",
+              "operator": "-",
+              "right": "Closed"
+            },
+            "mode": "binary",
+            "replaceFields": false
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {},
+            "indexByName": {
+              "Closed": 1,
+              "Net backlog Δ": 3,
+              "Opened": 0,
+              "PRs merged": 2
+            },
+            "renameByName": {}
+          }
+        },
+        {
+          "id": "transpose",
+          "options": {
+            "firstFieldName": "Metric",
+            "restFieldsName": "Count"
+          }
+        }
+      ],
+      "type": "barchart"
+    },
+    {
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "afo51rbbobke8a"
+      },
+      "description": "Fleet-wide flow for 2026-06-05..2026-06-06 (last 24 hours). Opened/Closed = issues; PRs merged = throughput; Net backlog delta = Opened-Closed. Dates fixed at build time.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "lineWidth": 1
+          },
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 8,
+        "x": 16,
+        "y": 102
+      },
+      "options": {
+        "barWidth": 0.85,
+        "colorByField": "Metric",
+        "groupWidth": 0.7,
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "orientation": "vertical",
+        "showValue": "always",
+        "stacking": "none",
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "columns": [
+            {
+              "selector": "opened.issueCount",
+              "text": "Opened",
+              "type": "number"
+            },
+            {
+              "selector": "closed.issueCount",
+              "text": "Closed",
+              "type": "number"
+            },
+            {
+              "selector": "merged.issueCount",
+              "text": "PRs merged",
+              "type": "number"
+            }
+          ],
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "afo51rbbobke8a"
+          },
+          "format": "table",
+          "parser": "backend",
+          "refId": "A",
+          "root_selector": "data",
+          "source": "url",
+          "type": "graphql",
+          "url": "https://api.github.com/graphql",
+          "url_options": {
+            "body_graphql_query": "query { opened: search(query: \"user:jaetill is:issue created:2026-06-05..2026-06-06\", type: ISSUE) { issueCount } closed: search(query: \"user:jaetill is:issue closed:2026-06-05..2026-06-06\", type: ISSUE) { issueCount } merged: search(query: \"user:jaetill is:pr is:merged merged:2026-06-05..2026-06-06\", type: ISSUE) { issueCount } }",
+            "body_type": "graphql",
+            "method": "POST"
+          }
+        }
+      ],
+      "title": "Fleet throughput - 24 hours ending 2026-06-06 (snapshot)",
       "transformations": [
         {
           "id": "calculateField",
