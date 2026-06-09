@@ -1845,7 +1845,7 @@
         "type": "yesoreyeram-infinity-datasource",
         "uid": "afo51rbbobke8a"
       },
-      "description": "Fleet-wide flow for 2026-05-05..2026-06-04. Opened/Closed = issues; PRs merged = throughput; Net backlog Δ = Opened−Closed (negative = shrinking). Dates fixed at build time (Infinity doesn't interpolate time macros in the GraphQL body); title states the window so staleness is visible. Rolling-window fix tracked separately.",
+      "description": "Fleet-wide flow for the last 30 days, relative to page load. Opened/Closed = issues; PRs merged = throughput; Net backlog Δ = Opened−Closed (negative = shrinking). Window is computed per-panel via timeFrom: 30d; GraphQL dates interpolate from ${__from}/${__to}.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1914,13 +1914,14 @@
           "type": "graphql",
           "url": "https://api.github.com/graphql",
           "url_options": {
-            "body_graphql_query": "query { opened: search(query: \"user:jaetill is:issue created:2026-05-07..2026-06-06\", type: ISSUE) { issueCount } closed: search(query: \"user:jaetill is:issue closed:2026-05-07..2026-06-06\", type: ISSUE) { issueCount } merged: search(query: \"user:jaetill is:pr is:merged merged:2026-05-07..2026-06-06\", type: ISSUE) { issueCount } }",
+            "body_graphql_query": "query { opened: search(query: \"user:jaetill is:issue created:${__from:date:YYYY-MM-DD}..${__to:date:YYYY-MM-DD}\", type: ISSUE) { issueCount } closed: search(query: \"user:jaetill is:issue closed:${__from:date:YYYY-MM-DD}..${__to:date:YYYY-MM-DD}\", type: ISSUE) { issueCount } merged: search(query: \"user:jaetill is:pr is:merged merged:${__from:date:YYYY-MM-DD}..${__to:date:YYYY-MM-DD}\", type: ISSUE) { issueCount } }",
             "body_type": "graphql",
             "method": "POST"
           }
         }
       ],
-      "title": "Fleet throughput - 30 days ending 2026-06-06 (snapshot)",
+      "timeFrom": "30d",
+      "title": "Fleet throughput — last 30 days",
       "transformations": [
         {
           "id": "calculateField",
@@ -1963,7 +1964,7 @@
         "type": "yesoreyeram-infinity-datasource",
         "uid": "afo51rbbobke8a"
       },
-      "description": "Fleet-wide flow for 2026-05-30..2026-06-06 (last 7 days). Opened/Closed = issues; PRs merged = throughput; Net backlog delta = Opened-Closed. Dates fixed at build time.",
+      "description": "Fleet-wide flow for the last 7 days, relative to page load. Opened/Closed = issues; PRs merged = throughput; Net backlog Δ = Opened−Closed. Window is computed per-panel via timeFrom: 7d; GraphQL dates interpolate from ${__from}/${__to}.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -2032,13 +2033,14 @@
           "type": "graphql",
           "url": "https://api.github.com/graphql",
           "url_options": {
-            "body_graphql_query": "query { opened: search(query: \"user:jaetill is:issue created:2026-05-30..2026-06-06\", type: ISSUE) { issueCount } closed: search(query: \"user:jaetill is:issue closed:2026-05-30..2026-06-06\", type: ISSUE) { issueCount } merged: search(query: \"user:jaetill is:pr is:merged merged:2026-05-30..2026-06-06\", type: ISSUE) { issueCount } }",
+            "body_graphql_query": "query { opened: search(query: \"user:jaetill is:issue created:${__from:date:YYYY-MM-DD}..${__to:date:YYYY-MM-DD}\", type: ISSUE) { issueCount } closed: search(query: \"user:jaetill is:issue closed:${__from:date:YYYY-MM-DD}..${__to:date:YYYY-MM-DD}\", type: ISSUE) { issueCount } merged: search(query: \"user:jaetill is:pr is:merged merged:${__from:date:YYYY-MM-DD}..${__to:date:YYYY-MM-DD}\", type: ISSUE) { issueCount } }",
             "body_type": "graphql",
             "method": "POST"
           }
         }
       ],
-      "title": "Fleet throughput - 7 days ending 2026-06-06 (snapshot)",
+      "timeFrom": "7d",
+      "title": "Fleet throughput — last 7 days",
       "transformations": [
         {
           "id": "calculateField",
@@ -2081,7 +2083,7 @@
         "type": "yesoreyeram-infinity-datasource",
         "uid": "afo51rbbobke8a"
       },
-      "description": "Fleet-wide flow for 2026-06-05..2026-06-06 (last 24 hours). Opened/Closed = issues; PRs merged = throughput; Net backlog delta = Opened-Closed. Dates fixed at build time.",
+      "description": "Fleet-wide flow for the last 24 hours, relative to page load. Opened/Closed = issues; PRs merged = throughput; Net backlog Δ = Opened−Closed. Window is computed per-panel via timeFrom: 24h; GraphQL dates interpolate from ${__from}/${__to}.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -2150,13 +2152,14 @@
           "type": "graphql",
           "url": "https://api.github.com/graphql",
           "url_options": {
-            "body_graphql_query": "query { opened: search(query: \"user:jaetill is:issue created:2026-06-05..2026-06-06\", type: ISSUE) { issueCount } closed: search(query: \"user:jaetill is:issue closed:2026-06-05..2026-06-06\", type: ISSUE) { issueCount } merged: search(query: \"user:jaetill is:pr is:merged merged:2026-06-05..2026-06-06\", type: ISSUE) { issueCount } }",
+            "body_graphql_query": "query { opened: search(query: \"user:jaetill is:issue created:${__from:date:YYYY-MM-DD}..${__to:date:YYYY-MM-DD}\", type: ISSUE) { issueCount } closed: search(query: \"user:jaetill is:issue closed:${__from:date:YYYY-MM-DD}..${__to:date:YYYY-MM-DD}\", type: ISSUE) { issueCount } merged: search(query: \"user:jaetill is:pr is:merged merged:${__from:date:YYYY-MM-DD}..${__to:date:YYYY-MM-DD}\", type: ISSUE) { issueCount } }",
             "body_type": "graphql",
             "method": "POST"
           }
         }
       ],
-      "title": "Fleet throughput - 24 hours ending 2026-06-06 (snapshot)",
+      "timeFrom": "24h",
+      "title": "Fleet throughput — last 24 hours",
       "transformations": [
         {
           "id": "calculateField",
