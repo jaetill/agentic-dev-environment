@@ -265,7 +265,7 @@
         "type": "yesoreyeram-infinity-datasource",
         "uid": "grafanacloud-infinity"
       },
-      "description": "Conclusion of the `triage` job in the most recent scheduled triage-scan run. The run-level conclusion (in the table to the right) is always `success` because the `window` gate job runs; this stat surfaces whether the actual triage work happened.",
+      "description": "Conclusion of the `triage` job in the most recent scheduled triage-scan run. The run-level conclusion (in the table to the right) is always `success` because the `window` gate job runs; this stat surfaces whether the actual triage work happened. \"outside window\" (gray) is healthy — the cron fired during quiet hours (outside overnight 01-04 CDT / work-hours 09-12 CDT M-F) and the triage job correctly exited. \"failed\" (red) means real breakage.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -285,9 +285,9 @@
                   "text": "failed"
                 },
                 "skipped": {
-                  "color": "red",
+                  "color": "#808080",
                   "index": 1,
-                  "text": "skipped"
+                  "text": "outside window"
                 },
                 "success": {
                   "color": "green",
