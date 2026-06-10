@@ -378,12 +378,22 @@ jobs:
           cap=${AUTONOMOUS_MERGE_CAP:-10}
           for repo in $REPOS; do
             slug="jaetill/${repo}"
-            # Implementer-authored PRs only. `gh pr list --json author` renders
-            # a GitHub App bot's login as `app/<slug>` (NOT `<slug>[bot]`, the
-            # webhook/git form) — verified against meal-planner #64/#65/#68,
-            # all `app/claude`. release-please and human PRs are excluded.
+            # Implementer-authored PRs only. The original `author.login ==
+            # "app/claude"` filter (closed #58) never matched. A subsequent
+            # attempt to filter on commit-author-name (security-review #349)
+            # was rejected as spoofable — `git config user.name` is
+            # free-form and can be set by any committer with write access.
+            # The fleet implementer now creates PRs via the
+            # jaetill-ai-triage-team App installation token (claude-implementer-
+            # reusable.yml manual-dispatch step). `gh pr list --json author`
+            # may render the bot's login as either `app/<slug>` (the form
+            # release-please surfaces today) or `<slug>[bot]` (the comment-actor
+            # form) depending on the gh CLI version's serialization. Match
+            # either with a substring test, gated on `is_bot == true` so a
+            # human PR from a similarly-named user can't slip through.
+            # release-please and human PRs are excluded by this signal.
             prs=$(gh pr list --repo "$slug" --state open --json number,author \
-                    --jq '.[] | select(.author.login == "app/claude") | .number' 2>/dev/null || true)
+                    --jq '.[] | select(.author.is_bot == true and (.author.login | test("jaetill-ai-triage-team"))) | .number' 2>/dev/null || true)
             for pr in $prs; do
               if [[ "$merged" -ge "$cap" ]]; then
                 echo "::notice::Auto-merge per-run cap ($cap) reached — remaining qualifying PRs left for the next window."

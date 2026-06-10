@@ -310,25 +310,37 @@ jobs:
       && inputs.issue_number != ''
     runs-on: ubuntu-latest
     timeout-minutes: 25
-    # Inherit workflow-level perms. NOTE: scope:ci fixes that touch
-    # .github/workflows/* will fail at push time unless IMPLEMENTER_PAT is set
-    # to a token with the `workflow` scope — `workflow` is a TOKEN-level scope
-    # (PAT or App install), NOT a workflow-permissions key. PR #322 tried to
-    # add `workflows: write` here; GitHub's parser rejects it with HTTP 422
-    # ("Unexpected value 'workflows'") and zero jobs are scheduled, killing
-    # every fleet implementer dispatch. See #327 for the 422 message and root
-    # cause. Tracked as follow-up: provision IMPLEMENTER_PAT via the
-    # jaetill-ai-triage-team App (which has install-level workflows perm).
+    # Inherit workflow-level perms. The agent's git push and PR creation
+    # use a freshly-minted jaetill-ai-triage-team App installation token
+    # (see the "Mint implementer App token" step). The App carries
+    # `workflow` write at the install level, so scope:ci pushes succeed.
+    # PRs created with this token are authored by `jaetill-ai-triage-team[bot]` —
+    # a platform-enforced identity the auto-merger filter can trust (replacing
+    # the prior commit-author-name approach that security-review #58/#349
+    # flagged as spoofable). The legacy `IMPLEMENTER_PAT` path created PRs
+    # authored by the PAT's owner (jaetill, a human), which both broke the
+    # filter and required keeping the human-owned secret in rotation.
     permissions:
       contents: write
       pull-requests: write
       issues: write
       id-token: write
     steps:
+      - name: Mint implementer App token
+        id: app-token
+        # Pinned to SHA — this action receives FLEET_APP_PRIVATE_KEY (the
+        # highest-value secret in the fleet) and the minted token carries
+        # `workflow` write across all fleet repos. Tag overwrites on @v1
+        # would silently rotate the action code under our private key
+        # (security-review #351 High).
+        uses: actions/create-github-app-token@af26ac7d9f42c90f16b6c3dae4c9f7c3cf61cb25 # v1.12.1
+        with:
+          app-id: ${{ secrets.FLEET_APP_ID }}
+          private-key: ${{ secrets.FLEET_APP_PRIVATE_KEY }}
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.IMPLEMENTER_PAT || secrets.GITHUB_TOKEN }}
+          token: ${{ steps.app-token.outputs.token }}
       - name: Detect Node project
         id: detect
         run: |
@@ -358,16 +370,16 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          # IMPLEMENTER_PAT carries the `workflow` token-level scope, which
-          # the runtime GITHUB_TOKEN lacks. claude-code-action exports
-          # `github_token` as GH_TOKEN/GITHUB_TOKEN to the Claude subprocess,
-          # so the agent's `git push` of scope:ci changes uses this PAT and
-          # not the App-issued runtime token (which would be rejected with
-          # "refusing to allow a GitHub App to create or update workflow").
-          # Scoped to manual-dispatch only — Mode B / Mode C run on
-          # attacker-influenceable triggers (issue_comment, labels) and must
-          # keep the lower-privilege runtime token (security-review #323).
-          github_token: ${{ secrets.IMPLEMENTER_PAT || secrets.GITHUB_TOKEN }}
+          # Use the freshly-minted jaetill-ai-triage-team App token for all
+          # GitHub operations the agent performs: git push (scope:ci edits
+          # to .github/workflows/* need the install-level `workflow` perm
+          # the App carries), gh CLI calls, and PR creation. PR author will
+          # be `jaetill-ai-triage-team[bot]` — a platform-enforced identity
+          # the auto-merger can filter on without spoofing risk (#58/#349).
+          # Scoped to manual-dispatch only — Mode B (issue_comment) and
+          # Mode C (cleanup-sweep) run on attacker-influenceable triggers
+          # and keep the lower-privilege runtime token per security-review #323.
+          github_token: ${{ steps.app-token.outputs.token }}
           # The fleet promoter (ADR-0020) dispatches this workflow as the
           # GitHub App jaetill-ai-triage-team[bot] — a Bot actor.
           # claude-code-action rejects Bot-initiated runs unless the bot is
