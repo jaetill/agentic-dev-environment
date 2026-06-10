@@ -310,16 +310,20 @@ jobs:
       && inputs.issue_number != ''
     runs-on: ubuntu-latest
     timeout-minutes: 25
-    # Inherit workflow-level perms PLUS workflows:write so scope:ci fixes can
-    # push .github/workflows/* changes. Scoped to this job only — fix-iteration
-    # and cleanup-sweep handle attacker-influenced content (existing PRs, nit
-    # issues) and must NOT have workflows:write (per security-review #323).
+    # Inherit workflow-level perms. NOTE: scope:ci fixes that touch
+    # .github/workflows/* will fail at push time unless IMPLEMENTER_PAT is set
+    # to a token with the `workflow` scope — `workflow` is a TOKEN-level scope
+    # (PAT or App install), NOT a workflow-permissions key. PR #322 tried to
+    # add `workflows: write` here; GitHub's parser rejects it with HTTP 422
+    # ("Unexpected value 'workflows'") and zero jobs are scheduled, killing
+    # every fleet implementer dispatch. See #327 for the 422 message and root
+    # cause. Tracked as follow-up: provision IMPLEMENTER_PAT via the
+    # jaetill-ai-triage-team App (which has install-level workflows perm).
     permissions:
       contents: write
       pull-requests: write
       issues: write
       id-token: write
-      workflows: write
     steps:
       - uses: actions/checkout@v4
         with:
