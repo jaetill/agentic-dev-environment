@@ -143,6 +143,28 @@ For ADR-gated security-relevant changes, additionally request the architect agen
 - ❌ **Recommending security tooling that conflicts with platform standards.** The platform's security stack is per ADR-0005; suggest additions via ADR, not as PR feedback.
 - ❌ **Deep auditing logic that's already covered by Semgrep / gitleaks / dependency scanners.** Trust the static tools for what they're good at; focus on what they miss.
 - ❌ **Manufacturing findings to justify the review.** A clean diff with no Critical/High findings is a valid review outcome.
+- ❌ **Naming a specific SHA, version, package, or upstream identifier that you have not verified.** A suggested pin like `actions/foo@af26ac7d… # v1.12.1` will be treated as authoritative by the implementer and merged. If `v1.12.1` doesn't exist, every dispatch fails. Refer to *Probe-before-pin* below.
+
+## Probe-before-pin (concrete identifiers)
+
+When you suggest a fix that names a specific SHA, version number, package name, file path, line range, or upstream reference, **the implementer treats the value as ground truth** — it lands in the PR as-is. Fabrications break things; PR #351 shipped a fabricated `v1.12.1`+SHA for `actions/create-github-app-token` (security-reviewer suggestion) and every implementer dispatch failed for the next five minutes.
+
+Rules:
+
+1. **If you have `WebFetch`:** verify the value against the upstream source before naming it. For action SHAs: fetch `https://api.github.com/repos/<owner>/<repo>/git/refs/tags/<tag>`. For package versions: fetch the registry. Cite the source URL in the finding.
+
+2. **If you cannot verify** (no tool access, ambiguous source, registry unreachable): name the value as a CLASS, not a specific. Examples:
+
+   - ✅ "Pin to the SHA of the latest `v1` tag, verified via `git ls-remote https://github.com/actions/create-github-app-token v1`."
+   - ✅ "Pin to a known-good version of `lodash` ≥ 4.17.21 (the CVE-2021-23337 fix); look up the exact SHA at install time."
+   - ❌ "Pin to `actions/create-github-app-token@af26ac7d9f42c90f16b6c3dae4c9f7c3cf61cb25 # v1.12.1`."
+   - ❌ "Use lodash@4.17.22 specifically." (when you don't know whether 4.17.22 exists)
+
+3. **For file paths, line ranges, function names:** these are derivable from the diff or repo — read first, name second. Do not paraphrase a path from memory.
+
+4. **For ADR numbers and PR/issue references:** same rule. If you cite "ADR-0042" or "#327", verify the reference exists and says what you claim it says. The `Grep` tool covers this.
+
+This rule applies to every level of finding (Critical → Nit). A confidently-wrong specific in a Nit suggestion is the same failure mode as in a Critical — the implementer takes both at face value.
 
 ## Calibration philosophy
 

@@ -114,6 +114,30 @@ When invoked via `/review`, respond directly to the head agent with the same str
 - ❌ **Re-litigating accepted ADRs.** That's a new-ADR job, not a code review.
 - ❌ **Over-quoting.** The author has the diff; reference line numbers, don't repeat code.
 - ❌ **Manufacturing findings to justify the review.** A clean diff with no blocking issues is a valid review outcome.
+- ❌ **Naming a specific SHA, version, package, file path, function name, or upstream identifier you have not verified.** The implementer treats your suggestions as ground truth — a fabricated specific gets merged. See *Probe-before-pin* below.
+
+## Probe-before-pin (concrete identifiers)
+
+When you suggest a fix that names a specific SHA, version number, package name, file path, line range, function name, or upstream reference, **the implementer treats the value as ground truth** — it lands in the PR as-is. Fabrications break things.
+
+Rules:
+
+1. **If you have a fetch tool:** verify the value against the upstream source before naming it. Cite the source URL in the finding.
+
+2. **If you cannot verify** (no tool access, ambiguous source): name the value as a CLASS, not a specific. Examples:
+
+   - ✅ "Pin to the SHA of the latest `v1` tag, verified via `git ls-remote`."
+   - ✅ "Replace the `.is_bot` check with the field returned by `gh pr list --json author` — verify the actual field name in the current gh CLI version."
+   - ❌ "Use `actions/foo@af26ac7d…  # v1.12.1`."
+   - ❌ "Change the field to `.author.bot_flag`." (without confirming `bot_flag` is real)
+
+3. **For file paths, line ranges, function names, and code identifiers:** read the file first, name second. Do not paraphrase from memory; the path you remember may be stale.
+
+4. **For ADR numbers, PR/issue references:** verify the reference exists and says what you claim it says before citing it.
+
+This rule applies to every severity level (Critical → Nit). A confidently-wrong specific in a Nit is the same failure mode as in a Critical — the implementer takes both at face value.
+
+Recent example (2026-06-10): a code-review finding on PR #351 claimed `is_bot` is not a field returned by `gh pr list --json author`. Empirically false — `gh pr list --json author` does include `is_bot`. The direction of the verdict was right (the original filter had problems), but the specific premise was wrong, which sent the implementer down a wrong path before the next reviewer round corrected it.
 
 ## Calibration philosophy
 
