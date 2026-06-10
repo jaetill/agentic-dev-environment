@@ -96,6 +96,9 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          # terminology-check: deprecated-implementer-pat-ok-here
+          # Mode A initial-iac still uses IMPLEMENTER_PAT pending full ADR-0041
+          # migration to the fleet App token. Tracking in follow-up issue.
           token: ${{ secrets.IMPLEMENTER_PAT || secrets.GITHUB_TOKEN }}
       - uses: opentofu/setup-opentofu@v1
       - name: Configure AWS credentials (read-only iac-drift role)
@@ -210,6 +213,11 @@ jobs:
         with:
           fetch-depth: 0
           ref: ${{ steps.pr.outputs.head_ref }}
+          # terminology-check: deprecated-implementer-pat-ok-here
+          # Mode B fix-iteration still uses IMPLEMENTER_PAT pending full
+          # ADR-0041 migration. Security-review #323 prohibits elevated
+          # scope on attacker-influenceable triggers, so the eventual
+          # migration here is to plain GITHUB_TOKEN (no PAT, no App token).
           token: ${{ secrets.IMPLEMENTER_PAT || secrets.GITHUB_TOKEN }}
       - name: Detect Node project
         id: detect
@@ -317,7 +325,9 @@ jobs:
     # PRs created with this token are authored by `jaetill-ai-triage-team[bot]` —
     # a platform-enforced identity the auto-merger filter can trust (replacing
     # the prior commit-author-name approach that security-review #58/#349
-    # flagged as spoofable). The legacy `IMPLEMENTER_PAT` path created PRs
+    # flagged as spoofable).
+    # terminology-check: deprecated-implementer-pat-ok-here
+    # The legacy `IMPLEMENTER_PAT` path created PRs
     # authored by the PAT's owner (jaetill, a human), which both broke the
     # filter and required keeping the human-owned secret in rotation.
     permissions:
@@ -426,6 +436,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          # terminology-check: deprecated-implementer-pat-ok-here
+          # Mode C cleanup-sweep still uses IMPLEMENTER_PAT pending full
+          # ADR-0041 migration. Same security constraint as Mode B —
+          # attacker-influenceable trigger, eventual migration is to plain
+          # GITHUB_TOKEN.
           token: ${{ secrets.IMPLEMENTER_PAT || secrets.GITHUB_TOKEN }}
       - name: Detect Node project
         id: detect

@@ -105,3 +105,19 @@ jobs:
             exit 1
           fi
           echo "✅ All ADRs have required MADR 4.x sections"
+
+  terminology-check:
+    # terminology-check: deprecated-app-claude-ok-here
+    # terminology-check: deprecated-implementer-pat-ok-here
+    # Enforce that deprecated fleet terms (e.g. `app/claude`, `IMPLEMENTER_PAT`)
+    # don't leak into operational files after they've been retired by ADRs.
+    # Canonical glossary: docs/standards/00-terminology.md.
+    # Script: scripts/terminology-check.sh.
+    # Designed for the recurring failure mode in which a term is retired in
+    # an ADR but six places downstream keep referencing the old value, and
+    # the inconsistency only surfaces weeks later when something breaks.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check terminology
+        run: bash scripts/terminology-check.sh

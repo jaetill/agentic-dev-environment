@@ -378,6 +378,7 @@ jobs:
           cap=${AUTONOMOUS_MERGE_CAP:-10}
           for repo in $REPOS; do
             slug="jaetill/${repo}"
+            # terminology-check: deprecated-app-claude-ok-here
             # Implementer-authored PRs only. The original `author.login ==
             # "app/claude"` filter (closed #58) never matched. A subsequent
             # attempt to filter on commit-author-name (security-review #349)
