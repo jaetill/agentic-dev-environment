@@ -1,0 +1,23 @@
+name: release-captain
+# Thin caller — ADR-0018 / ADR-0010 §7. Logic lives once in the platform repo:
+#   {{github_username}}/agentic-dev-environment/.github/workflows/claude-release-captain-reusable.yml
+# Do NOT inline logic here. To change release-captain behaviour, edit the reusable.
+#
+# Triggers on release-please PRs targeting main (head branch starts with
+# release-please--). The agent reviews the changelog, optionally drafts narrative
+# for major/feature releases, and enables auto-merge when checks are green.
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  id-token: write
+
+jobs:
+  release-captain:
+    if: startsWith(github.head_ref, 'release-please--')
+    uses: {{github_username}}/agentic-dev-environment/.github/workflows/claude-release-captain-reusable.yml@main
+    secrets: inherit
