@@ -358,6 +358,16 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # IMPLEMENTER_PAT carries the `workflow` token-level scope, which
+          # the runtime GITHUB_TOKEN lacks. claude-code-action exports
+          # `github_token` as GH_TOKEN/GITHUB_TOKEN to the Claude subprocess,
+          # so the agent's `git push` of scope:ci changes uses this PAT and
+          # not the App-issued runtime token (which would be rejected with
+          # "refusing to allow a GitHub App to create or update workflow").
+          # Scoped to manual-dispatch only — Mode B / Mode C run on
+          # attacker-influenceable triggers (issue_comment, labels) and must
+          # keep the lower-privilege runtime token (security-review #323).
+          github_token: ${{ secrets.IMPLEMENTER_PAT || secrets.GITHUB_TOKEN }}
           # The fleet promoter (ADR-0020) dispatches this workflow as the
           # GitHub App jaetill-ai-triage-team[bot] — a Bot actor.
           # claude-code-action rejects Bot-initiated runs unless the bot is
