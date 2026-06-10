@@ -465,13 +465,22 @@ jobs:
                 fi
                 echo "  $slug#$pr — iac-additive-guard passed (ADR-0035)"
               fi
-              # ADR-0021 cond. 2 — the REQUIRED checks are green. Two-part gate:
+              # ADR-0021 cond. 2 — the REQUIRED checks are green. Three-part gate:
               #
               # (a) Non-empty guard: a repo with CI disabled (zero checks) must
               #     not slip through vacuously. `gh pr checks` emits bucket rows
               #     regardless of exit code; an empty result = no checks = hold.
               #
-              # (b) Green-ness is decided by GitHub's mergeStateStatus, NOT by
+              # (b) Hard-gate guard: security-review and code-review must be
+              #     explicitly present and passing — not skipping, not absent
+              #     (#61, ADR-0021). mergeStateStatus alone is not sufficient:
+              #     GitHub treats a skipped check as non-blocking, so a
+              #     misconfigured or absent claude-pr-review.yml (jobs surface as
+              #     `skipping` rather than `fail`) still yields CLEAN. This guard
+              #     closes that bypass by requiring an explicit `pass` bucket for
+              #     each hard gate regardless of the repo's required-check config.
+              #
+              # (c) Green-ness is decided by GitHub's mergeStateStatus, NOT by
               #     re-deriving it from every check bucket (#273). The old "all
               #     buckets must be pass/skipping" test held a fully-green PR
               #     whenever ANY non-required status hung — observed: Vercel's
@@ -479,22 +488,29 @@ jobs:
               #     ai-teacher#173 left review+tests green but the PR UNSTABLE
               #     forever, with no hold:* label (an invisible resting state —
               #     exactly what ADR-0044 retired). mergeStateStatus uses the
-              #     repo's OWN required-check configuration (which includes
-              #     review/code-review + review/security-review) as the source
-              #     of truth:
+              #     repo's OWN required-check configuration as the source of truth:
               #       CLEAN    — required all green, no required review outstanding → merge
               #       UNSTABLE — required all green; only a NON-required check is
               #                  failing/pending (the Vercel case)            → merge
               #       BLOCKED  — a required check failing/pending, OR a required
               #                  CODEOWNERS review outstanding                 → hold
               #       other    — BEHIND / DIRTY / DRAFT / UNKNOWN              → hold
-              #     Because the security battery is in the required set, CLEAN|
-              #     UNSTABLE still guarantees code-review + security-review passed.
-              buckets=$(gh pr checks "$pr" --repo "$slug" --json bucket --jq '.[].bucket' 2>/dev/null || true)
+              pr_checks=$(gh pr checks "$pr" --repo "$slug" --json name,bucket 2>/dev/null || echo '[]')
+              buckets=$(echo "$pr_checks" | jq -r '.[].bucket' 2>/dev/null || true)
               if [[ -z "$buckets" ]]; then
                 echo "  $slug#$pr — no checks reported; hold (gate requires a green CI battery)"
                 held=$((held+1)); continue
               fi
+              for gate in security-review code-review; do
+                gate_bucket=$(echo "$pr_checks" | jq -r --arg g "$gate" \
+                  '[.[] | select(.name | test($g))] | if length > 0 then .[0].bucket else "absent" end' \
+                  2>/dev/null || echo "absent")
+                if [[ "$gate_bucket" != "pass" ]]; then
+                  gh pr edit "$pr" --repo "$slug" --add-label "hold:review-gate" >/dev/null 2>&1 || true
+                  echo "  $slug#$pr — $gate not passing (bucket: $gate_bucket); hold:review-gate (#61)"
+                  held=$((held+1)); continue 2
+                fi
+              done
               mss=$(echo "$meta" | jq -r '.mergeStateStatus // "UNKNOWN"')
               case "$mss" in
                 CLEAN|UNSTABLE) ;;  # required checks green → eligible to merge
