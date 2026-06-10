@@ -154,8 +154,8 @@ flowchart TD
         MGIAC -->|"yes — merge == apply on dev"| IACGUARD{"iac-additive-guard check pass?<br/>tofu plan: no destroy/replace ·<br/>≤5 resources · no exposure"}
         IACGUARD -->|"no / absent — unverified"| HIAC["Hold for human merge ·<br/>destroy/replace/exposure or no guard"]
         IACGUARD -->|yes| MGGUARD
-        MGIAC -->|no| MGGUARD{"additive-self-change-guard · ADR-0032<br/>touches an agent definition?"}
-        MGGUARD -->|"out-of-lane agent edit"| HSELF["Hold for human ratification ·<br/>self-change firewall (ADR-0019/0023)"]
+        MGIAC -->|no| MGGUARD{"additive-self-change-guard · ADR-0023/0032<br/>compositional-path or agent definition?"}
+        MGGUARD -->|"out-of-lane: compositional-path or agent edit"| HSELF["Hold for human ratification ·<br/>self-change firewall (ADR-0019/0023)"]
         MGGUARD -->|"in-lane additive · or not a self-change"| MG4{"All required checks green?"}
         MG4 -->|"no · or none reported"| HCHK["Hold — needs green battery"]
         MG4 -->|yes| MG5{"Within per-run cap = 10?"}
