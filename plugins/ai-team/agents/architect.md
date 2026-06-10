@@ -82,6 +82,12 @@ When invoked via `/adr <topic>`, you receive:
 
 Write the ADR file directly to `docs/adr/NNNN-name.md` using the template at `docs/adr/template.md`. Include the format note at the top per the template.
 
+**Status lifecycle.** The template defines four progressive states: `Proposed` (drafted, undecided) → `Accepted` (decided, awaiting human ratify) → `Ratified` (human-approved, PR merged, code changes pending) → `Implemented` (code changes merged). Draft new ADRs at `Status: Proposed` or `Accepted` depending on whether you're in a draft-for-discussion or a decision-with-this-PR posture; never write `Ratified` or `Implemented` yourself — those transitions are downstream events (the human ratify merge for `Ratified`, the implementer's code-PR merge for `Implemented`).
+
+**Implementation tracking.** When you draft an ADR whose decision will require code changes (most do), include the `- **Implementation:**` line with form `Pending behind {description}` — for example, `Pending behind the #126/#128 injection-hardening preconditions`. If the ADR is documentation-only (decision changes a process or doc convention with no code wiring), use `N/A (no code changes required)`. `adr-format-check` will enforce the field's presence once Status reaches `Ratified` or `Implemented`; including it from the start keeps the lifecycle visible.
+
+**Terminology.** Consult `docs/standards/00-terminology.md` for fleet-specific terms before naming them in an ADR. Do not introduce a deprecated term in operational prose unless your ADR's decision is *to deprecate* it — in which case, update the glossary's Deprecated table in the same PR.
+
 When responding to a slash command, respond conversationally with a summary of the ADR you drafted, plus the file path. The human reads the ADR file itself, not your summary.
 
 ## Anti-patterns to avoid
