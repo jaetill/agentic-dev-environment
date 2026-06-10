@@ -371,7 +371,7 @@ jobs:
           # security) and ADR-gated changes are still held by the label checks
           # below. genealogy still has no implementer loop.
           REPOS="game-night-pwa meal-planner ai-teacher jaetill-portal splendor draft carto agentic-dev-environment"
-          merged=0 ; held=0
+          merged=0 ; held=0 ; evaluated=0
           # Per-run blast-radius cap (security-review): a malfunctioning or
           # adversarially-prompted implementer cannot land more than this many
           # merges in one window — the rest wait for the next cron or a human.
@@ -394,6 +394,12 @@ jobs:
             # through (#355). `is_bot == true` still gates out human accounts.
             prs=$(gh pr list --repo "$slug" --state open --json number,author \
                     --jq '.[] | select(.author.is_bot == true and (.author.login | test("^(app/)?jaetill-ai-triage-team(\\[bot\\])?$"))) | .number' 2>/dev/null || true)
+            # Count what the filter matched so we can detect silent zero-everywhere
+            # (the failure mode that hid #58 fleet-wide for weeks: filter returns
+            # nothing across every repo, sweep reports "0 merged" with no error,
+            # auto-merge feature appears off when it's actually broken).
+            repo_prs_count=$(printf '%s\n' "$prs" | grep -c '^[0-9]' || true)
+            evaluated=$((evaluated + repo_prs_count))
             for pr in $prs; do
               if [[ "$merged" -ge "$cap" ]]; then
                 echo "::notice::Auto-merge per-run cap ($cap) reached — remaining qualifying PRs left for the next window."
@@ -597,8 +603,18 @@ jobs:
               fi
             done
           done
-          echo "## Auto-merge — $merged merged, $held held" >> "$GITHUB_STEP_SUMMARY"
-          echo "Auto-merge sweep complete: $merged merged, $held held."
+          echo "## Auto-merge — $evaluated evaluated, $merged merged, $held held" >> "$GITHUB_STEP_SUMMARY"
+          echo "Auto-merge sweep complete: $evaluated evaluated, $merged merged, $held held."
+          # Loud-on-empty: if the filter matched ZERO PRs across the entire
+          # fleet, that is suspicious. Either the queue is genuinely empty
+          # (legitimate) or the author filter is broken (silent failure mode
+          # that hid #58 for weeks). Emit a warning so the next reader sees
+          # it — does NOT fail the run, the queue might really be empty.
+          if [[ "$evaluated" -eq 0 ]]; then
+            echo "::warning::Auto-merge sweep matched 0 PRs across the entire fleet ($REPOS). If you expected open implementer PRs to be evaluated, the filter at triage-scan.yml may not match the current PR-author format. Diagnose with:  gh pr list --repo jaetill/<repo> --state open --json number,author"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "⚠️ **0 PRs evaluated fleet-wide.** Either the queue is genuinely empty (fine) or the auto-merger filter has drifted from reality (broken). The filter currently matches \`author.is_bot == true and (author.login | test(\"^(app/)?jaetill-ai-triage-team(\\[bot\\])?$\"))\`. Verify against \`gh pr list --repo jaetill/<repo> --state open --json number,author\`." >> "$GITHUB_STEP_SUMMARY"
+          fi
 
   # ── ADR-0030: deterministic, project-scoped event dispatch ──────────────
   # Trusted-origin signals (severity:critical / source:sentry / source:cloudwatch
