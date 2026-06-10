@@ -90,6 +90,7 @@
           "repository": "agentic-dev-environment"
         }
       ],
+      "hideTimeOverride": true,
       "timeFrom": "5y",
       "title": "High/critical (platform)",
       "type": "stat"
@@ -353,7 +354,7 @@
         "y": 84
       },
       "panels": [],
-      "title": "Issue flow by project — Total / Waiting on Jason / Promotion queue / In flight (ADR-0043-era states)",
+      "title": "Outstanding issues by state, per project",
       "type": "row"
     },
     {
@@ -361,7 +362,7 @@
         "type": "yesoreyeram-infinity-datasource",
         "uid": "afo51rbbobke8a"
       },
-      "description": "ONE GraphQL call per panel (4 aliased searches - 8 calls/refresh fleet-wide vs the REST search API's 30/min budget that previously starved the row). State bars are direct positive queries mirroring the stat rows; Unaccounted = Total - sum = issues no state represents (untriaged/no-label etc.). Nonzero Unaccounted is the pain-point signal; negative means states overlap. Never widen a state bar to shrink it.",
+      "description": "Outstanding open-issue counts for this repo in each ADR-0043 state bucket. ONE GraphQL call per panel (multiple aliased searches - 8 calls/refresh fleet-wide vs the REST search API's 30/min budget that previously starved the row). Each bar is a direct positive query; the same issue can appear in multiple buckets if it carries labels matching more than one — these panels are state breakdown, not partition.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -372,8 +373,7 @@
             "fillOpacity": 80,
             "lineWidth": 1
           },
-          "decimals": 0,
-          "min": 0
+          "decimals": 0
         },
         "overrides": []
       },
@@ -448,75 +448,19 @@
           }
         }
       ],
+      "hideTimeOverride": true,
       "timeFrom": "5y",
       "title": "agentic-dev-environment",
       "transformations": [
         {
-          "id": "calculateField",
-          "options": {
-            "alias": "_t1",
-            "binary": {
-              "left": "Total",
-              "operator": "-",
-              "right": "Waiting on Jason"
-            },
-            "mode": "binary",
-            "replaceFields": false
-          }
-        },
-        {
-          "id": "calculateField",
-          "options": {
-            "alias": "_t2",
-            "binary": {
-              "left": "_t1",
-              "operator": "-",
-              "right": "Promotion queue"
-            },
-            "mode": "binary",
-            "replaceFields": false
-          }
-        },
-        {
-          "id": "calculateField",
-          "options": {
-            "alias": "_t3",
-            "binary": {
-              "left": "_t2",
-              "operator": "-",
-              "right": "In flight"
-            },
-            "mode": "binary",
-            "replaceFields": false
-          }
-        },
-        {
-          "id": "calculateField",
-          "options": {
-            "alias": "Unaccounted",
-            "binary": {
-              "left": "_t3",
-              "operator": "-",
-              "right": "Deferred low/nit"
-            },
-            "mode": "binary",
-            "replaceFields": false
-          }
-        },
-        {
           "id": "organize",
           "options": {
-            "excludeByName": {
-              "_t1": true,
-              "_t2": true,
-              "_t3": true
-            },
+            "excludeByName": {},
             "indexByName": {
               "Deferred low/nit": 4,
               "In flight": 3,
               "Promotion queue": 2,
               "Total": 0,
-              "Unaccounted": 5,
               "Waiting on Jason": 1
             },
             "renameByName": {}
@@ -537,7 +481,7 @@
         "type": "yesoreyeram-infinity-datasource",
         "uid": "afo51rbbobke8a"
       },
-      "description": "ONE GraphQL call per panel (4 aliased searches - 8 calls/refresh fleet-wide vs the REST search API's 30/min budget that previously starved the row). State bars are direct positive queries mirroring the stat rows; Unaccounted = Total - sum = issues no state represents (untriaged/no-label etc.). Nonzero Unaccounted is the pain-point signal; negative means states overlap. Never widen a state bar to shrink it.",
+      "description": "Outstanding open-issue counts for this repo in each ADR-0043 state bucket. ONE GraphQL call per panel (multiple aliased searches - 8 calls/refresh fleet-wide vs the REST search API's 30/min budget that previously starved the row). Each bar is a direct positive query; the same issue can appear in multiple buckets if it carries labels matching more than one — these panels are state breakdown, not partition.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -548,8 +492,7 @@
             "fillOpacity": 80,
             "lineWidth": 1
           },
-          "decimals": 0,
-          "min": 0
+          "decimals": 0
         },
         "overrides": []
       },
@@ -624,75 +567,19 @@
           }
         }
       ],
+      "hideTimeOverride": true,
       "timeFrom": "5y",
       "title": "game-night-pwa",
       "transformations": [
         {
-          "id": "calculateField",
-          "options": {
-            "alias": "_t1",
-            "binary": {
-              "left": "Total",
-              "operator": "-",
-              "right": "Waiting on Jason"
-            },
-            "mode": "binary",
-            "replaceFields": false
-          }
-        },
-        {
-          "id": "calculateField",
-          "options": {
-            "alias": "_t2",
-            "binary": {
-              "left": "_t1",
-              "operator": "-",
-              "right": "Promotion queue"
-            },
-            "mode": "binary",
-            "replaceFields": false
-          }
-        },
-        {
-          "id": "calculateField",
-          "options": {
-            "alias": "_t3",
-            "binary": {
-              "left": "_t2",
-              "operator": "-",
-              "right": "In flight"
-            },
-            "mode": "binary",
-            "replaceFields": false
-          }
-        },
-        {
-          "id": "calculateField",
-          "options": {
-            "alias": "Unaccounted",
-            "binary": {
-              "left": "_t3",
-              "operator": "-",
-              "right": "Deferred low/nit"
-            },
-            "mode": "binary",
-            "replaceFields": false
-          }
-        },
-        {
           "id": "organize",
           "options": {
-            "excludeByName": {
-              "_t1": true,
-              "_t2": true,
-              "_t3": true
-            },
+            "excludeByName": {},
             "indexByName": {
               "Deferred low/nit": 4,
               "In flight": 3,
               "Promotion queue": 2,
               "Total": 0,
-              "Unaccounted": 5,
               "Waiting on Jason": 1
             },
             "renameByName": {}
@@ -713,7 +600,7 @@
         "type": "yesoreyeram-infinity-datasource",
         "uid": "afo51rbbobke8a"
       },
-      "description": "ONE GraphQL call per panel (4 aliased searches - 8 calls/refresh fleet-wide vs the REST search API's 30/min budget that previously starved the row). State bars are direct positive queries mirroring the stat rows; Unaccounted = Total - sum = issues no state represents (untriaged/no-label etc.). Nonzero Unaccounted is the pain-point signal; negative means states overlap. Never widen a state bar to shrink it.",
+      "description": "Outstanding open-issue counts for this repo in each ADR-0043 state bucket. ONE GraphQL call per panel (multiple aliased searches - 8 calls/refresh fleet-wide vs the REST search API's 30/min budget that previously starved the row). Each bar is a direct positive query; the same issue can appear in multiple buckets if it carries labels matching more than one — these panels are state breakdown, not partition.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -724,8 +611,7 @@
             "fillOpacity": 80,
             "lineWidth": 1
           },
-          "decimals": 0,
-          "min": 0
+          "decimals": 0
         },
         "overrides": []
       },
@@ -800,75 +686,19 @@
           }
         }
       ],
+      "hideTimeOverride": true,
       "timeFrom": "5y",
       "title": "meal-planner",
       "transformations": [
         {
-          "id": "calculateField",
-          "options": {
-            "alias": "_t1",
-            "binary": {
-              "left": "Total",
-              "operator": "-",
-              "right": "Waiting on Jason"
-            },
-            "mode": "binary",
-            "replaceFields": false
-          }
-        },
-        {
-          "id": "calculateField",
-          "options": {
-            "alias": "_t2",
-            "binary": {
-              "left": "_t1",
-              "operator": "-",
-              "right": "Promotion queue"
-            },
-            "mode": "binary",
-            "replaceFields": false
-          }
-        },
-        {
-          "id": "calculateField",
-          "options": {
-            "alias": "_t3",
-            "binary": {
-              "left": "_t2",
-              "operator": "-",
-              "right": "In flight"
-            },
-            "mode": "binary",
-            "replaceFields": false
-          }
-        },
-        {
-          "id": "calculateField",
-          "options": {
-            "alias": "Unaccounted",
-            "binary": {
-              "left": "_t3",
-              "operator": "-",
-              "right": "Deferred low/nit"
-            },
-            "mode": "binary",
-            "replaceFields": false
-          }
-        },
-        {
           "id": "organize",
           "options": {
-            "excludeByName": {
-              "_t1": true,
-              "_t2": true,
-              "_t3": true
-            },
+            "excludeByName": {},
             "indexByName": {
               "Deferred low/nit": 4,
               "In flight": 3,
               "Promotion queue": 2,
               "Total": 0,
-              "Unaccounted": 5,
               "Waiting on Jason": 1
             },
             "renameByName": {}
@@ -889,7 +719,7 @@
         "type": "yesoreyeram-infinity-datasource",
         "uid": "afo51rbbobke8a"
       },
-      "description": "ONE GraphQL call per panel (4 aliased searches - 8 calls/refresh fleet-wide vs the REST search API's 30/min budget that previously starved the row). State bars are direct positive queries mirroring the stat rows; Unaccounted = Total - sum = issues no state represents (untriaged/no-label etc.). Nonzero Unaccounted is the pain-point signal; negative means states overlap. Never widen a state bar to shrink it.",
+      "description": "Outstanding open-issue counts for this repo in each ADR-0043 state bucket. ONE GraphQL call per panel (multiple aliased searches - 8 calls/refresh fleet-wide vs the REST search API's 30/min budget that previously starved the row). Each bar is a direct positive query; the same issue can appear in multiple buckets if it carries labels matching more than one — these panels are state breakdown, not partition.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -900,8 +730,7 @@
             "fillOpacity": 80,
             "lineWidth": 1
           },
-          "decimals": 0,
-          "min": 0
+          "decimals": 0
         },
         "overrides": []
       },
@@ -976,75 +805,19 @@
           }
         }
       ],
+      "hideTimeOverride": true,
       "timeFrom": "5y",
       "title": "ai-teacher",
       "transformations": [
         {
-          "id": "calculateField",
-          "options": {
-            "alias": "_t1",
-            "binary": {
-              "left": "Total",
-              "operator": "-",
-              "right": "Waiting on Jason"
-            },
-            "mode": "binary",
-            "replaceFields": false
-          }
-        },
-        {
-          "id": "calculateField",
-          "options": {
-            "alias": "_t2",
-            "binary": {
-              "left": "_t1",
-              "operator": "-",
-              "right": "Promotion queue"
-            },
-            "mode": "binary",
-            "replaceFields": false
-          }
-        },
-        {
-          "id": "calculateField",
-          "options": {
-            "alias": "_t3",
-            "binary": {
-              "left": "_t2",
-              "operator": "-",
-              "right": "In flight"
-            },
-            "mode": "binary",
-            "replaceFields": false
-          }
-        },
-        {
-          "id": "calculateField",
-          "options": {
-            "alias": "Unaccounted",
-            "binary": {
-              "left": "_t3",
-              "operator": "-",
-              "right": "Deferred low/nit"
-            },
-            "mode": "binary",
-            "replaceFields": false
-          }
-        },
-        {
           "id": "organize",
           "options": {
-            "excludeByName": {
-              "_t1": true,
-              "_t2": true,
-              "_t3": true
-            },
+            "excludeByName": {},
             "indexByName": {
               "Deferred low/nit": 4,
               "In flight": 3,
               "Promotion queue": 2,
               "Total": 0,
-              "Unaccounted": 5,
               "Waiting on Jason": 1
             },
             "renameByName": {}
@@ -1065,7 +838,7 @@
         "type": "yesoreyeram-infinity-datasource",
         "uid": "afo51rbbobke8a"
       },
-      "description": "ONE GraphQL call per panel (4 aliased searches - 8 calls/refresh fleet-wide vs the REST search API's 30/min budget that previously starved the row). State bars are direct positive queries mirroring the stat rows; Unaccounted = Total - sum = issues no state represents (untriaged/no-label etc.). Nonzero Unaccounted is the pain-point signal; negative means states overlap. Never widen a state bar to shrink it.",
+      "description": "Outstanding open-issue counts for this repo in each ADR-0043 state bucket. ONE GraphQL call per panel (multiple aliased searches - 8 calls/refresh fleet-wide vs the REST search API's 30/min budget that previously starved the row). Each bar is a direct positive query; the same issue can appear in multiple buckets if it carries labels matching more than one — these panels are state breakdown, not partition.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1076,8 +849,7 @@
             "fillOpacity": 80,
             "lineWidth": 1
           },
-          "decimals": 0,
-          "min": 0
+          "decimals": 0
         },
         "overrides": []
       },
@@ -1152,75 +924,19 @@
           }
         }
       ],
+      "hideTimeOverride": true,
       "timeFrom": "5y",
       "title": "jaetill-portal",
       "transformations": [
         {
-          "id": "calculateField",
-          "options": {
-            "alias": "_t1",
-            "binary": {
-              "left": "Total",
-              "operator": "-",
-              "right": "Waiting on Jason"
-            },
-            "mode": "binary",
-            "replaceFields": false
-          }
-        },
-        {
-          "id": "calculateField",
-          "options": {
-            "alias": "_t2",
-            "binary": {
-              "left": "_t1",
-              "operator": "-",
-              "right": "Promotion queue"
-            },
-            "mode": "binary",
-            "replaceFields": false
-          }
-        },
-        {
-          "id": "calculateField",
-          "options": {
-            "alias": "_t3",
-            "binary": {
-              "left": "_t2",
-              "operator": "-",
-              "right": "In flight"
-            },
-            "mode": "binary",
-            "replaceFields": false
-          }
-        },
-        {
-          "id": "calculateField",
-          "options": {
-            "alias": "Unaccounted",
-            "binary": {
-              "left": "_t3",
-              "operator": "-",
-              "right": "Deferred low/nit"
-            },
-            "mode": "binary",
-            "replaceFields": false
-          }
-        },
-        {
           "id": "organize",
           "options": {
-            "excludeByName": {
-              "_t1": true,
-              "_t2": true,
-              "_t3": true
-            },
+            "excludeByName": {},
             "indexByName": {
               "Deferred low/nit": 4,
               "In flight": 3,
               "Promotion queue": 2,
               "Total": 0,
-              "Unaccounted": 5,
               "Waiting on Jason": 1
             },
             "renameByName": {}
@@ -1241,7 +957,7 @@
         "type": "yesoreyeram-infinity-datasource",
         "uid": "afo51rbbobke8a"
       },
-      "description": "ONE GraphQL call per panel (4 aliased searches - 8 calls/refresh fleet-wide vs the REST search API's 30/min budget that previously starved the row). State bars are direct positive queries mirroring the stat rows; Unaccounted = Total - sum = issues no state represents (untriaged/no-label etc.). Nonzero Unaccounted is the pain-point signal; negative means states overlap. Never widen a state bar to shrink it.",
+      "description": "Outstanding open-issue counts for this repo in each ADR-0043 state bucket. ONE GraphQL call per panel (multiple aliased searches - 8 calls/refresh fleet-wide vs the REST search API's 30/min budget that previously starved the row). Each bar is a direct positive query; the same issue can appear in multiple buckets if it carries labels matching more than one — these panels are state breakdown, not partition.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1252,8 +968,7 @@
             "fillOpacity": 80,
             "lineWidth": 1
           },
-          "decimals": 0,
-          "min": 0
+          "decimals": 0
         },
         "overrides": []
       },
@@ -1328,75 +1043,19 @@
           }
         }
       ],
+      "hideTimeOverride": true,
       "timeFrom": "5y",
       "title": "splendor",
       "transformations": [
         {
-          "id": "calculateField",
-          "options": {
-            "alias": "_t1",
-            "binary": {
-              "left": "Total",
-              "operator": "-",
-              "right": "Waiting on Jason"
-            },
-            "mode": "binary",
-            "replaceFields": false
-          }
-        },
-        {
-          "id": "calculateField",
-          "options": {
-            "alias": "_t2",
-            "binary": {
-              "left": "_t1",
-              "operator": "-",
-              "right": "Promotion queue"
-            },
-            "mode": "binary",
-            "replaceFields": false
-          }
-        },
-        {
-          "id": "calculateField",
-          "options": {
-            "alias": "_t3",
-            "binary": {
-              "left": "_t2",
-              "operator": "-",
-              "right": "In flight"
-            },
-            "mode": "binary",
-            "replaceFields": false
-          }
-        },
-        {
-          "id": "calculateField",
-          "options": {
-            "alias": "Unaccounted",
-            "binary": {
-              "left": "_t3",
-              "operator": "-",
-              "right": "Deferred low/nit"
-            },
-            "mode": "binary",
-            "replaceFields": false
-          }
-        },
-        {
           "id": "organize",
           "options": {
-            "excludeByName": {
-              "_t1": true,
-              "_t2": true,
-              "_t3": true
-            },
+            "excludeByName": {},
             "indexByName": {
               "Deferred low/nit": 4,
               "In flight": 3,
               "Promotion queue": 2,
               "Total": 0,
-              "Unaccounted": 5,
               "Waiting on Jason": 1
             },
             "renameByName": {}
@@ -1417,7 +1076,7 @@
         "type": "yesoreyeram-infinity-datasource",
         "uid": "afo51rbbobke8a"
       },
-      "description": "ONE GraphQL call per panel (4 aliased searches - 8 calls/refresh fleet-wide vs the REST search API's 30/min budget that previously starved the row). State bars are direct positive queries mirroring the stat rows; Unaccounted = Total - sum = issues no state represents (untriaged/no-label etc.). Nonzero Unaccounted is the pain-point signal; negative means states overlap. Never widen a state bar to shrink it.",
+      "description": "Outstanding open-issue counts for this repo in each ADR-0043 state bucket. ONE GraphQL call per panel (multiple aliased searches - 8 calls/refresh fleet-wide vs the REST search API's 30/min budget that previously starved the row). Each bar is a direct positive query; the same issue can appear in multiple buckets if it carries labels matching more than one — these panels are state breakdown, not partition.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1428,8 +1087,7 @@
             "fillOpacity": 80,
             "lineWidth": 1
           },
-          "decimals": 0,
-          "min": 0
+          "decimals": 0
         },
         "overrides": []
       },
@@ -1504,75 +1162,19 @@
           }
         }
       ],
+      "hideTimeOverride": true,
       "timeFrom": "5y",
       "title": "draft",
       "transformations": [
         {
-          "id": "calculateField",
-          "options": {
-            "alias": "_t1",
-            "binary": {
-              "left": "Total",
-              "operator": "-",
-              "right": "Waiting on Jason"
-            },
-            "mode": "binary",
-            "replaceFields": false
-          }
-        },
-        {
-          "id": "calculateField",
-          "options": {
-            "alias": "_t2",
-            "binary": {
-              "left": "_t1",
-              "operator": "-",
-              "right": "Promotion queue"
-            },
-            "mode": "binary",
-            "replaceFields": false
-          }
-        },
-        {
-          "id": "calculateField",
-          "options": {
-            "alias": "_t3",
-            "binary": {
-              "left": "_t2",
-              "operator": "-",
-              "right": "In flight"
-            },
-            "mode": "binary",
-            "replaceFields": false
-          }
-        },
-        {
-          "id": "calculateField",
-          "options": {
-            "alias": "Unaccounted",
-            "binary": {
-              "left": "_t3",
-              "operator": "-",
-              "right": "Deferred low/nit"
-            },
-            "mode": "binary",
-            "replaceFields": false
-          }
-        },
-        {
           "id": "organize",
           "options": {
-            "excludeByName": {
-              "_t1": true,
-              "_t2": true,
-              "_t3": true
-            },
+            "excludeByName": {},
             "indexByName": {
               "Deferred low/nit": 4,
               "In flight": 3,
               "Promotion queue": 2,
               "Total": 0,
-              "Unaccounted": 5,
               "Waiting on Jason": 1
             },
             "renameByName": {}
@@ -1593,7 +1195,7 @@
         "type": "yesoreyeram-infinity-datasource",
         "uid": "afo51rbbobke8a"
       },
-      "description": "ONE GraphQL call per panel (4 aliased searches - 8 calls/refresh fleet-wide vs the REST search API's 30/min budget that previously starved the row). State bars are direct positive queries mirroring the stat rows; Unaccounted = Total - sum = issues no state represents (untriaged/no-label etc.). Nonzero Unaccounted is the pain-point signal; negative means states overlap. Never widen a state bar to shrink it.",
+      "description": "Outstanding open-issue counts for this repo in each ADR-0043 state bucket. ONE GraphQL call per panel (multiple aliased searches - 8 calls/refresh fleet-wide vs the REST search API's 30/min budget that previously starved the row). Each bar is a direct positive query; the same issue can appear in multiple buckets if it carries labels matching more than one — these panels are state breakdown, not partition.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1604,8 +1206,7 @@
             "fillOpacity": 80,
             "lineWidth": 1
           },
-          "decimals": 0,
-          "min": 0
+          "decimals": 0
         },
         "overrides": []
       },
@@ -1680,75 +1281,19 @@
           }
         }
       ],
+      "hideTimeOverride": true,
       "timeFrom": "5y",
       "title": "carto",
       "transformations": [
         {
-          "id": "calculateField",
-          "options": {
-            "alias": "_t1",
-            "binary": {
-              "left": "Total",
-              "operator": "-",
-              "right": "Waiting on Jason"
-            },
-            "mode": "binary",
-            "replaceFields": false
-          }
-        },
-        {
-          "id": "calculateField",
-          "options": {
-            "alias": "_t2",
-            "binary": {
-              "left": "_t1",
-              "operator": "-",
-              "right": "Promotion queue"
-            },
-            "mode": "binary",
-            "replaceFields": false
-          }
-        },
-        {
-          "id": "calculateField",
-          "options": {
-            "alias": "_t3",
-            "binary": {
-              "left": "_t2",
-              "operator": "-",
-              "right": "In flight"
-            },
-            "mode": "binary",
-            "replaceFields": false
-          }
-        },
-        {
-          "id": "calculateField",
-          "options": {
-            "alias": "Unaccounted",
-            "binary": {
-              "left": "_t3",
-              "operator": "-",
-              "right": "Deferred low/nit"
-            },
-            "mode": "binary",
-            "replaceFields": false
-          }
-        },
-        {
           "id": "organize",
           "options": {
-            "excludeByName": {
-              "_t1": true,
-              "_t2": true,
-              "_t3": true
-            },
+            "excludeByName": {},
             "indexByName": {
               "Deferred low/nit": 4,
               "In flight": 3,
               "Promotion queue": 2,
               "Total": 0,
-              "Unaccounted": 5,
               "Waiting on Jason": 1
             },
             "renameByName": {}
