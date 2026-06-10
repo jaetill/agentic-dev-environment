@@ -28,12 +28,12 @@ set -uo pipefail
 TITLE="${ISSUE_TITLE:-}"
 BODY="${ISSUE_BODY:-}"
 
-# strip_line_number <raw> — strips a trailing :<digits> suffix (line number).
-# A path like "src/auth/session.js:42" becomes "src/auth/session.js".
+# strip_line_number <raw> — strips a trailing :<line> or :<line>-<line> suffix.
+# Handles :N (single), :N-M (hyphen range), :N–M (en-dash), :N—M (em-dash).
 # A directory like "src/auth/" is returned unchanged.
 strip_line_number() {
   local raw="$1"
-  if [[ "$raw" =~ ^(.+):[0-9]+$ ]]; then
+  if [[ "$raw" =~ ^(.+):[0-9]+[-–—]?[0-9]*$ ]]; then
     printf '%s' "${BASH_REMATCH[1]}"
   else
     printf '%s' "$raw"

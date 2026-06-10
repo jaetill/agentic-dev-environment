@@ -99,6 +99,48 @@ else
   fail "STALE: expected STALE for two absent paths, got '$out'"
 fi
 
+# ── Line-range suffixes (:N-M, :N–M, :N—M) ──────────────────────────────────
+
+# Hyphen range — file exists
+out="$(run "x" "**File:** ${REAL_FILE}:35-41")"
+if [[ "$out" == "PRESENT" ]]; then
+  pass "PRESENT: body **File:** path:N-M (hyphen range) that exists on HEAD"
+else
+  fail "PRESENT: expected PRESENT for path:N-M with existing file, got '$out'"
+fi
+
+# En-dash range — file exists
+out="$(run "x" "**File:** ${REAL_FILE}:35–41")"
+if [[ "$out" == "PRESENT" ]]; then
+  pass "PRESENT: body **File:** path:N–M (en-dash range) that exists on HEAD"
+else
+  fail "PRESENT: expected PRESENT for path:N–M with existing file, got '$out'"
+fi
+
+# Em-dash range — file exists
+out="$(run "x" "**File:** ${REAL_FILE}:35—41")"
+if [[ "$out" == "PRESENT" ]]; then
+  pass "PRESENT: body **File:** path:N—M (em-dash range) that exists on HEAD"
+else
+  fail "PRESENT: expected PRESENT for path:N—M with existing file, got '$out'"
+fi
+
+# Hyphen range — file absent
+out="$(run "x" "**File:** ${GONE}:171-173")"
+if [[ "$out" == "STALE ${GONE}" ]]; then
+  pass "STALE: body **File:** absent path:N-M → STALE <path>"
+else
+  fail "STALE: expected 'STALE ${GONE}' for absent path:N-M, got '$out'"
+fi
+
+# Title convention with hyphen range
+out="$(run "[code-reviewer] ${REAL_FILE}:35-41 — something" "")"
+if [[ "$out" == "PRESENT" ]]; then
+  pass "PRESENT: title convention path:N-M that exists on HEAD"
+else
+  fail "PRESENT: expected PRESENT for title path:N-M that exists, got '$out'"
+fi
+
 # ── Case-insensitive **file:** ───────────────────────────────────────────────
 
 out="$(run "x" "**file:** ${GONE}:1")"
