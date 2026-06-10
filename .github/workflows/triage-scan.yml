@@ -378,12 +378,17 @@ jobs:
           cap=${AUTONOMOUS_MERGE_CAP:-10}
           for repo in $REPOS; do
             slug="jaetill/${repo}"
-            # Implementer-authored PRs only. `gh pr list --json author` renders
-            # a GitHub App bot's login as `app/<slug>` (NOT `<slug>[bot]`, the
-            # webhook/git form) — verified against meal-planner #64/#65/#68,
-            # all `app/claude`. release-please and human PRs are excluded.
-            prs=$(gh pr list --repo "$slug" --state open --json number,author \
-                    --jq '.[] | select(.author.login == "app/claude") | .number' 2>/dev/null || true)
+            # Implementer-authored PRs only. The original `author.login` filter
+            # (closed #58 as "[code-review] auto-merge .author.login filter never
+            # matches") was unreliable across both bot-pushed PRs (claude[bot])
+            # and PAT-pushed PRs (jaetill via IMPLEMENTER_PAT, post-#331).
+            # Filter on the COMMIT author name instead — the reusable workflow
+            # sets `git config user.name 'claude[bot]'`, which is preserved in
+            # commit metadata regardless of which token authored the push.
+            # release-please and human PRs are excluded by this signal (their
+            # commits don't carry the claude[bot] author name).
+            prs=$(gh pr list --repo "$slug" --state open --json number,commits \
+                    --jq '.[] | select([.commits[].authors[].name] | any(. == "claude[bot]")) | .number' 2>/dev/null || true)
             for pr in $prs; do
               if [[ "$merged" -ge "$cap" ]]; then
                 echo "::notice::Auto-merge per-run cap ($cap) reached — remaining qualifying PRs left for the next window."
