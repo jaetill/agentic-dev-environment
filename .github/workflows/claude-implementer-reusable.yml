@@ -333,7 +333,7 @@ jobs:
         # `workflow` write across all fleet repos. Tag overwrites on @v1
         # would silently rotate the action code under our private key
         # (security-review #351 High).
-        uses: actions/create-github-app-token@af26ac7d9f42c90f16b6c3dae4c9f7c3cf61cb25 # v1.12.1
+        uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1
         with:
           app-id: ${{ secrets.FLEET_APP_ID }}
           private-key: ${{ secrets.FLEET_APP_PRIVATE_KEY }}
