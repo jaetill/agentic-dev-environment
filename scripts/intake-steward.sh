@@ -42,7 +42,7 @@ for repo in $repos; do
       authortype=$(jq -r '.user.type' <<<"$row")
       labels=$(jq -r '[.labels[].name] | join("|")' <<<"$row")
       has() { case "|$labels|" in *"|$1|"*) return 0;; *) return 1;; esac; }
-      add=(); rm_=()
+      add=(); rm_=(); auto_approved=0
 
       # 1. origin (deterministic from author; never overwrite)
       if ! grep -q '|origin:human\||origin:internal-review\||origin:sentry\||origin:cloudwatch|' <<<"|$labels|"; then
@@ -103,6 +103,7 @@ for repo in $repos; do
       if [[ "$is_verification" == "1" ]] && is_maintainer "$author"; then
         if ! has "approved" && ! has "ready-for-implementer" && ! has "parked"; then
           add+=("approved")
+          auto_approved=1
         fi
         if has "needs-formulation"; then
           rm_+=("needs-formulation")
@@ -135,6 +136,11 @@ for repo in $repos; do
       if [[ $ok -eq 1 ]]; then
         changed=$((changed+1))
         echo "stewarded $repo#$num: +[${add[*]:-}] -[${rm_[*]:-}]"
+        if [[ "$auto_approved" == "1" ]]; then
+          gh issue comment "$num" --repo "$OWNER/$repo" \
+            --body "Auto-approved by steward (block 4b): routed to \`approved\` based on title pattern and maintainer identity. The issue body was not reviewed at intake — body content is considered maintainer-trusted input per the block 4b contract." \
+            >/dev/null 2>&1 || true
+        fi
       else
         failures=$((failures+1))
         echo "::warning::VERIFY FAILED $repo#$num: wanted +[${add[*]:-}] -[${rm_[*]:-}], got [$after]"
