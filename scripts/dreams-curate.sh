@@ -142,6 +142,10 @@ echo "Dream completed successfully."
 
 # ── export output memories to memory/ ────────────────────────────────────────
 out_store=$(jq -r 'first(.outputs[] | select(.type == "memory_store")).memory_store_id' <<< "$dream_resp")
+if [[ -z "$out_store" || "$out_store" == "null" ]]; then
+  echo "::error::Dream $dream_id completed but returned no output memory_store — aborting to preserve existing memory files."
+  exit 1
+fi
 echo "Output store: $out_store"
 
 # Remove previous .md files so renamed/merged memories replace them cleanly
