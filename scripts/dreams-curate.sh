@@ -164,8 +164,14 @@ while :; do
       -H "anthropic-beta: managed-agents-2026-04-01")
     mem_content=$(jq -r '.content' <<< "$mem_full")
     out_path="$MEMORY_DIR/${mem_path#/}"
-    mkdir -p "$(dirname "$out_path")"
-    printf '%s' "$mem_content" > "$out_path"
+    # Reject API-returned paths that escape MEMORY_DIR (path traversal guard)
+    real_out=$(realpath -m "$out_path")
+    if [[ "$real_out" != "$MEMORY_DIR/"* ]]; then
+      echo "::error::Dreams returned out-of-bounds path '$mem_path' — skipping."
+      continue
+    fi
+    mkdir -p "$(dirname "$real_out")"
+    printf '%s' "$mem_content" > "$real_out"
     echo "  wrote: ${mem_path#/}"
     total_written=$((total_written + 1))
   done < <(jq -r '.data[] | select(.type == "memory") | [.id, .path] | @tsv' <<< "$page_resp")
