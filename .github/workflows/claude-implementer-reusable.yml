@@ -110,7 +110,10 @@ jobs:
       - name: Run iac-implementer agent
         env:
           ISSUE_NUMBER: ${{ github.event.issue.number }}
-        uses: anthropics/claude-code-action@v1
+        # Pinned to SHA — PR #378 routes the fleet App token (workflow:write
+        # across all repos) through this step; tag overwrites on @v1 would
+        # exfiltrate it on the next drift run (issue #380).
+        uses: anthropics/claude-code-action@0f97b95b6536c26e5f6bd90faec370d41695beca # v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           show_full_output: true
