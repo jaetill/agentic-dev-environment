@@ -23,6 +23,7 @@ For each standard, before writing the doc:
 
 | # | Standard | Status | Doc | ADR |
 |---|---|---|---|---|
+| 0 | [Terminology](00-terminology.md) | 🟩 | [`00-terminology.md`](00-terminology.md) | [`0046-fleet-terminology-glossary.md`](../adr/0046-fleet-terminology-glossary.md) |
 | 1 | [Source control](01-source-control.md) | 🟩 | [`01-source-control.md`](01-source-control.md) | [`0002-source-control.md`](../adr/0002-source-control.md) |
 | 2 | [CI/CD](02-ci-cd.md) | 🟩 | [`02-ci-cd.md`](02-ci-cd.md) | [`0003-ci-cd.md`](../adr/0003-ci-cd.md) |
 | 3 | [Testing](03-testing.md) | 🟩 | [`03-testing.md`](03-testing.md) | [`0004-testing.md`](../adr/0004-testing.md) |
