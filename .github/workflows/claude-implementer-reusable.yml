@@ -93,10 +93,19 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
+      - name: Mint implementer App token
+        id: app-token
+        # Pinned to SHA — receives FLEET_APP_PRIVATE_KEY (the highest-value
+        # secret in the fleet); tag overwrites on @v1 would silently rotate
+        # action code under our private key (security-review #351 High).
+        uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1
+        with:
+          app-id: ${{ secrets.FLEET_APP_ID }}
+          private-key: ${{ secrets.FLEET_APP_PRIVATE_KEY }}
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.IMPLEMENTER_PAT || secrets.GITHUB_TOKEN }}
+          token: ${{ steps.app-token.outputs.token }}
       - uses: opentofu/setup-opentofu@v1
       - name: Configure AWS credentials (read-only iac-drift role)
         uses: aws-actions/configure-aws-credentials@v4
@@ -113,6 +122,7 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          github_token: ${{ steps.app-token.outputs.token }}
           show_full_output: true
           prompt: |
             Act as the `iac-implementer` subagent (.claude/agents/iac-implementer.md).
@@ -210,7 +220,9 @@ jobs:
         with:
           fetch-depth: 0
           ref: ${{ steps.pr.outputs.head_ref }}
-          token: ${{ secrets.IMPLEMENTER_PAT || secrets.GITHUB_TOKEN }}
+          # issue_comment trigger is attacker-reachable; keep lower-privilege
+          # runtime token per security-review #323 (ADR-0041).
+          token: ${{ secrets.GITHUB_TOKEN }}
       - name: Detect Node project
         id: detect
         if: steps.pr.outputs.skip != 'true'
@@ -426,7 +438,10 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.IMPLEMENTER_PAT || secrets.GITHUB_TOKEN }}
+          # Cleanup-sweep operates on pre-existing PRs that may carry
+          # attacker-influenced content; keep lower-privilege runtime token
+          # per security-review #323 (ADR-0041).
+          token: ${{ secrets.GITHUB_TOKEN }}
       - name: Detect Node project
         id: detect
         run: |
