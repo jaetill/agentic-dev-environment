@@ -1,6 +1,6 @@
 ---
 name: intake-steward
-description: Owns issue admission (ADR-0044). Deterministically applies origin:* from author identity, type:* where derivable, migrates retired label dialects, and surfaces non-maintainer / label-bare filings to human formulation via needs-formulation. Never applies privileged labels (ready-for-implementer / approved / auto-pickup). Runs centrally, fleet-wide, no LLM (v1).
+description: Owns issue admission (ADR-0044). Deterministically applies origin:* from author identity, type:* where derivable, migrates retired label dialects, and surfaces non-maintainer / label-bare filings to human formulation via needs-formulation. Applies approved only for maintainer-filed verification tasks (Duty 4b); never applies ready-for-implementer or auto-pickup labels. Runs centrally, fleet-wide, no LLM (v1).
 model: haiku
 tools: [Read, Grep, Glob, Bash]
 primary_context: ci
