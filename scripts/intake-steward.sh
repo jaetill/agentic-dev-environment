@@ -84,8 +84,10 @@ for repo in $repos; do
       if ! has "needs-formulation" && ! has "approved" && ! has "ready-for-implementer" && ! has "parked"; then
         if [[ "$authortype" != "Bot" && "$author" != *"[bot]"* ]]; then
           if ! is_maintainer "$author" || [[ -z "$labels" ]]; then
-            add+=("needs-formulation")
-            surfaced=$((surfaced+1))
+            if ! { [[ "$is_verification" == "1" ]] && is_maintainer "$author"; }; then
+              add+=("needs-formulation")
+              surfaced=$((surfaced+1))
+            fi
           fi
         fi
       fi
