@@ -29,6 +29,7 @@ on:
 
 permissions:
   contents: read
+  actions: read    # list workflow runs in degraded mode (platform repo only, GITHUB_TOKEN)
   issues: write    # file / update the CI-health issue here (fleet run-listing uses FLEET_TOKEN)
 
 concurrency:
@@ -42,6 +43,7 @@ jobs:
       # Cross-repo credential — Actions:read across the fleet (ADR-0020).
       - name: Mint fleet App token
         id: fleet-token
+        continue-on-error: true
         uses: actions/create-github-app-token@v1
         with:
           app-id: ${{ secrets.FLEET_APP_ID }}
@@ -51,7 +53,7 @@ jobs:
       - name: Scan the fleet for non-PR workflow failures
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          FLEET_TOKEN: ${{ steps.fleet-token.outputs.token }}
+          FLEET_TOKEN: ${{ steps.fleet-token.outcome == 'success' && steps.fleet-token.outputs.token || '' }}
           OWNER: ${{ github.repository_owner }}
         run: |
           set -euo pipefail
@@ -66,10 +68,17 @@ jobs:
           # has no claude-* loop workflows) until it adopts the platform.
           FLEET="game-night-pwa meal-planner ai-teacher jaetill-portal splendor draft carto agentic-dev-environment"
 
+          # Degrade gracefully when the App token is unavailable (e.g. during
+          # credential rotation or before the GitHub App is installed).
+          if [[ -z "${FLEET_TOKEN}" ]]; then
+            echo "::warning::ci-health: Fleet App token unavailable (FLEET_APP_ID/FLEET_APP_PRIVATE_KEY missing or misconfigured) — degraded mode: scanning platform repo only."
+            FLEET="agentic-dev-environment"
+          fi
+
           # Collect qualifying failures across the whole fleet.
           all='[]'
           for repo in $FLEET; do
-            runs=$(GH_TOKEN="$FLEET_TOKEN" gh run list --repo "$OWNER/$repo" \
+            runs=$(GH_TOKEN="${FLEET_TOKEN:-$GH_TOKEN}" gh run list --repo "$OWNER/$repo" \
               --status failure --limit 100 \
               --json workflowName,event,createdAt,url 2>/dev/null) || {
               echo "::warning::ci-health: could not list runs for $OWNER/$repo (App token access, or repo missing) — treating as no failures"
