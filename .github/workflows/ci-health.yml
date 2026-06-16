@@ -42,6 +42,7 @@ jobs:
       # Cross-repo credential — Actions:read across the fleet (ADR-0020).
       - name: Mint fleet App token
         id: fleet-token
+        continue-on-error: true
         uses: actions/create-github-app-token@v1
         with:
           app-id: ${{ secrets.FLEET_APP_ID }}
@@ -55,6 +56,13 @@ jobs:
           OWNER: ${{ github.repository_owner }}
         run: |
           set -euo pipefail
+
+          # Detect degraded mode: fleet App token unavailable (secrets missing or App being rotated).
+          DEGRADED=0
+          if [[ -z "${FLEET_TOKEN:-}" ]]; then
+            DEGRADED=1
+            echo "::warning::Fleet App token is empty — running in degraded mode (platform repo only; fleet coverage limited)"
+          fi
 
           # ~25h lookback — a little over the daily cadence so nothing slips
           # through at the boundary.
@@ -97,14 +105,25 @@ jobs:
             --search "\"$title\" in:title" --json number --jq '.[0].number // empty')
 
           if [[ "$count" -eq 0 ]]; then
-            echo "::notice::CI health OK — no non-PR workflow failures across the fleet in the last 25h."
-            # Health recovered — close any open CI-health issue so the
-            # watcher does not cry wolf forever.
-            if [[ -n "$existing" ]]; then
-              echo "Health recovered — closing CI-health issue #$existing"
-              gh issue comment "$existing" --repo "$GITHUB_REPOSITORY" \
-                --body "CI health recovered — no non-PR workflow failures across the fleet in the last 25h. Closing automatically; the watcher reopens a fresh issue if failures recur."
-              gh issue close "$existing" --repo "$GITHUB_REPOSITORY"
+            if [[ "$DEGRADED" == "1" ]]; then
+              echo "::notice::CI health OK in degraded scan (platform repo only; fleet App token unavailable)."
+              # Do NOT close the existing issue — fleet coverage was incomplete;
+              # the all-clear is not authoritative for the full fleet.
+              if [[ -n "$existing" ]]; then
+                echo "Degraded scan found no failures — leaving CI-health issue #$existing open (fleet coverage incomplete)"
+                gh issue comment "$existing" --repo "$GITHUB_REPOSITORY" \
+                  --body "Degraded-mode scan (platform repo only; fleet App token unavailable) found no failures, but fleet coverage was incomplete. Leaving open — a full-fleet scan is needed to confirm recovery."
+              fi
+            else
+              echo "::notice::CI health OK — no non-PR workflow failures across the fleet in the last 25h."
+              # Health recovered — close any open CI-health issue so the
+              # watcher does not cry wolf forever.
+              if [[ -n "$existing" ]]; then
+                echo "Health recovered — closing CI-health issue #$existing"
+                gh issue comment "$existing" --repo "$GITHUB_REPOSITORY" \
+                  --body "CI health recovered — no non-PR workflow failures across the fleet in the last 25h. Closing automatically; the watcher reopens a fresh issue if failures recur."
+                gh issue close "$existing" --repo "$GITHUB_REPOSITORY"
+              fi
             fi
             exit 0
           fi
@@ -117,12 +136,23 @@ jobs:
               ""')
 
           {
+            if [[ "$DEGRADED" == "1" ]]; then
+              echo "> [!WARNING]"
+              echo "> **Degraded-mode scan** — fleet App token was unavailable; only \`agentic-dev-environment\` was scanned. Fleet-wide coverage is limited. Verify the fleet App credentials."
+              echo ""
+            fi
             echo "## CI health: fleet workflow failures detected"
             echo ""
-            echo "The CI-health watcher found **$count** failed run(s) of"
-            echo "event-triggered or scheduled workflows across the fleet in the"
-            echo "last 25 hours. These do not surface on any PR, so they are"
-            echo "easy to miss."
+            if [[ "$DEGRADED" == "1" ]]; then
+              echo "The CI-health watcher found **$count** failed run(s) of"
+              echo "event-triggered or scheduled workflows in the platform repo"
+              echo "(degraded mode — fleet App token unavailable; other fleet repos were not scanned)."
+            else
+              echo "The CI-health watcher found **$count** failed run(s) of"
+              echo "event-triggered or scheduled workflows across the fleet in the"
+              echo "last 25 hours. These do not surface on any PR, so they are"
+              echo "easy to miss."
+            fi
             echo ""
             echo "$summary"
             echo "_Filed automatically by \`.github/workflows/ci-health.yml\`._"
