@@ -32,7 +32,7 @@ is_platform="${IS_PLATFORM:-true}"
 # PATTERN, not exact filename, so a newly-added enforcement script/workflow is
 # caught without an enumeration update. Operational scripts (dreams-curate,
 # backfills) and non-rail agent definitions deliberately fall outside.
-GATE_MACHINERY='^\.github/workflows/(triage-scan|claude-implementer.*|urgent-poll|pr-review|claude-pr-review|iac-guard|intake-steward|deploy-prod|emergency-deploy|validate-platform|security-scan)\.yml$|^scripts/.*(guard|protection|review-gate|validate-platform|intake-steward|fleet-inflight|configure).*|^(\.github/)?CODEOWNERS$|^docs/adr/|^docs/standards/|^plugins/ai-team/(hooks|skills|commands)/|^plugins/ai-team/agents/(triage-bot|architect|security-reviewer)\.md$'
+GATE_MACHINERY='^\.github/workflows/(triage-scan|claude-implementer.*|urgent-poll|pr-review|claude-pr-review|iac-guard|intake-steward|deploy-prod|emergency-deploy|validate-platform|security-scan)\.yml$|^scripts/.*(guard|protection|review-gate|validate-platform|intake-steward|fleet-inflight|configure).*|^(\.github/)?CODEOWNERS$|^docs/adr/|^docs/standards/|^plugins/ai-team/(hooks|skills|commands)/|^plugins/ai-team/agents/(triage-bot|architect|security-reviewer|implementer)\.md$'
 
 # Guardrail vocabulary — control-weakening / self-modification surface (ADR-0032
 # denylist + check-disabling terms). IAM/IaC risk is owned by the ADR-0035 gate.
