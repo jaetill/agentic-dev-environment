@@ -6,47 +6,67 @@
 # (ADR-0021/0023/0039); never relies on an agent's self-assessment or an
 # LLM-applied `compositional-self-change` label.
 #
-# Principle (ADR-0047): a human ratifies CAPABILITY EXPANSION and CONTROL
-# WEAKENING, not change structure. A change HOLDS iff it (1) touches the
-# gate/governance machinery, (2) carries guardrail vocabulary on an added or
-# removed line (control weakening / self-mod), (3) is a destructive/irreversible
-# data migration, or (4) exceeds the blast-radius backstop cap. Everything else
-# — additive guards, additive columns, SHA-pins, cosmetic/doc/agent-logic
-# changes — is IN_LANE and ships when green.
+# Principle (ADR-0047 / ADR-0019): the compositional firewall applies ONLY to
+# the platform repo — the team's "self". App-repo changes are never self-changes
+# (their risks are handled by requires-adr, the ADR-0035 IaC guard, and the
+# review battery). Within the platform repo, a human ratifies CAPABILITY
+# EXPANSION and CONTROL WEAKENING, not change structure.
 #
 # Inputs (env):
 #   CHANGED_FILES  newline-separated list of files changed by the PR
 #   DIFF           unified diff (git diff) of the PR — added/removed lines
+#   IS_PLATFORM    "true" if the PR is in the platform (loop-self) repo.
+#                  Default "true" = fail-closed (treat unknown as platform).
 #   SIZE_CAP       max changed (added+removed) content lines (default 400)
 #
 # Output: one verdict line. Exit 0 = IN_LANE (does NOT block auto-merge);
 #         exit 1 = HOLD (route to human via hold:compositional).
 #
-# FAIL CLOSED: any ambiguity holds. A missed denylist term is the dangerous
-# failure, so the path list and vocabulary denylist are deliberately broad;
-# the pin carve-out is the one narrow positive exception (re-pinning an existing
-# action is safe even when its name contains a denylisted token like "token").
+# FAIL CLOSED: any ambiguity holds — an unavailable diff (H1), a possibly
+# truncated file list (H3), or unknown repo context all HOLD.
 set -uo pipefail
 cap="${SIZE_CAP:-400}"
+is_platform="${IS_PLATFORM:-true}"
 
-# (1) Gate / governance machinery — the firewall's own surfaces. Any changed
-# file here is a compositional self-change requiring human ratification. These
-# paths exist in the platform repo; app-repo PRs do not match them and sail
-# through on the additive lane.
-GATE_MACHINERY='^\.github/workflows/(triage-scan|claude-implementer.*|urgent-poll|pr-review|claude-pr-review|iac-guard|intake-steward|deploy-prod|emergency-deploy|validate-platform|security-scan)\.yml$|^scripts/.*guard.*\.sh$|^scripts/intake-steward\.sh$|^scripts/fleet-inflight\.sh$|^scripts/configure-.*protection.*|^(\.github/)?CODEOWNERS$|^docs/adr/|^docs/standards/|^plugins/ai-team/agents/(triage-bot|architect|security-reviewer)\.md$'
+# Gate / governance machinery (platform repo only) — matched by SENSITIVITY
+# PATTERN, not exact filename, so a newly-added enforcement script/workflow is
+# caught without an enumeration update. Operational scripts (dreams-curate,
+# backfills) and non-rail agent definitions deliberately fall outside.
+GATE_MACHINERY='^\.github/workflows/(triage-scan|claude-implementer.*|urgent-poll|pr-review|claude-pr-review|iac-guard|intake-steward|deploy-prod|emergency-deploy|validate-platform|security-scan)\.yml$|^scripts/.*(guard|protection|review-gate|validate-platform|intake-steward|fleet-inflight|configure).*|^(\.github/)?CODEOWNERS$|^docs/adr/|^docs/standards/|^plugins/ai-team/(hooks|skills|commands)/|^plugins/ai-team/agents/(triage-bot|architect|security-reviewer)\.md$'
 
-# (2) Guardrail vocabulary — control-weakening / self-modification surface
-# (ADR-0032 denylist, extended with check-disabling terms). IAM/IaC risk is NOT
-# judged here — it is owned by the ADR-0035 iac-additive-guard (tofu-plan based),
-# which runs as its own gate; grepping HCL here would wrongly hold additive IAM
-# tightenings.
+# Guardrail vocabulary — control-weakening / self-modification surface (ADR-0032
+# denylist + check-disabling terms). IAM/IaC risk is owned by the ADR-0035 gate.
 DENY='FLEET_MAX|scope[ _-]?cap|scope:iac|severity calibrat|severity:|auto[ -]?merge|compositional|self-change|competence|ratif|human[ -]?(origin|merge|ratif)|author_association|\bOWNER\b|origin:|permission|secret|token|bypassPermission|force-?merge|admin-?merge|plan-approved|ready-for-implementer|claude-(sonnet|opus|haiku)|model tier|FLEET_TOKEN|--add-label|continue-on-error|if: ?false'
 
 added_lines()   { printf '%s\n' "$DIFF" | grep -E '^\+' | grep -Ev '^\+\+\+'; }
 removed_lines() { printf '%s\n' "$DIFF" | grep -E '^-'  | grep -Ev '^---'; }
 changed_content() { printf '%s\n' "$DIFF" | grep -E '^[+-]' | grep -Ev '^(\+\+\+|---)' | grep -Ev '^[+-][[:space:]]*$'; }
 
-# --- (1) gate / governance machinery -----------------------------------------
+# (H1) Fail closed when the diff could not be fetched but files did change —
+# otherwise the empty-diff path would make is_pure_repin trivially true.
+if [[ -z "${DIFF:-}" && -n "${CHANGED_FILES:-}" ]]; then
+  echo "HOLD: diff unavailable — fail closed (ADR-0047)"; exit 1
+fi
+
+# --- Universal check (all repos): destructive / irreversible data migration ---
+if added_lines | grep -Eiq '\bDROP[[:space:]]+(TABLE|COLUMN)\b|ALTER[[:space:]]+TABLE.*DROP|\bTRUNCATE\b|DELETE[[:space:]]+FROM[[:space:]]+[^;]+;[[:space:]]*$'; then
+  echo "HOLD: destructive/irreversible data migration (ADR-0003/0047)"; exit 1
+fi
+
+# App-repo changes are never compositional self-changes (ADR-0019) — the
+# firewall below is platform-only. App risks are covered by the other gates.
+if [[ "$is_platform" != "true" ]]; then
+  echo "IN_LANE: app-repo change (compositional firewall is platform-only)"; exit 0
+fi
+
+# (H3) Fail closed if the changed-file list may be truncated (gh caps at 100):
+# a gated file beyond position 100 would be invisible to the path checks below.
+nfiles=$(printf '%s\n' "$CHANGED_FILES" | grep -c . || true)
+if [[ "$nfiles" -ge 100 ]]; then
+  echo "HOLD: $nfiles changed files — list may be truncated, fail closed (ADR-0047)"; exit 1
+fi
+
+# (1) gate / governance machinery -> HOLD
 while IFS= read -r f; do
   [[ -z "$f" ]] && continue
   if printf '%s' "$f" | grep -Eq "$GATE_MACHINERY"; then
@@ -54,35 +74,24 @@ while IFS= read -r f; do
   fi
 done <<< "$CHANGED_FILES"
 
-# --- (4) destructive / irreversible data migration ----------------------------
-if added_lines | grep -Eiq '\bDROP[[:space:]]+(TABLE|COLUMN)\b|ALTER[[:space:]]+TABLE.*DROP|\bTRUNCATE\b|DELETE[[:space:]]+FROM[[:space:]]+[^;]+;[[:space:]]*$'; then
-  echo "HOLD: destructive/irreversible data migration (ADR-0003/0047)"; exit 1
-fi
-
-# --- pure re-pin carve-out ----------------------------------------------------
-# If every changed CONTENT line is a `uses: …@ref` action reference, a comment,
-# or whitespace, AND no net-new action identity is introduced (every added
-# action owner/repo also appears removed — a ref change, not a new dependency),
-# the change is a safe SHA-pin. Skip the vocabulary denylist (action names like
-# create-github-app-token would otherwise false-hold on "token").
+# Pure re-pin carve-out: every changed CONTENT line is a `uses: …@ref` action
+# pin/comment, and no net-new action identity is introduced (a ref change, not a
+# new dependency). Safe even when an action name contains "token".
 is_pure_repin() {
   local nonpin
   nonpin=$(changed_content | grep -Ev '^[+-][[:space:]]*(#|(- )?uses:[[:space:]]*[^[:space:]]+@[^[:space:]]+[[:space:]]*$)' | grep -c . || true)
   [[ "$nonpin" -ne 0 ]] && return 1
-  # net-new action identity check (strip @ref, compare added vs removed sets)
   local added_act removed_act newact
   added_act=$(added_lines   | grep -Eo 'uses:[[:space:]]*[^[:space:]@]+' | sed -E 's/uses:[[:space:]]*//' | sort -u)
   removed_act=$(removed_lines | grep -Eo 'uses:[[:space:]]*[^[:space:]@]+' | sed -E 's/uses:[[:space:]]*//' | sort -u)
   newact=$(comm -23 <(printf '%s\n' "$added_act") <(printf '%s\n' "$removed_act") | grep -c . || true)
   [[ "$newact" -eq 0 ]]
 }
-
-# --- (2) guardrail vocabulary (skipped only for a pure re-pin) ----------------
 if is_pure_repin; then
   echo "IN_LANE: pure action re-pin (no net-new dependency)"; exit 0
 fi
 
-# (3b) net-new external action = new dependency/egress (ADR-0003 new-external-dep).
+# (3b) net-new external action = new dependency/egress (ADR-0003).
 net_new_action=$(comm -23 \
   <(added_lines   | grep -Eo 'uses:[[:space:]]*[^[:space:]@]+' | sed -E 's/uses:[[:space:]]*//' | sort -u) \
   <(removed_lines | grep -Eo 'uses:[[:space:]]*[^[:space:]@]+' | sed -E 's/uses:[[:space:]]*//' | sort -u) \
@@ -91,11 +100,8 @@ if [[ "$net_new_action" -gt 0 ]]; then
   echo "HOLD: net-new external action — new dependency/egress (ADR-0003/0047)"; exit 1
 fi
 
-# (M1) Any non-pin change to a workflow file holds. GATE_MACHINERY above is a
-# positive enumeration; an unlisted or future workflow (ci-health.yml,
-# release.yml, …) could otherwise auto-merge and, e.g., suppress fleet-health
-# signal. Pure re-pins already returned IN_LANE above; every other change that
-# touches .github/workflows/ holds for a human.
+# (M1) Any non-pin workflow edit holds — GATE_MACHINERY is a positive list; an
+# unlisted/new workflow could otherwise auto-merge (e.g., suppress ci-health).
 while IFS= read -r f; do
   [[ -z "$f" ]] && continue
   if [[ "$f" =~ ^\.github/workflows/.*\.ya?ml$ ]]; then
@@ -103,19 +109,19 @@ while IFS= read -r f; do
   fi
 done <<< "$CHANGED_FILES"
 
-# (M2) Removal of a safety control-flow/pragma is a control weakening the
-# vocabulary denylist would miss (a deleted `set -e`/`set -o errexit`, an
-# `exit 1`, or a removed guard). Hold on removal; additive hardening is fine.
+# (M2) Removal of a safety control-flow/pragma (a deleted set -e / errexit /
+# exit guard) is a control weakening the vocabulary denylist would miss.
 if removed_lines | grep -Eq 'set[[:space:]]+-e([[:space:]]|$)|set[[:space:]]+-o[[:space:]]+errexit|\berrexit\b|\bexit[[:space:]]+[1-9]'; then
   echo "HOLD: removes a safety pragma/guard (set -e / exit) — control weakening (ADR-0047)"; exit 1
 fi
 
+# (2) guardrail vocabulary on any changed line -> HOLD
 hits=$(changed_content | grep -Eic "$DENY" || true)
 if [[ "$hits" -gt 0 ]]; then
   echo "HOLD: guardrail vocabulary on a changed line — control/capability delta (ADR-0047)"; exit 1
 fi
 
-# --- (3) blast-radius backstop cap -------------------------------------------
+# (4) blast-radius backstop cap -> HOLD
 changed=$(changed_content | grep -c . || true)
 if [[ "$changed" -gt "$cap" ]]; then
   echo "HOLD: size — $changed changed lines > backstop cap $cap (human glance)"; exit 1

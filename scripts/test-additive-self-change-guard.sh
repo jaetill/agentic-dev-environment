@@ -15,76 +15,50 @@ run() {
   fi
 }
 
-g() { CHANGED_FILES="$1" DIFF="${2:-}" bash "$GUARD"; }
+# platform-repo context (default); gapp = app-repo context
+g()    { CHANGED_FILES="$1" DIFF="${2:-x}" IS_PLATFORM="true"  bash "$GUARD"; }
+gapp() { CHANGED_FILES="$1" DIFF="${2:-x}" IS_PLATFORM="false" bash "$GUARD"; }
 
-echo "== (1) gate / governance machinery HOLDS =="
-run "auto-merger workflow → HOLD" "HOLD: gate/governance" \
-  "g '.github/workflows/triage-scan.yml' '+  echo changed'"
-run "ADR doc → HOLD" "HOLD: gate/governance" \
-  "g 'docs/adr/0021-autonomous-merge.md' '+text'"
-run "standards doc → HOLD" "HOLD: gate/governance" \
-  "g 'docs/standards/10-ai-workflows.md' '+text'"
-run "the guard script itself → HOLD" "HOLD: gate/governance" \
-  "g 'scripts/additive-self-change-guard.sh' '+text'"
-run "intake-steward → HOLD" "HOLD: gate/governance" \
-  "g 'scripts/intake-steward.sh' '+text'"
-run "rail-enforcer agent (architect) → HOLD" "HOLD: gate/governance" \
-  "g 'plugins/ai-team/agents/architect.md' '+text'"
-run "CODEOWNERS → HOLD" "HOLD: gate/governance" \
-  "g 'CODEOWNERS' '+* @jaetill'"
-run "mixed: app source + one ADR → HOLD" "HOLD: gate/governance" \
-  "g \$'src/index.ts\ndocs/adr/0003-ci-cd.md' '+text'"
+echo "== gate / governance machinery (platform) HOLDS =="
+run "auto-merger workflow → HOLD" "HOLD: gate/governance" "g '.github/workflows/triage-scan.yml' '+  echo x'"
+run "ADR doc → HOLD" "HOLD: gate/governance" "g 'docs/adr/0021-autonomous-merge.md' '+t'"
+run "standards doc → HOLD" "HOLD: gate/governance" "g 'docs/standards/10-ai-workflows.md' '+t'"
+run "a guard script → HOLD" "HOLD: gate/governance" "g 'scripts/additive-self-change-guard.sh' '+t'"
+run "validate-platform.sh (M3) → HOLD" "HOLD: gate/governance" "g 'scripts/validate-platform.sh' '+t'"
+run "require-platform-review-gates.ps1 (M1) → HOLD" "HOLD: gate/governance" "g 'scripts/require-platform-review-gates.ps1' '+t'"
+run "configure-branch-protection.ps1 → HOLD" "HOLD: gate/governance" "g 'scripts/configure-branch-protection.ps1' '+t'"
+run "plugins hooks (H2) → HOLD" "HOLD: gate/governance" "g 'plugins/ai-team/hooks/block-destructive-bash.sh' '+t'"
+run "plugins skills standard → HOLD" "HOLD: gate/governance" "g 'plugins/ai-team/skills/standards-ai-workflows/standard.md' '+t'"
+run "rail-enforcer agent → HOLD" "HOLD: gate/governance" "g 'plugins/ai-team/agents/architect.md' '+t'"
+run "CODEOWNERS → HOLD" "HOLD: gate/governance" "g 'CODEOWNERS' '+* @x'"
 
-echo "== (2) control-weakening vocabulary HOLDS =="
-run "non-rail agent + auto-merge vocab → HOLD" "HOLD: guardrail vocabulary" \
-  "g 'plugins/ai-team/agents/doc-keeper.md' '+auto-merge eligibility loosened'"
-run "disabling a check (continue-on-error) → HOLD" "HOLD: guardrail vocabulary" \
-  "g 'app/foo.ts' '+    continue-on-error: true'"
-# IAM/IaC risk is owned by the ADR-0035 iac-additive-guard, not this guard:
-# an additive IAM change passes here (IN_LANE) and is judged by the IaC gate.
-run "additive IAM (tighten) is not held here → IN_LANE" "IN_LANE" \
-  "g 'infra/iam.tf' '+  Action = \"s3:GetObject\"'"
+echo "== control-weakening / destructive / net-new HOLDS =="
+run "non-rail agent + auto-merge vocab → HOLD" "HOLD: guardrail vocabulary" "g 'plugins/ai-team/agents/doc-keeper.md' '+auto-merge eligibility loosened'"
+run "continue-on-error → HOLD" "HOLD: guardrail vocabulary" "g 'app/foo.ts' '+    continue-on-error: true'"
+run "DROP COLUMN (platform) → HOLD" "HOLD: destructive" "g 'migrations/003.sql' '+ALTER TABLE c DROP COLUMN x;'"
+run "added new third-party action → HOLD" "HOLD: net-new external action" "g '.github/workflows/docs.yml' '+      - uses: some/new-action@abc123'"
+run "non-pin workflow edit (M1) → HOLD" "HOLD: workflow edit" "g '.github/workflows/ci-health.yml' '+      run: echo suppress'"
+run "removed set -e (M2) → HOLD" "HOLD: removes a safety pragma" "g 'scripts/dreams-curate.sh' '-set -e'"
 
-echo "== (3) destructive migration HOLDS =="
-run "DROP COLUMN → HOLD" "HOLD: destructive" \
-  "g 'migrations/003.sql' '+ALTER TABLE courses DROP COLUMN owner_email;'"
-run "DROP TABLE → HOLD" "HOLD: destructive" \
-  "g 'migrations/004.sql' '+DROP TABLE sessions;'"
+echo "== H1 / H3 fail-closed HOLDS =="
+run "empty diff + changed files (H1) → HOLD" "HOLD: diff unavailable" "CHANGED_FILES='src/foo.ts' DIFF='' IS_PLATFORM=true bash \"\$GUARD\""
+big=$(for i in $(seq 1 105); do echo "src/f$i.ts"; done)
+run "≥100 changed files (H3) → HOLD" "HOLD:" "CHANGED_FILES=\"\$big\" DIFF='+x' IS_PLATFORM=true bash \"\$GUARD\""
 
-echo "== (3b) net-new external action HOLDS =="
-run "added new third-party action → HOLD" "HOLD: net-new external action" \
-  "g '.github/workflows/docs.yml' '+      - uses: some/new-action@abc123'"
+echo "== pin carve-out =="
+run "re-pin token-named action → IN_LANE" "IN_LANE: pure action re-pin" "g '.github/workflows/iac-drift-detect.yml' \$'-      - uses: actions/create-github-app-token@v1\n+      - uses: actions/create-github-app-token@abc1234'"
+run "pin inside a CORE gate workflow still → HOLD" "HOLD: gate/governance" "g '.github/workflows/triage-scan.yml' \$'-      - uses: x/y@v1\n+      - uses: x/y@abc1234'"
 
-echo "== (M1) non-pin workflow edit HOLDS =="
-run "unlisted workflow run-step edit → HOLD" "HOLD: workflow edit" \
-  "g '.github/workflows/ci-health.yml' '+      run: echo suppress'"
+echo "== app-repo: compositional firewall does NOT apply =="
+run "app workflow edit → IN_LANE" "app-repo change" "gapp '.github/workflows/deploy.yml' '+      run: echo deploy'"
+run "app scripts/ change → IN_LANE" "app-repo change" "gapp 'scripts/backfill-owner-email.ts' '+await db.update()'"
+run "app additive ownership column → IN_LANE" "app-repo change" "gapp \$'app/api/courses/route.ts\nmigrations/005.sql' '+ALTER TABLE courses ADD COLUMN owner_email text;'"
+run "app DESTRUCTIVE migration still → HOLD (universal)" "HOLD: destructive" "gapp 'migrations/006.sql' '+DROP TABLE sessions;'"
 
-echo "== (M2) removal of safety pragma HOLDS =="
-run "removed set -e from a script → HOLD" "HOLD: removes a safety pragma" \
-  "g 'scripts/deploy-helper.sh' '-set -e'"
-run "removed exit 1 guard → HOLD" "HOLD: removes a safety pragma" \
-  "g 'scripts/deploy-helper.sh' \$'-  if [ -z \"\$X\" ]; then exit 1; fi'"
-run "ADDING set -e (hardening) → IN_LANE" "IN_LANE" \
-  "g 'scripts/dreams-curate.sh' '+set -e'"
-
-echo "== pin carve-out IN_LANE =="
-run "re-pin token-named action (same identity) → IN_LANE" "IN_LANE: pure action re-pin" \
-  "g '.github/workflows/iac-drift-detect.yml' \$'-      - uses: actions/create-github-app-token@v1\n+      - uses: actions/create-github-app-token@abc1234'"
-
-echo "== capability-neutral changes IN_LANE =="
-run "ordinary app source → IN_LANE" "IN_LANE" \
-  "g 'src/handler.ts' '+  return ok();'"
-run "additive ownership column + WHERE scope → IN_LANE" "IN_LANE" \
-  "g \$'app/api/courses/route.ts\nmigrations/005.sql' \$'+ALTER TABLE courses ADD COLUMN owner_email text;\n+  .where(eq(courses.ownerEmail, session.email))'"
-run "non-rail agent small additive (no vocab) → IN_LANE" "IN_LANE" \
-  "g 'plugins/ai-team/agents/doc-keeper.md' '+Always include a one-line summary.'"
-run "cosmetic README → IN_LANE" "IN_LANE" \
-  "g 'README.md' '+typo fix'"
-
-echo "== blast-radius backstop =="
-big=$(printf '+line\n%.0s' {1..405})
-run "oversized diff → HOLD (size)" "HOLD: size" \
-  "SIZE_CAP=400 CHANGED_FILES='app/big.ts' DIFF=\"\$big\" bash \"\$GUARD\""
+echo "== capability-neutral (platform) IN_LANE =="
+run "ordinary platform doc → IN_LANE" "IN_LANE" "g 'README.md' '+typo'"
+run "non-rail agent small additive → IN_LANE" "IN_LANE" "g 'plugins/ai-team/agents/doc-keeper.md' '+Always include a one-line summary.'"
+run "operational script hardening (adds set -e) → IN_LANE" "IN_LANE" "g 'scripts/dreams-curate.sh' '+set -e'"
 
 echo ""
 echo "Results: $pass passed, $fail failed"

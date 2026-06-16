@@ -445,8 +445,13 @@ jobs:
               # agent-applied compositional-self-change label. Fail closed: a
               # guard error holds. IAM/IaC risk is judged by the ADR-0035 gate
               # below, not here.
+              # The compositional firewall is platform-only (ADR-0019/0047):
+              # app-repo changes are never self-changes. Pass repo context so the
+              # guard scopes its gate-machinery checks accordingly.
+              is_platform_repo=$([[ "$slug" == "jaetill/agentic-dev-environment" ]] && echo true || echo false)
               guard=$(CHANGED_FILES="$(gh pr view "$pr" --repo "$slug" --json files --jq '.files[].path' 2>/dev/null || true)" \
                       DIFF="$(gh pr diff "$pr" --repo "$slug" 2>/dev/null || true)" \
+                      IS_PLATFORM="$is_platform_repo" \
                       bash "${GITHUB_WORKSPACE}/scripts/additive-self-change-guard.sh" 2>/dev/null || echo "HOLD: guard error")
               case "$guard" in
                 IN_LANE*) echo "  $slug#$pr — capability-neutral, $guard (ADR-0047)";;
@@ -516,21 +521,23 @@ jobs:
               if gh pr merge "$pr" --repo "$slug" --squash --delete-branch; then
                 echo "::notice::Auto-merged $slug#$pr (fix for #$issue) per ADR-0021."
                 merged=$((merged+1))
-                # ADR-0032 self-change digest — log auto-merged agent self-edits
-                # to a standing issue for after-the-fact visibility. Fully
+                # ADR-0047 self-change digest — log every auto-merged PLATFORM
+                # self-change to a standing issue for after-the-fact visibility
+                # (the compositional firewall is platform-only, so a platform
+                # auto-merge is exactly a guard-passed self-change). Fully
                 # isolated (subshell + || true): a digest failure can never
                 # affect the merge loop, and runs only after the merge succeeded.
-                if [[ "${has_aq:-false}" == "true" ]]; then ( set +e
+                if [[ "$is_platform_repo" == "true" ]]; then ( set +e
                   log=$(gh issue list --repo jaetill/agentic-dev-environment --state open \
                           --search "Agent self-change log in:title" --json number --jq '.[0].number')
                   if [[ -z "$log" ]]; then
                     url=$(gh issue create --repo jaetill/agentic-dev-environment \
-                            --title "Agent self-change log (ADR-0032)" \
-                            --body "Running log of additive agent self-edits the loop auto-merged without human review (ADR-0032). Each entry links the merged PR.")
+                            --title "Agent self-change log (ADR-0047)" \
+                            --body "Running log of platform self-changes the loop auto-merged without human review (capability-delta IN_LANE, ADR-0047). Each entry links the merged PR.")
                     log="${url##*/}"
                   fi
                   [[ -n "$log" ]] && gh issue comment "$log" --repo jaetill/agentic-dev-environment \
-                    --body "Auto-merged self-edit: ${slug}#${pr} (agent-quality fix for #${issue})."
+                    --body "Auto-merged self-change: ${slug}#${pr} (fix for #${issue})."
                 ) || true; fi
               else
                 echo "::warning::$slug#$pr qualified but the merge failed; left for a human."
