@@ -409,15 +409,10 @@ jobs:
                 gh pr edit "$pr" --repo "$slug" --add-label "hold:adr" >/dev/null 2>&1 || true
                 echo "  $slug#$pr — requires-adr label; hold:adr for human"; held=$((held+1)); continue
               fi
-              # ADR-0023 narrowed self-mod floor: compositional self-changes —
-              # changes to the team's gates, agent roster, standards, or
-              # security posture — keep a human checkpoint. The implementer or
-              # architect applies this label when it classifies the change as
-              # compositional; auto-merge holds the PR for a human merge.
-              if echo "$meta" | jq -e '[.labels[].name] | any(. == "compositional-self-change")' >/dev/null 2>&1; then
-                gh pr edit "$pr" --repo "$slug" --add-label "hold:compositional" >/dev/null 2>&1 || true
-                echo "  $slug#$pr — compositional-self-change label; hold:compositional for human (ADR-0023)"; held=$((held+1)); continue
-              fi
+              # ADR-0047: the compositional hold is no longer driven by the
+              # LLM-applied `compositional-self-change` label — it is decided by
+              # the deterministic capability-delta guard below (authoritative).
+              # The label survives as an advisory hint only.
               # ADR-0021 cond. 1, as amended by ADR-0039: a linked issue must be
               # PRESENT for traceability, but its ORIGIN no longer gates the
               # merge. ADR-0023's HHUM hold — human-origin work waiting for a
@@ -426,10 +421,10 @@ jobs:
               # human's checkpoint moves off the merge and onto test->prod
               # promotion for user-facing features (#179); until that gate
               # exists, all merges/releases are treated as test. The
-              # architectural and self-change gates above (requires-adr:*,
-              # compositional-self-change) and the checks battery below still
-              # hold — this is "routine reviewed work ships itself," never
-              # "skip the checks."
+              # architectural gate above (requires-adr:* -> hold:adr), the
+              # capability-delta firewall below (ADR-0047), and the checks
+              # battery still hold — this is "routine reviewed work ships
+              # itself," never "skip the checks."
               issue=$(echo "$meta" | jq -r '.body // ""' \
                         | grep -ioE '(close[sd]?|fix(e[sd])?|resolve[sd]?) +#[0-9]+' \
                         | grep -oE '[0-9]+' | head -1 || true)
@@ -439,23 +434,24 @@ jobs:
               # issue_meta is still read: the ADR-0032 (agent-quality) and
               # ADR-0035 (scope:iac) gates below classify from the issue labels.
               issue_meta=$(gh issue view "$issue" --repo "$slug" --json author,labels 2>/dev/null || echo '{}')
-              # ADR-0032 additive self-change lane. If this PR touches the loop's
-              # own agent definitions, it may auto-merge ONLY if the deterministic
-              # guard classifies it IN_LANE: exactly one non-rail-enforcer agent
-              # file, within the size cap, no guardrail vocabulary on any changed
-              # line, agent-quality origin. OUT_OF_LANE agent edits are held for
-              # human ratification (the self-change firewall — ADR-0019/0023).
-              # Non-agent PRs classify NOT_SELF_CHANGE and pass through unaffected.
-              has_aq=$(echo "$issue_meta" | jq -r '[.labels[].name] | any(. == "agent-quality")' 2>/dev/null || echo false)
+              # ADR-0047 capability-delta firewall (generalizes the ADR-0032
+              # additive self-change lane). The deterministic guard runs on
+              # EVERY candidate PR and decides whether the change expands loop
+              # capability or weakens a control: a changed gate/governance file,
+              # guardrail vocabulary on an added/removed line, a net-new external
+              # action, or a destructive migration. HOLD -> hold:compositional
+              # for human ratification; IN_LANE -> routine reviewed work ships
+              # itself. The guard is authoritative — it does not rely on the
+              # agent-applied compositional-self-change label. Fail closed: a
+              # guard error holds. IAM/IaC risk is judged by the ADR-0035 gate
+              # below, not here.
               guard=$(CHANGED_FILES="$(gh pr view "$pr" --repo "$slug" --json files --jq '.files[].path' 2>/dev/null || true)" \
                       DIFF="$(gh pr diff "$pr" --repo "$slug" 2>/dev/null || true)" \
-                      HAS_AGENT_QUALITY="$has_aq" \
-                      bash "${GITHUB_WORKSPACE}/scripts/additive-self-change-guard.sh" 2>/dev/null || echo "OUT_OF_LANE: guard error")
+                      bash "${GITHUB_WORKSPACE}/scripts/additive-self-change-guard.sh" 2>/dev/null || echo "HOLD: guard error")
               case "$guard" in
-                NOT_SELF_CHANGE) ;;
-                IN_LANE*) echo "  $slug#$pr — additive self-change, $guard (ADR-0032)";;
+                IN_LANE*) echo "  $slug#$pr — capability-neutral, $guard (ADR-0047)";;
                 *) gh pr edit "$pr" --repo "$slug" --add-label "hold:compositional" >/dev/null 2>&1 || true
-                   echo "  $slug#$pr — self-change hold:compositional for human ($guard)"; held=$((held+1)); continue;;
+                   echo "  $slug#$pr — hold:compositional for human ($guard) (ADR-0047)"; held=$((held+1)); continue;;
               esac
               # ADR-0035 — scope:iac PRs auto-merge (== auto-apply on dev via the
               # push:[main] deploy cascade) ONLY behind an affirmative deterministic

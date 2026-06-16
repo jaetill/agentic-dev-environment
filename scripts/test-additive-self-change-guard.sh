@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Unit tests for additive-self-change-guard.sh
+# Unit tests for additive-self-change-guard.sh (capability-delta guard, ADR-0047)
 # Usage: bash scripts/test-additive-self-change-guard.sh
 set -uo pipefail
 GUARD="$(dirname "$0")/additive-self-change-guard.sh"
@@ -15,35 +15,64 @@ run() {
   fi
 }
 
-g() { CHANGED_FILES="$1" DIFF="${2:-}" HAS_AGENT_QUALITY="${3:-false}" bash "$GUARD"; }
+g() { CHANGED_FILES="$1" DIFF="${2:-}" bash "$GUARD"; }
 
-echo "== ADR-0023 compositional-path guard =="
-run "standards doc → OUT_OF_LANE" "OUT_OF_LANE: compositional-path" \
-  "g 'docs/standards/10-ai-workflows.md'"
-run "ADR doc → OUT_OF_LANE" "OUT_OF_LANE: compositional-path" \
-  "g 'docs/adr/0021-autonomous-merge.md'"
-run "workflow file → OUT_OF_LANE" "OUT_OF_LANE: compositional-path" \
-  "g '.github/workflows/triage-scan.yml'"
-run "non-agent ai-team file → OUT_OF_LANE" "OUT_OF_LANE: compositional-path" \
-  "g 'plugins/ai-team/hooks/inject-context.sh'"
-run "scripts guard file → OUT_OF_LANE" "OUT_OF_LANE: compositional-path" \
-  "g 'scripts/additive-self-change-guard.sh'"
-run "mixed: source + standards doc → OUT_OF_LANE" "OUT_OF_LANE: compositional-path" \
-  "g $'src/index.ts\ndocs/standards/01-source-control.md'"
-run "ordinary source file → NOT_SELF_CHANGE" "NOT_SELF_CHANGE" \
-  "g 'src/handler.ts'"
-run "agent file alone passes to ADR-0032 (no agent-quality) → origin error" "OUT_OF_LANE: origin" \
-  "g 'plugins/ai-team/agents/doc-keeper.md' '' false"
+echo "== (1) gate / governance machinery HOLDS =="
+run "auto-merger workflow → HOLD" "HOLD: gate/governance" \
+  "g '.github/workflows/triage-scan.yml' '+  echo changed'"
+run "ADR doc → HOLD" "HOLD: gate/governance" \
+  "g 'docs/adr/0021-autonomous-merge.md' '+text'"
+run "standards doc → HOLD" "HOLD: gate/governance" \
+  "g 'docs/standards/10-ai-workflows.md' '+text'"
+run "the guard script itself → HOLD" "HOLD: gate/governance" \
+  "g 'scripts/additive-self-change-guard.sh' '+text'"
+run "intake-steward → HOLD" "HOLD: gate/governance" \
+  "g 'scripts/intake-steward.sh' '+text'"
+run "rail-enforcer agent (architect) → HOLD" "HOLD: gate/governance" \
+  "g 'plugins/ai-team/agents/architect.md' '+text'"
+run "CODEOWNERS → HOLD" "HOLD: gate/governance" \
+  "g 'CODEOWNERS' '+* @jaetill'"
+run "mixed: app source + one ADR → HOLD" "HOLD: gate/governance" \
+  "g \$'src/index.ts\ndocs/adr/0003-ci-cd.md' '+text'"
 
-echo "== ADR-0032 additive self-change lane =="
-run "agent file + agent-quality + small diff → IN_LANE" "IN_LANE:" \
-  "g 'plugins/ai-team/agents/doc-keeper.md' '+add required summary field' true"
-run "rail-enforcer agent → OUT_OF_LANE" "OUT_OF_LANE: rail-enforcer" \
-  "g 'plugins/ai-team/agents/triage-bot.md' '+add required field' true"
-run "agent + guardrail denylist hit → OUT_OF_LANE" "OUT_OF_LANE: guardrail" \
-  "g 'plugins/ai-team/agents/doc-keeper.md' '+auto-merge eligibility check' true"
-run "agent + two files → OUT_OF_LANE: scope" "OUT_OF_LANE: scope" \
-  "g $'plugins/ai-team/agents/doc-keeper.md\nplugins/ai-team/agents/code-reviewer.md' '+add field' true"
+echo "== (2) control-weakening vocabulary HOLDS =="
+run "non-rail agent + auto-merge vocab → HOLD" "HOLD: guardrail vocabulary" \
+  "g 'plugins/ai-team/agents/doc-keeper.md' '+auto-merge eligibility loosened'"
+run "disabling a check (continue-on-error) → HOLD" "HOLD: guardrail vocabulary" \
+  "g 'app/foo.ts' '+    continue-on-error: true'"
+# IAM/IaC risk is owned by the ADR-0035 iac-additive-guard, not this guard:
+# an additive IAM change passes here (IN_LANE) and is judged by the IaC gate.
+run "additive IAM (tighten) is not held here → IN_LANE" "IN_LANE" \
+  "g 'infra/iam.tf' '+  Action = \"s3:GetObject\"'"
+
+echo "== (3) destructive migration HOLDS =="
+run "DROP COLUMN → HOLD" "HOLD: destructive" \
+  "g 'migrations/003.sql' '+ALTER TABLE courses DROP COLUMN owner_email;'"
+run "DROP TABLE → HOLD" "HOLD: destructive" \
+  "g 'migrations/004.sql' '+DROP TABLE sessions;'"
+
+echo "== (3b) net-new external action HOLDS =="
+run "added new third-party action → HOLD" "HOLD: net-new external action" \
+  "g '.github/workflows/docs.yml' '+      - uses: some/new-action@abc123'"
+
+echo "== pin carve-out IN_LANE =="
+run "re-pin token-named action (same identity) → IN_LANE" "IN_LANE: pure action re-pin" \
+  "g '.github/workflows/iac-drift-detect.yml' \$'-      - uses: actions/create-github-app-token@v1\n+      - uses: actions/create-github-app-token@abc1234'"
+
+echo "== capability-neutral changes IN_LANE =="
+run "ordinary app source → IN_LANE" "IN_LANE" \
+  "g 'src/handler.ts' '+  return ok();'"
+run "additive ownership column + WHERE scope → IN_LANE" "IN_LANE" \
+  "g \$'app/api/courses/route.ts\nmigrations/005.sql' \$'+ALTER TABLE courses ADD COLUMN owner_email text;\n+  .where(eq(courses.ownerEmail, session.email))'"
+run "non-rail agent small additive (no vocab) → IN_LANE" "IN_LANE" \
+  "g 'plugins/ai-team/agents/doc-keeper.md' '+Always include a one-line summary.'"
+run "cosmetic README → IN_LANE" "IN_LANE" \
+  "g 'README.md' '+typo fix'"
+
+echo "== blast-radius backstop =="
+big=$(printf '+line\n%.0s' {1..405})
+run "oversized diff → HOLD (size)" "HOLD: size" \
+  "SIZE_CAP=400 CHANGED_FILES='app/big.ts' DIFF=\"\$big\" bash \"\$GUARD\""
 
 echo ""
 echo "Results: $pass passed, $fail failed"
