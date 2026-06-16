@@ -42,6 +42,22 @@ added_lines()   { printf '%s\n' "$DIFF" | grep -E '^\+' | grep -Ev '^\+\+\+'; }
 removed_lines() { printf '%s\n' "$DIFF" | grep -E '^-'  | grep -Ev '^---'; }
 changed_content() { printf '%s\n' "$DIFF" | grep -E '^[+-]' | grep -Ev '^(\+\+\+|---)' | grep -Ev '^[+-][[:space:]]*$'; }
 
+# Pure re-pin: every changed CONTENT line is a `uses: …@ref [# comment]` action
+# pin or a comment, AND no net-new action identity is introduced (a ref change,
+# not a new dependency). A pure pin is capability-neutral EVERYWHERE — it changes
+# no logic — so it is allowed even inside gate-machinery files; this is why the
+# check runs before the path gate. Safe even when an action name contains "token".
+is_pure_repin() {
+  local nonpin
+  nonpin=$(changed_content | grep -Ev '^[+-][[:space:]]*(#|(- )?uses:[[:space:]]*[^[:space:]]+@[^[:space:]]+([[:space:]]+#.*)?[[:space:]]*$)' | grep -c . || true)
+  [[ "$nonpin" -ne 0 ]] && return 1
+  local added_act removed_act newact
+  added_act=$(added_lines   | grep -Eo 'uses:[[:space:]]*[^[:space:]@]+' | sed -E 's/uses:[[:space:]]*//' | sort -u)
+  removed_act=$(removed_lines | grep -Eo 'uses:[[:space:]]*[^[:space:]@]+' | sed -E 's/uses:[[:space:]]*//' | sort -u)
+  newact=$(comm -23 <(printf '%s\n' "$added_act") <(printf '%s\n' "$removed_act") | grep -c . || true)
+  [[ "$newact" -eq 0 ]]
+}
+
 # (H1) Fail closed when the diff could not be fetched but files did change —
 # otherwise the empty-diff path would make is_pure_repin trivially true.
 if [[ -z "${DIFF:-}" && -n "${CHANGED_FILES:-}" ]]; then
@@ -66,6 +82,11 @@ if [[ "$nfiles" -ge 100 ]]; then
   echo "HOLD: $nfiles changed files — list may be truncated, fail closed (ADR-0047)"; exit 1
 fi
 
+# Pure re-pin -> IN_LANE (capability-neutral, allowed even in gate files).
+if is_pure_repin; then
+  echo "IN_LANE: pure action re-pin (no net-new dependency)"; exit 0
+fi
+
 # (1) gate / governance machinery -> HOLD
 while IFS= read -r f; do
   [[ -z "$f" ]] && continue
@@ -73,23 +94,6 @@ while IFS= read -r f; do
     echo "HOLD: gate/governance machinery ($f) — capability/control surface (ADR-0047)"; exit 1
   fi
 done <<< "$CHANGED_FILES"
-
-# Pure re-pin carve-out: every changed CONTENT line is a `uses: …@ref` action
-# pin/comment, and no net-new action identity is introduced (a ref change, not a
-# new dependency). Safe even when an action name contains "token".
-is_pure_repin() {
-  local nonpin
-  nonpin=$(changed_content | grep -Ev '^[+-][[:space:]]*(#|(- )?uses:[[:space:]]*[^[:space:]]+@[^[:space:]]+[[:space:]]*$)' | grep -c . || true)
-  [[ "$nonpin" -ne 0 ]] && return 1
-  local added_act removed_act newact
-  added_act=$(added_lines   | grep -Eo 'uses:[[:space:]]*[^[:space:]@]+' | sed -E 's/uses:[[:space:]]*//' | sort -u)
-  removed_act=$(removed_lines | grep -Eo 'uses:[[:space:]]*[^[:space:]@]+' | sed -E 's/uses:[[:space:]]*//' | sort -u)
-  newact=$(comm -23 <(printf '%s\n' "$added_act") <(printf '%s\n' "$removed_act") | grep -c . || true)
-  [[ "$newact" -eq 0 ]]
-}
-if is_pure_repin; then
-  echo "IN_LANE: pure action re-pin (no net-new dependency)"; exit 0
-fi
 
 # (3b) net-new external action = new dependency/egress (ADR-0003).
 net_new_action=$(comm -23 \

@@ -47,7 +47,9 @@ run "≥100 changed files (H3) → HOLD" "HOLD:" "CHANGED_FILES=\"\$big\" DIFF='
 
 echo "== pin carve-out =="
 run "re-pin token-named action → IN_LANE" "IN_LANE: pure action re-pin" "g '.github/workflows/iac-drift-detect.yml' \$'-      - uses: actions/create-github-app-token@v1\n+      - uses: actions/create-github-app-token@abc1234'"
-run "pin inside a CORE gate workflow still → HOLD" "HOLD: gate/governance" "g '.github/workflows/triage-scan.yml' \$'-      - uses: x/y@v1\n+      - uses: x/y@abc1234'"
+run "re-pin WITH trailing version comment → IN_LANE" "IN_LANE: pure action re-pin" "g '.github/workflows/iac-drift-detect.yml' \$'-      - uses: anthropics/claude-code-action@v1\n+      - uses: anthropics/claude-code-action@deadbee # v1'"
+run "pure pin inside a gate workflow → IN_LANE (capability-neutral)" "IN_LANE: pure action re-pin" "g '.github/workflows/triage-scan.yml' \$'-      - uses: x/y@v1\n+      - uses: x/y@abc1234'"
+run "NON-pin edit to a gate workflow → HOLD" "HOLD: gate/governance" "g '.github/workflows/triage-scan.yml' '+        run: echo logic change'"
 
 echo "== app-repo: compositional firewall does NOT apply =="
 run "app workflow edit → IN_LANE" "app-repo change" "gapp '.github/workflows/deploy.yml' '+      run: echo deploy'"
