@@ -90,6 +90,26 @@ net_new_action=$(comm -23 \
 if [[ "$net_new_action" -gt 0 ]]; then
   echo "HOLD: net-new external action — new dependency/egress (ADR-0003/0047)"; exit 1
 fi
+
+# (M1) Any non-pin change to a workflow file holds. GATE_MACHINERY above is a
+# positive enumeration; an unlisted or future workflow (ci-health.yml,
+# release.yml, …) could otherwise auto-merge and, e.g., suppress fleet-health
+# signal. Pure re-pins already returned IN_LANE above; every other change that
+# touches .github/workflows/ holds for a human.
+while IFS= read -r f; do
+  [[ -z "$f" ]] && continue
+  if [[ "$f" =~ ^\.github/workflows/.*\.ya?ml$ ]]; then
+    echo "HOLD: workflow edit ($f) — non-pin CI/automation change (ADR-0047)"; exit 1
+  fi
+done <<< "$CHANGED_FILES"
+
+# (M2) Removal of a safety control-flow/pragma is a control weakening the
+# vocabulary denylist would miss (a deleted `set -e`/`set -o errexit`, an
+# `exit 1`, or a removed guard). Hold on removal; additive hardening is fine.
+if removed_lines | grep -Eq 'set[[:space:]]+-e([[:space:]]|$)|set[[:space:]]+-o[[:space:]]+errexit|\berrexit\b|\bexit[[:space:]]+[1-9]'; then
+  echo "HOLD: removes a safety pragma/guard (set -e / exit) — control weakening (ADR-0047)"; exit 1
+fi
+
 hits=$(changed_content | grep -Eic "$DENY" || true)
 if [[ "$hits" -gt 0 ]]; then
   echo "HOLD: guardrail vocabulary on a changed line — control/capability delta (ADR-0047)"; exit 1

@@ -55,6 +55,18 @@ echo "== (3b) net-new external action HOLDS =="
 run "added new third-party action → HOLD" "HOLD: net-new external action" \
   "g '.github/workflows/docs.yml' '+      - uses: some/new-action@abc123'"
 
+echo "== (M1) non-pin workflow edit HOLDS =="
+run "unlisted workflow run-step edit → HOLD" "HOLD: workflow edit" \
+  "g '.github/workflows/ci-health.yml' '+      run: echo suppress'"
+
+echo "== (M2) removal of safety pragma HOLDS =="
+run "removed set -e from a script → HOLD" "HOLD: removes a safety pragma" \
+  "g 'scripts/deploy-helper.sh' '-set -e'"
+run "removed exit 1 guard → HOLD" "HOLD: removes a safety pragma" \
+  "g 'scripts/deploy-helper.sh' \$'-  if [ -z \"\$X\" ]; then exit 1; fi'"
+run "ADDING set -e (hardening) → IN_LANE" "IN_LANE" \
+  "g 'scripts/dreams-curate.sh' '+set -e'"
+
 echo "== pin carve-out IN_LANE =="
 run "re-pin token-named action (same identity) → IN_LANE" "IN_LANE: pure action re-pin" \
   "g '.github/workflows/iac-drift-detect.yml' \$'-      - uses: actions/create-github-app-token@v1\n+      - uses: actions/create-github-app-token@abc1234'"
