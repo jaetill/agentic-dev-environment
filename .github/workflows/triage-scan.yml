@@ -509,7 +509,23 @@ jobs:
               mss=$(echo "$meta" | jq -r '.mergeStateStatus // "UNKNOWN"')
               case "$mss" in
                 CLEAN|UNSTABLE) ;;  # required checks green → eligible to merge
-                *) echo "  $slug#$pr — mergeStateStatus=$mss; hold (required check failing/pending, review outstanding, behind, or still computing)"
+                BEHIND) echo "  $slug#$pr — hold: BEHIND base branch (needs branch update)"; held=$((held+1)); continue;;
+                DIRTY)  echo "  $slug#$pr — hold: DIRTY merge conflict (needs rebase — ADR-0042)"; held=$((held+1)); continue;;
+                BLOCKED)
+                  # Distinguish a failing/pending REQUIRED CHECK from a
+                  # branch-protection REVIEW/CODEOWNERS gate: if no check bucket
+                  # is failing or pending, the block is a human review/owner
+                  # requirement, not CI. Made explicit so a codeowner-review
+                  # deadlock can't hide behind a catch-all message (the platform
+                  # repo's `* @jaetill` + "require code-owner review" stalled
+                  # every App-authored PR silently — 2026-06-16).
+                  if printf '%s\n' "$buckets" | grep -Eqi '^(fail|pending)$'; then
+                    echo "  $slug#$pr — hold: BLOCKED — a required check is failing/pending"
+                  else
+                    echo "  $slug#$pr — hold: BLOCKED with all checks green → branch-protection review/CODEOWNERS gate (needs a human; not a CI failure)"
+                  fi
+                  held=$((held+1)); continue;;
+                *) echo "  $slug#$pr — hold: mergeStateStatus=$mss (still computing or unsupported)"
                    held=$((held+1)); continue;;
               esac
               # All four conditions hold — strip any stale hold:* marker
