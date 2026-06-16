@@ -146,17 +146,15 @@ flowchart TD
         MG0 -->|off| PAUSED["Paused — held"]
         MG0 -->|on| MG1{"requires-adr:* label?"}
         MG1 -->|yes| HADR["Hold for human · ADR-gated"]
-        MG1 -->|no| MG2{"compositional-self-change label?"}
-        MG2 -->|yes| HCOMP["Hold for human · firewall (ADR-0019/0023)"]
-        MG2 -->|no| MG3{"Implementer-authored and linked issue present?<br/>origin no longer gates the merge (ADR-0039)<br/>human gate moves to test→prod (#179)"}
+        MG1 -->|no| MG3{"Implementer-authored and linked issue present?<br/>origin no longer gates the merge (ADR-0039)<br/>human gate moves to test→prod (#179)"}
         MG3 -->|"no"| HNOISS["Hold — not implementer-authored<br/>or no linked issue"]
         MG3 -->|yes| MGIAC{"scope:iac? · ADR-0035"}
         MGIAC -->|"yes — merge == apply on dev"| IACGUARD{"iac-additive-guard check pass?<br/>tofu plan: no destroy/replace ·<br/>≤5 resources · no exposure"}
         IACGUARD -->|"no / absent — unverified"| HIAC["Hold for human merge ·<br/>destroy/replace/exposure or no guard"]
         IACGUARD -->|yes| MGGUARD
-        MGIAC -->|no| MGGUARD{"additive-self-change-guard · ADR-0023/0032<br/>compositional-path or agent definition?"}
-        MGGUARD -->|"out-of-lane: compositional-path or agent edit"| HSELF["Hold for human ratification ·<br/>self-change firewall (ADR-0019/0023)"]
-        MGGUARD -->|"in-lane additive · or not a self-change"| MG4{"All required checks green?"}
+        MGIAC -->|no| MGGUARD{"capability-delta guard · ADR-0047<br/>gate/governance file, guardrail vocab,<br/>net-new action, or destructive migration?"}
+        MGGUARD -->|"hold: capability/control delta"| HSELF["Hold for human ratification ·<br/>capability-delta firewall (ADR-0019/0047)"]
+        MGGUARD -->|"in-lane: capability-neutral"| MG4{"All required checks green?"}
         MG4 -->|"no · or none reported"| HCHK["Hold — needs green battery"]
         MG4 -->|yes| MG5{"Within per-run cap = 10?"}
         MG5 -->|no| CAPM["Rest wait for next window ·<br/>re-considered next pass — not dropped"]
@@ -186,14 +184,14 @@ flowchart TD
     classDef merger fill:#2b5b8a,stroke:#5a9fd4,color:#eaf6ff;
 
     class CLOSED,DEPAUTO success;
-    class ESCAL,HADR,HCOMP,HNOISS,HIAC,HFAIL,HSELF,PAUSED human;
+    class ESCAL,HADR,HNOISS,HIAC,HFAIL,HSELF,PAUSED human;
     class CAPTURE,FORM,APPROVED,PARKED intake;
     class WWAIT,CAPWAIT,CONFWAIT,CAPM,DEFER,HCHK,DIGSINK,QUEUE wait;
 
     class PF,EVENTDISP,WIN,EVALALL,STALECHECK,CLOSESTALE,PROMO,DISAMB,ENRICH,CLOSEV,AQUAL,PROMSET,RANK,DISPATCH,SWEEP promoter;
     class IAC,IACIMPL,CG,ARCH,SCOPE,SLICE,BUILD,CONF,OPENPR,FIX,SWEEPIMPL implementer;
     class REVIEW,VERDICT,FIXIT reviewer;
-    class MG0,MG1,MG2,MG3,MGIAC,IACGUARD,MGGUARD,MG4,MG5,DOMERGE,MFAIL,APPLY merger;
+    class MG0,MG1,MG3,MGIAC,IACGUARD,MGGUARD,MG4,MG5,DOMERGE,MFAIL,APPLY merger;
 ```
 
 ## Terminal states
@@ -205,7 +203,7 @@ flowchart TD
 | Decompose (scope cap) | — | Change exceeds one slice — the implementer ships the smallest coherent slice and files a follow-up for the remainder; not a terminal, not a human hand-off (ADR-0026 amended). |
 | Escalate (3 attempts) | 🟧 | Mode B couldn't converge in 3 fix iterations (ADR-0026). |
 | Hold: ADR-gated | 🟧 | `requires-adr:*` label — one of the five gated categories. |
-| Hold: compositional | 🟧 | `compositional-self-change` label — the self-change firewall (ADR-0019/0023). |
+| Hold: compositional | 🟧 | capability-delta guard holds — gate/governance file, guardrail vocab, net-new action, or destructive migration (ADR-0019/0047). |
 | Hold: not implementer-authored / unlinked | 🟧 | PR isn't authored by the implementer agent, or has no `Closes/Fixes #n` linked issue — not eligible for autonomous merge. Origin no longer gates the merge (ADR-0039); the human checkpoint moves to test→prod promotion for user-facing features (#179). |
 | Hold: IaC unverified | 🟧 | `scope:iac` PR whose `tofu plan` isn't provably safe-additive (destroy/replace/exposure), or has no `iac-additive-guard` check — held for human merge (ADR-0035). |
 | Hold: merge failed | 🟧 | Qualified but `gh pr merge` rejected — left for human. *(This was the platform-repo deadlock fixed in ADR-0024.)* |

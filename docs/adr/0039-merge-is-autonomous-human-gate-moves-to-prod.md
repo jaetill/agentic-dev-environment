@@ -9,6 +9,8 @@
 
 > **Format:** MADR 4.x with the platform's three extensions. Single-decision ADR. Amends [ADR-0023](0023-origin-based-autonomy-boundary.md) (retires the origin-based human-merge hold) and [ADR-0021](0021-autonomous-merge.md) (condition 1 is now "linked issue present," not "linked issue is machine-origin"). This is the first half of the human-gate relocation; the prod-promotion gate itself is tracked in #179 and not built here.
 
+> **Amended by [ADR-0047](0047-firewall-gates-on-capability-delta.md):** of the two merge-time holds this ADR preserved, both are narrowed to a deterministic *capability delta* — `compositional-self-change` is decided by `additive-self-change-guard.sh` (not the label), and `requires-adr` no longer fires on additive changes that merely enforce an already-decided model. Routine/mechanical platform fixes ship like project work.
+
 ## Context and Problem Statement
 
 ADR-0023 set the autonomy boundary at **origin**: machine-origin work (Sentry, CloudWatch, agent-discovered findings) merges itself; human-origin work — anything a person filed, including Jason's own ideas — holds at the merge for a human click (`HHUM`). The intent was sound: the human's scarce resource is product judgment, and an outside party's request to change the product is where that judgment belongs.
