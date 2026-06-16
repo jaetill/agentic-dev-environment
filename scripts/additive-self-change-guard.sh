@@ -46,6 +46,17 @@ while IFS= read -r f; do
   if [[ "$f" =~ ^plugins/ai-team/agents/[^/]+\.md$ ]]; then agent_files+=("$f"); else other=1; fi
 done <<< "$CHANGED_FILES"
 
+# Bash safety pragma removal — catch structural weakening in script files not
+# already held by the compositional-path guard above. Checks only removed lines
+# so that adding safety controls is never blocked (issue #415).
+if printf '%s\n' "$CHANGED_FILES" | grep -qE '\.(sh|bash|ps1)$'; then
+  bash_rm=$(printf '%s\n' "$DIFF" | grep -E '^-' | grep -Ev '^---' \
+            | grep -Eic '\bset -[a-z]*e[a-z]*\b|\berrexit\b|\bexit [1-9][0-9]*\b' || true)
+  if [[ "$bash_rm" -gt 0 ]]; then
+    echo "OUT_OF_LANE: bash safety pragma removed from script file (set -e / errexit / exit non-zero)"; exit 1
+  fi
+fi
+
 # Not a self-change at all → guard does not apply.
 if [[ ${#agent_files[@]} -eq 0 ]]; then echo "NOT_SELF_CHANGE"; exit 0; fi
 

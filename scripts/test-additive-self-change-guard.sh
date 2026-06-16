@@ -45,6 +45,24 @@ run "agent + guardrail denylist hit → OUT_OF_LANE" "OUT_OF_LANE: guardrail" \
 run "agent + two files → OUT_OF_LANE: scope" "OUT_OF_LANE: scope" \
   "g $'plugins/ai-team/agents/doc-keeper.md\nplugins/ai-team/agents/code-reviewer.md' '+add field' true"
 
+echo "== bash safety pragma removal guard (issue #415) =="
+run "script .sh removes set -e → OUT_OF_LANE" "OUT_OF_LANE: bash safety pragma" \
+  "g 'bin/deploy.sh' $'-set -euo pipefail'"
+run "script .sh removes set -eu → OUT_OF_LANE" "OUT_OF_LANE: bash safety pragma" \
+  "g 'tools/run.sh' $'-set -eu'"
+run "script .sh removes errexit → OUT_OF_LANE" "OUT_OF_LANE: bash safety pragma" \
+  "g 'bin/check.sh' $'-set -o errexit'"
+run "script .sh removes exit 1 → OUT_OF_LANE" "OUT_OF_LANE: bash safety pragma" \
+  "g 'bin/check.sh' $'-  exit 1'"
+run "script .ps1 removes exit 1 → OUT_OF_LANE" "OUT_OF_LANE: bash safety pragma" \
+  "g 'tools/config.ps1' $'-  exit 1'"
+run "script .sh only adds set -e (not removal) → NOT_SELF_CHANGE" "NOT_SELF_CHANGE" \
+  "g 'bin/deploy.sh' $'+set -euo pipefail'"
+run "non-script source file with exit(1) removal → NOT_SELF_CHANGE" "NOT_SELF_CHANGE" \
+  "g 'src/handler.ts' $'-  exit(1)'"
+run "agent file with set -e removal still reaches denylist path" "OUT_OF_LANE: origin" \
+  "g 'plugins/ai-team/agents/doc-keeper.md' $'-set -e' false"
+
 echo ""
 echo "Results: $pass passed, $fail failed"
 [[ "$fail" -eq 0 ]] && exit 0 || exit 1
