@@ -496,8 +496,9 @@ jobs:
               #       CLEAN    — required all green, no required review outstanding → merge
               #       UNSTABLE — required all green; only a NON-required check is
               #                  failing/pending (the Vercel case)            → merge
-              #       BLOCKED  — a required check failing/pending, OR a required
-              #                  CODEOWNERS review outstanding                 → hold
+              #       BLOCKED  — a required check failing/pending (logged as such),
+              #                  OR a required CODEOWNERS review outstanding
+              #                  (logged as "review/CODEOWNERS gate")         → hold
               #       other    — BEHIND / DIRTY / DRAFT / UNKNOWN              → hold
               #     Because the security battery is in the required set, CLEAN|
               #     UNSTABLE still guarantees code-review + security-review passed.
@@ -509,6 +510,22 @@ jobs:
               mss=$(echo "$meta" | jq -r '.mergeStateStatus // "UNKNOWN"')
               case "$mss" in
                 CLEAN|UNSTABLE) ;;  # required checks green → eligible to merge
+                BLOCKED)
+                  # Distinguish failing/pending required check from a
+                  # CODEOWNERS/review gate. Filter to required-only so a
+                  # slow optional check (e.g. Vercel deployment) does not
+                  # falsely look like a CI failure (#440).
+                  req_states=$(gh pr view "$pr" --repo "$slug" \
+                    --json statusCheckRollup \
+                    --jq '[.statusCheckRollup[] | select(.isRequired == true) | .conclusion // .state] | .[]' \
+                    2>/dev/null || true)
+                  if printf '%s\n' "$req_states" | grep -Eqi \
+                      '^(FAILURE|TIMED_OUT|CANCELLED|ACTION_REQUIRED|ERROR|failure|fail|pending|IN_PROGRESS|QUEUED|WAITING|REQUESTED)$'; then
+                    echo "  $slug#$pr — hold: BLOCKED — a required check is failing or pending"
+                  else
+                    echo "  $slug#$pr — hold: BLOCKED with all required checks green → branch-protection review/CODEOWNERS gate (needs a human; not a CI failure)"
+                  fi
+                  held=$((held+1)); continue;;
                 *) echo "  $slug#$pr — mergeStateStatus=$mss; hold (required check failing/pending, review outstanding, behind, or still computing)"
                    held=$((held+1)); continue;;
               esac
