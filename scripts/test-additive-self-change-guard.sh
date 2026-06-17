@@ -39,6 +39,7 @@ run "DROP COLUMN (platform) → HOLD" "HOLD: destructive" "g 'migrations/003.sql
 run "added new third-party action → HOLD" "HOLD: net-new external action" "g '.github/workflows/docs.yml' '+      - uses: some/new-action@abc123'"
 run "non-pin workflow edit (M1) → HOLD" "HOLD: workflow edit" "g '.github/workflows/ci-health.yml' '+      run: echo suppress'"
 run "removed set -e (M2) → HOLD" "HOLD: removes a safety pragma" "g 'scripts/dreams-curate.sh' '-set -e'"
+run ".sh refactors exit 1 into helper (removal + addition) → IN_LANE" "IN_LANE" "g 'scripts/dreams-curate.sh' \$'-  exit 1\n+  die \"error\"'"
 
 echo "== H1 / H3 fail-closed HOLDS =="
 run "empty diff + changed files (H1) → HOLD" "HOLD: diff unavailable" "CHANGED_FILES='src/foo.ts' DIFF='' IS_PLATFORM=true bash \"\$GUARD\""

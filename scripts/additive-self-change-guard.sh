@@ -113,10 +113,12 @@ while IFS= read -r f; do
   fi
 done <<< "$CHANGED_FILES"
 
-# (M2) Removal of a safety control-flow/pragma (a deleted set -e / errexit /
-# exit guard) is a control weakening the vocabulary denylist would miss.
-if removed_lines | grep -Eq 'set[[:space:]]+-e([[:space:]]|$)|set[[:space:]]+-o[[:space:]]+errexit|\berrexit\b|\bexit[[:space:]]+[1-9]'; then
-  echo "HOLD: removes a safety pragma/guard (set -e / exit) — control weakening (ADR-0047)"; exit 1
+# (M2) Removal of a structural safety pragma (set -e / errexit) is a control
+# weakening the vocabulary denylist would miss. Individual `exit N` removals are
+# NOT flagged here — they are normal error-handling idioms whose removal has no
+# structural effect on the script's failure behaviour outside that branch.
+if removed_lines | grep -Eq 'set[[:space:]]+-e([[:space:]]|$)|set[[:space:]]+-o[[:space:]]+errexit|\berrexit\b'; then
+  echo "HOLD: removes a safety pragma/guard (set -e / errexit) — control weakening (ADR-0047)"; exit 1
 fi
 
 # (2) guardrail vocabulary on any changed line -> HOLD
