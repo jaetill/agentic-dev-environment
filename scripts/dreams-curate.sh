@@ -3,11 +3,11 @@
 # Mirrors memory/*.md into a temporary managed memory store, runs a Dreams job against
 # recent Managed Agents sessions, and writes curated output back to memory/.
 # Exit 0 on success or graceful skip; 1 on hard error.
-set -uo pipefail
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-MEMORY_DIR="$REPO_ROOT/memory"
+MEMORY_DIR="${MEMORY_DIR:-$REPO_ROOT/memory}"
 API="https://api.anthropic.com/v1"
 MAX_SESSIONS=20
 POLL_TIMEOUT=3600  # 60-minute wall-clock max; dreams typically run in minutes to tens of minutes
