@@ -63,7 +63,7 @@ jobs:
         with:
           fetch-depth: 0   # need full history to compute PR diff
       - name: Run code-reviewer agent
-        uses: anthropics/claude-code-action@v1
+        uses: anthropics/claude-code-action@d5726de019ec4498aa667642bc3a80fca83aa102 # v1
         with:
           # Authenticate against the one Claude Max subscription via OAuth.
           # Do NOT add anthropic_api_key here: claude-code-action, given
@@ -247,7 +247,7 @@ jobs:
           [ -f lambda/package-lock.json ] && npm ci --prefix lambda || echo "no lambda deps — skipping"
       - name: Run functional-tester agent
         if: needs.detect-node.outputs.node == 'true'
-        uses: anthropics/claude-code-action@v1
+        uses: anthropics/claude-code-action@d5726de019ec4498aa667642bc3a80fca83aa102 # v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           show_full_output: true
@@ -315,7 +315,7 @@ jobs:
           # there (platform issue #32). Mirrors claude-implementer.yml.
           [ -f lambda/package-lock.json ] && npm ci --prefix lambda || echo "no lambda deps — skipping"
       - name: Run test-writer agent
-        uses: anthropics/claude-code-action@v1
+        uses: anthropics/claude-code-action@d5726de019ec4498aa667642bc3a80fca83aa102 # v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           show_full_output: true
@@ -417,7 +417,7 @@ jobs:
           cat /tmp/e2e-output.txt
       - name: Run e2e-tester agent
         if: needs.detect-node.outputs.node == 'true'
-        uses: anthropics/claude-code-action@v1
+        uses: anthropics/claude-code-action@d5726de019ec4498aa667642bc3a80fca83aa102 # v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           show_full_output: true
@@ -487,7 +487,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Run doc-keeper agent
-        uses: anthropics/claude-code-action@v1
+        uses: anthropics/claude-code-action@d5726de019ec4498aa667642bc3a80fca83aa102 # v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           show_full_output: true
@@ -555,7 +555,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Run security-reviewer agent
-        uses: anthropics/claude-code-action@v1
+        uses: anthropics/claude-code-action@d5726de019ec4498aa667642bc3a80fca83aa102 # v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           show_full_output: true
@@ -856,7 +856,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Run architect agent for ADR drafting
-        uses: anthropics/claude-code-action@v1
+        uses: anthropics/claude-code-action@d5726de019ec4498aa667642bc3a80fca83aa102 # v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           show_full_output: true
