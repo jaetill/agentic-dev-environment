@@ -507,6 +507,17 @@ jobs:
                 held=$((held+1)); continue
               fi
               mss=$(echo "$meta" | jq -r '.mergeStateStatus // "UNKNOWN"')
+              # UNKNOWN = GitHub is still (re)computing mergeability — almost
+              # always transient, and routinely triggered when a PREVIOUS merge
+              # in this same run advanced the base. Holding on UNKNOWN caps the
+              # sweep at ~1 merge per run (every other eligible PR flips to
+              # UNKNOWN the moment the first one lands). Re-poll briefly so one
+              # run can drain a whole batch instead of one-per-sweep.
+              repoll=0
+              while [[ "$mss" == "UNKNOWN" && $repoll -lt 5 ]]; do
+                sleep 4; repoll=$((repoll+1))
+                mss=$(gh pr view "$pr" --repo "$slug" --json mergeStateStatus --jq '.mergeStateStatus // "UNKNOWN"' 2>/dev/null || echo "UNKNOWN")
+              done
               case "$mss" in
                 CLEAN|UNSTABLE) ;;  # required checks green → eligible to merge
                 BEHIND) echo "  $slug#$pr — hold: BEHIND base branch (needs branch update)"; held=$((held+1)); continue;;
