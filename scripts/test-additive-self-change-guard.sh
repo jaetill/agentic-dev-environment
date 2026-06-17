@@ -30,6 +30,7 @@ run "configure-branch-protection.ps1 → HOLD" "HOLD: gate/governance" "g 'scrip
 run "plugins hooks (H2) → HOLD" "HOLD: gate/governance" "g 'plugins/ai-team/hooks/block-destructive-bash.sh' '+t'"
 run "plugins skills standard → HOLD" "HOLD: gate/governance" "g 'plugins/ai-team/skills/standards-ai-workflows/standard.md' '+t'"
 run "rail-enforcer agent → HOLD" "HOLD: gate/governance" "g 'plugins/ai-team/agents/architect.md' '+t'"
+run "code-reviewer agent → HOLD" "HOLD: gate/governance" "g 'plugins/ai-team/agents/code-reviewer.md' '+t'"
 run "CODEOWNERS → HOLD" "HOLD: gate/governance" "g 'CODEOWNERS' '+* @x'"
 
 echo "== control-weakening / destructive / net-new HOLDS =="
