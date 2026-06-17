@@ -42,7 +42,7 @@ jobs:
       # Cross-repo credential — Actions:read across the fleet (ADR-0020).
       - name: Mint fleet App token
         id: fleet-token
-        uses: actions/create-github-app-token@v1
+        uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1
         with:
           app-id: ${{ secrets.FLEET_APP_ID }}
           private-key: ${{ secrets.FLEET_APP_PRIVATE_KEY }}
