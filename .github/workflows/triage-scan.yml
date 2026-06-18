@@ -448,7 +448,7 @@ jobs:
               # The compositional firewall is platform-only (ADR-0019/0047):
               # app-repo changes are never self-changes. Pass repo context so the
               # guard scopes its gate-machinery checks accordingly.
-              is_platform_repo=$([[ "$slug" == "jaetill/agentic-dev-environment" ]] && echo true || echo false)
+              is_platform_repo=$([[ "$slug" == "$GITHUB_REPOSITORY" ]] && echo true || echo false)
               guard=$(CHANGED_FILES="$(gh pr view "$pr" --repo "$slug" --json files --jq '.files[].path' 2>/dev/null || true)" \
                       DIFF="$(gh pr diff "$pr" --repo "$slug" 2>/dev/null || true)" \
                       IS_PLATFORM="$is_platform_repo" \
@@ -572,15 +572,15 @@ jobs:
                 # isolated (subshell + || true): a digest failure can never
                 # affect the merge loop, and runs only after the merge succeeded.
                 if [[ "$is_platform_repo" == "true" ]]; then ( set +e
-                  log=$(gh issue list --repo jaetill/agentic-dev-environment --state open \
+                  log=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open \
                           --search "Agent self-change log in:title" --json number --jq '.[0].number')
                   if [[ -z "$log" ]]; then
-                    url=$(gh issue create --repo jaetill/agentic-dev-environment \
+                    url=$(gh issue create --repo "$GITHUB_REPOSITORY" \
                             --title "Agent self-change log (ADR-0047)" \
                             --body "Running log of platform self-changes the loop auto-merged without human review (capability-delta IN_LANE, ADR-0047). Each entry links the merged PR.")
                     log="${url##*/}"
                   fi
-                  [[ -n "$log" ]] && gh issue comment "$log" --repo jaetill/agentic-dev-environment \
+                  [[ -n "$log" ]] && gh issue comment "$log" --repo "$GITHUB_REPOSITORY" \
                     --body "Auto-merged self-change: ${slug}#${pr} (fix for #${issue})."
                 ) || true; fi
               else
