@@ -11,6 +11,13 @@ name: claude-pr-review (reusable)
 
 on:
   workflow_call:
+    # ADR-0048: declare the secrets this reusable consumes so callers can pass
+    # them explicitly (scoped) instead of `secrets: inherit`. required:false +
+    # GITHUB_TOKEN swapped to ${{ github.token }} below → inherit callers keep
+    # working AND explicit callers need only name what's below.
+    secrets:
+      CLAUDE_CODE_OAUTH_TOKEN:
+        required: false
 
 concurrency:
   group: claude-pr-review-${{ github.event.pull_request.number }}
@@ -176,7 +183,7 @@ jobs:
         # prompt that "forgets" the VERDICT line, AND it catches an
         # honest VERDICT: APPROVE that's inconsistent with the body.
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           body=$(gh api "repos/${{ github.repository }}/issues/${PR_NUMBER}/comments" \
@@ -301,7 +308,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.ref }}
           # Use a token that can push to the PR branch. GITHUB_TOKEN
           # has write to contents per the workflow-level permissions block.
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ github.token }}
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -636,7 +643,7 @@ jobs:
             --append-system-prompt "Follow the platform standards in docs/standards/."
       - name: "Enforce gate (hybrid VERDICT verification)"
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           body=$(gh api "repos/${{ github.repository }}/issues/${PR_NUMBER}/comments" \
@@ -826,7 +833,7 @@ jobs:
     steps:
       - name: Pre-create labels (idempotent)
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           # Severity labels
           gh --repo "${{ github.repository }}" label create severity:critical    --color B60205 --description "Critical issue — must fix before merge" 2>/dev/null || true
