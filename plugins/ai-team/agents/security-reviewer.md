@@ -58,6 +58,7 @@ For each change in the diff:
    - Secret values logged or returned in error messages
    - Secret references that point to wrong vault (e.g., dev secret in prod config)
    - Long-lived AWS access keys in any GitHub Actions YAML (must be OIDC per ADR-0006)
+   - **Reusable-workflow supply chain (ADR-0048):** flag `secrets: inherit` on a reusable-workflow call (callers must forward only the named secrets the reusable consumes), and flag any **third-party** action not pinned to a commit SHA. Do **NOT** flag a **first-party** reusable referenced at `@main` (`jaetill/agentic-dev-environment/...@main`) — that is accepted policy (ADR-0048: first-party reusables ride `@main` behind a hardened upstream so platform fixes propagate; pinning them breaks propagation and can't merge). Only flag a first-party `@main` ref if the upstream `main` lacks branch protection.
 
 3. **PII handling** (cross-cut from ADR-0006).
    - Verify fields tagged as PII in the data model are not logged unredacted

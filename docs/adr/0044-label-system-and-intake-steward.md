@@ -7,6 +7,8 @@
 
 > **Format:** MADR 4.x with the platform's three extensions. Bundled-sub-decision ADR — one coherent system in six coupled decisions. Method note: every decision below was derived from a fleet-wide **permutation table** (every `creator × exact-label-set` with counts, across issues AND PRs) plus a live autopsy of the 18 "in flight" items — empirical archaeology, not taxonomy a priori.
 
+> **Amended by [ADR-0047](0047-firewall-gates-on-capability-delta.md):** the `hold:adr` and `hold:compositional` resting states are unchanged as *labels*, but what *earns* them is narrowed to a deterministic capability delta — `hold:compositional` is applied by `additive-self-change-guard.sh` on a real capability/control change, not by the advisory `compositional-self-change` label.
+
 ## Context and Problem Statement
 
 The fleet's 289 open issues collapse into only 19 creator×label-set permutations — but those 19 hide five label *dialects* minted by different actors across eras: the canonical agent-finding shape (`defect, origin:internal-review, severity:*` — 82% of volume), the intake states (ADR-0036), PR-side gate labels (`requires-adr:<subtype>`, `compositional-self-change`), release-please's `autorelease: pending`, and a dead vocabulary (`awaiting-dispatch`, `component:*`, `type:chore`, `origin:external-request`) minted by **splendor's zombie `claude-triage-bot.yml`** — the one surviving pre-ADR-0030 per-repo triage workflow, still firing on issue events outside every window.
