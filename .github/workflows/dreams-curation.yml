@@ -1,0 +1,64 @@
+name: dreams-curation
+# Weekly memory curation via Anthropic Dreams API (dreaming-2026-04-21 beta).
+# Mirrors memory/*.md into a temporary managed memory store, runs a Dreams job
+# over recent Managed Agents sessions, and opens a PR with the curated diff.
+# Ref: https://platform.claude.com/docs/en/managed-agents/dreams
+# Requires: ANTHROPIC_API_KEY secret with Managed Agents + Dreams access.
+# To request access: https://claude.com/form/claude-managed-agents
+
+on:
+  schedule:
+    # Sunday 07:00 UTC — overnight America/Chicago window year-round
+    # (CDT=UTC-5: 02:00 local; CST=UTC-6: 01:00 local — both inside the 01:00–04:00 window)
+    - cron: '0 7 * * 0'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  curate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Dreams curation
+        id: curate
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: bash scripts/dreams-curate.sh
+
+      - name: Open review PR if memory changed
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Check for changes in memory/ (modified or new untracked files)
+          if git diff --quiet memory/ && [[ -z "$(git ls-files --others --exclude-standard memory/)" ]]; then
+            echo "No changes to memory/ — skipping PR."
+            exit 0
+          fi
+
+          branch="chore/dreams-curation-$(date -u +%Y%m%d)"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git checkout -b "$branch" 2>/dev/null || git checkout "$branch"
+          git add memory/
+          git commit -m "chore(memory): Dreams curation $(date -u +%Y-%m-%d)"
+          git push --force-with-lease -u origin "$branch"
+
+          gh pr create \
+            --title "chore(memory): Dreams curation $(date -u +%Y-%m-%d)" \
+            --body "$(cat <<'PREOF'
+## Summary
+
+Weekly memory curation by the Anthropic Dreams API (\`dreaming-2026-04-21\` beta).
+
+The Dreams pipeline read the current \`memory/\` files alongside recent Managed Agents session transcripts, then produced a reorganised store: duplicates merged, stale entries replaced with the latest value, and cross-session insights surfaced. The input store was not modified.
+
+**Review guidance:**
+- Accept if the curated memories are cleaner and more coherent than the originals.
+- Close/discard if the output dropped important content or introduced noise.
+- The next weekly run will use the merged \`memory/\` as its new baseline.
+PREOF
+)" || true
