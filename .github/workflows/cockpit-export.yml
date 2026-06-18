@@ -116,12 +116,12 @@ jobs:
           git add infra/ops-cockpit/dashboard.json
           git commit -m "chore(cockpit): re-export live → dashboard.json (drift sweep)
 
-Caught by the daily cockpit-export safety net. An agent edited the live
-cockpit but didn't round-trip to Terraform in the same change (rule:
-feedback_grafana_live_edit_must_update_tf). This PR closes the gap.
+          Caught by the daily cockpit-export safety net. An agent edited the live
+          cockpit but didn't round-trip to Terraform in the same change (rule:
+          feedback_grafana_live_edit_must_update_tf). This PR closes the gap.
 
-If you didn't expect drift, check recent live edits via the Grafana
-audit log."
+          If you didn't expect drift, check recent live edits via the Grafana
+          audit log."
           # --force-with-lease so a same-day re-run (workflow_dispatch retry,
           # cron-vs-dispatch race) overwrites the prior draft commit cleanly
           # instead of failing the non-fast-forward push - per code-review #317.

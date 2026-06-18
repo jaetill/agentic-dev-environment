@@ -14,8 +14,9 @@ POLL_TIMEOUT=3600  # 60-minute wall-clock max; dreams typically run in minutes t
 POLL_INTERVAL=30
 
 if [[ -z "${ANTHROPIC_API_KEY:-}" ]]; then
-  echo "::error::ANTHROPIC_API_KEY secret is not set."
-  exit 1
+  echo "::warning::ANTHROPIC_API_KEY not set — Dreams curation is an optional beta; skipping (no-op, run stays green)."
+  echo "::warning::Request access at https://claude.com/form/claude-managed-agents, then add the ANTHROPIC_API_KEY secret to enable."
+  exit 0
 fi
 
 # ── access check ─────────────────────────────────────────────────────────────
