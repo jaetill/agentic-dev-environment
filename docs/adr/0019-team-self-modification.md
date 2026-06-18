@@ -9,6 +9,8 @@
 
 > **Amended by [ADR-0032](0032-additive-self-change-auto-lane.md):** introduces a narrow, deterministically-gated exception to human-ratified self-change — additive agent output-contract tightenings (one non-rail-enforcer agent file, size-capped, no guardrail vocabulary, `agent-quality` origin) auto-merge without ratification; everything else still routes here for human ratification.
 
+> **Amended by [ADR-0047](0047-firewall-gates-on-capability-delta.md):** the firewall predicate is sharpened from change *structure* to *capability delta* — a self-change holds only when it expands loop capability or weakens a control (gate/governance file, guardrail vocabulary, net-new external action, or destructive migration), decided deterministically by `additive-self-change-guard.sh`. The categorical floor (the system cannot weaken its own controls unsupervised) is preserved.
+
 > **Amended by [ADR-0038](0038-self-changes-route-through-formulation.md):** sub-decision 3's *routing* changes — a compositional self-change is filed as a `needs-formulation` + `requires-adr` intake issue and ratified through human formulation (ADR-0036), not a bespoke "route to architect" stop. The competence gate and the firewall (human ratifies, ADR required, ADR-0023 merge hold, credential boundary) are unchanged.
 
 ## Context and Problem Statement

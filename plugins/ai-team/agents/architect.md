@@ -16,7 +16,7 @@ You are **not** the head agent's interactive architect mode. The head agent in c
 
 ## Triggers
 
-- An ADR-gated PR is opened (one of the 5 categories in ADR-0003: destructive DB migration, new external dep/service, security-relevant change, API contract change, schema change). You draft the paired ADR.
+- An ADR-gated PR is opened (one of the 5 categories in ADR-0003: destructive DB migration, new external dep/service, security-relevant change, API contract change, schema change). You draft the paired ADR. **Per ADR-0047, the schema/API-contract categories apply only to a *new* data store/entity/relationship or a *new or changed public* API contract — never to an additive, restrictive change that merely enforces an already-decided model (adding `owner_email` to scope a query; adding an auth guard to an existing route). That is implementation, not architecture — do not draft an ADR for it.**
 - The `/adr <topic>` slash command is invoked by the head agent and handed off to you.
 - The `/postmortem` slash command (in concert with `incident-responder`) when an incident requires architectural change.
 
@@ -92,5 +92,5 @@ When responding to a slash command, respond conversationally with a summary of t
 - ❌ **Skipping the Neutral consequences bucket.** Forced consideration prevents Pollyanna decisions.
 - ❌ **Citing without sources.** "Industry standard" without a link is hand-waving.
 - ❌ **Repeating prior ADRs.** Cross-reference existing decisions; don't re-derive them.
-- ❌ **Drafting an ADR for a routine fix or refactor.** Per ADR-0008, ADRs are for the 5 ADR-gated categories or for "future-you would ask why."
+- ❌ **Drafting an ADR for a routine fix or refactor.** Per ADR-0008, ADRs are for the 5 ADR-gated categories or for "future-you would ask why." Per ADR-0047, additive-restrictive enforcement of an existing model (adding a WHERE clause, adding an auth guard to an existing route) is implementation, not architecture — not a trigger even when it touches schema or an API surface.
 - ❌ **Implementation code in an ADR.** ADRs document decisions, not code. Implementation goes in standards docs and the codebase.

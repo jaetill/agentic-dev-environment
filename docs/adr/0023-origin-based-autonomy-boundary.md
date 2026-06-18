@@ -9,6 +9,8 @@
 
 > **Amended by [ADR-0032](0032-additive-self-change-auto-lane.md):** the compositional-self-change human checkpoint gains a deterministically-gated exception — additive agent output-contract tightenings auto-merge via the `additive-self-change-guard` inside the auto-merge gate; out-of-lane agent edits are still held for human ratification.
 
+> **Amended by [ADR-0047](0047-firewall-gates-on-capability-delta.md):** the merge-time hold is decided by a deterministic *capability-delta* guard (changed gate/governance file, guardrail vocabulary, net-new external action, or destructive migration), authoritative over the advisory `compositional-self-change` label. Routine/mechanical platform fixes ship like project work, and `requires-adr` no longer fires on additive changes that merely enforce an existing model.
+
 > **Amended by [ADR-0039](0039-merge-is-autonomous-human-gate-moves-to-prod.md):** the origin-based human-merge hold (`HHUM` — human-origin work waiting for a human merge) is **retired**. Code merge is autonomous for all review-passing linked work regardless of origin; the human checkpoint moves to test→prod promotion for user-facing features (#179). The compositional-self-change firewall hold and the `requires-adr` architectural hold are unchanged — ADR-0039 relaxes only the *origin* axis at the merge, not the firewall.
 
 > **Reader note (2026-06-04):** the Decision Outcome's sentence "Human-filed **features** keep the ADR-0017 plan-gate" was accurate when written; the plan-gate was later made opt-in by [ADR-0033](0033-opted-in-features-build-without-plan-gate.md) and retired by [ADR-0036](0036-human-intake-model.md) — features are now scoped at human intake (formulation → `approved`) instead.
