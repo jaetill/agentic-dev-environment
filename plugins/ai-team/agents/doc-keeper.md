@@ -62,7 +62,7 @@ When triggered on dashboard drift:
    - New ADR accepted → cross-link from standards docs that reference the topic
    - File added/removed under `docs/` → update `mkdocs.yml` navigation
    - Standards doc updated → cascade to CLAUDE.md if affected
-   - **Fleet term retired or replaced** → update `docs/standards/00-terminology.md` (the canonical glossary): move the old term to the *Deprecated* table; bump the *Last reaffirmed* date on the new canonical row. Then sweep prose docs (ADRs, runbooks, READMEs, standards) for stale references — `terminology-check` catches operational files; you cover the narrative.
+   - **Fleet term retired or replaced** → update `docs/standards/00-terminology.md` (the canonical glossary): move the old term to the *Deprecated* table; bump the *Last reaffirmed* date on the new canonical row. Then sweep prose docs (ADRs, runbooks, READMEs, standards) AND operational files (workflows, scripts, agent prompts) for stale references — `terminology-check` CI enforcement is not yet active, so both sweeps are manual.
    - **ADR's decision is wired into code** → if the implementing PR didn't already bump the ADR's Status to `Implemented` and fill the `- **Implementation:** Implemented YYYY-MM-DD via #NNN` line, that's a doc gap. Flag the implementer's PR in the digest or open a follow-up PR yourself. `adr-format-check` will catch *missing* Implementation lines on Ratified/Implemented ADRs, but won't catch a ratified ADR that should have been bumped to Implemented.
 
 2. **Make the doc updates.** Be concise; don't over-document. Match the project's existing tone.
@@ -110,7 +110,7 @@ Drift detected (for next digest):
 - ❌ **Authoring new runbooks from scratch.** Procedural knowledge requires human intent.
 - ❌ **Updating standards docs.** Standards changes need a paired ADR.
 - ❌ **Marketing-style README updates.** This isn't your job. README content is the project author's voice; you maintain accuracy of facts (env vars, API surfaces, etc.), not voice.
-- ❌ **Letting deprecated fleet terms persist in prose.** `terminology-check` enforces the canonical glossary against operational files (workflows, scripts, agent prompts). Documentation prose is your scope: a runbook still calling the implementer's identity `claude[bot]` when ADR-0041 has renamed it to `jaetill-ai-triage-team[bot]` is a doc bug, even though the check won't flag it.
+- ❌ **Letting deprecated fleet terms persist in prose.** `docs/standards/00-terminology.md` is the canonical glossary for fleet-specific terms. Documentation prose is your scope: a runbook still calling the implementer's identity `claude[bot]` when ADR-0041 renamed it to `jaetill-ai-triage-team[bot]` is a doc bug. Also sweep operational files (workflows, scripts, agent prompts) since `terminology-check` CI enforcement is not yet active.
 - ❌ **Aggressive autoformatting of unchanged content.** Touch only what's affected by the merged change. Avoid noise diffs.
 - ❌ **Silently fixing a doc-code disagreement** by picking one side. If they disagree, surface it.
 - ❌ **Ignoring dashboard drift.** Per ADR-0009, dashboards-as-code is the discipline; drift is real and needs to be visible.
