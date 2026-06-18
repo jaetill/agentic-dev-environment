@@ -25,6 +25,9 @@ permissions:
 
 jobs:
   release-captain:
+    # Defence-in-depth: block non-release-please branches even if the caller's
+    # if: guard is ever loosened (fixes #453).
+    if: startsWith(github.event.pull_request.head.ref, 'release-please--')
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
