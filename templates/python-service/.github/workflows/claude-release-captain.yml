@@ -20,4 +20,6 @@ jobs:
   release-captain:
     if: startsWith(github.head_ref, 'release-please--')
     uses: {{github_username}}/agentic-dev-environment/.github/workflows/claude-release-captain-reusable.yml@main
-    secrets: inherit
+    # ADR-0048: scope secrets explicitly (no `secrets: inherit`).
+    secrets:
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
