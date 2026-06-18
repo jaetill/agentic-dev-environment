@@ -210,8 +210,15 @@ jobs:
             echo "skip=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          if [[ "$head_user" != "claude[bot]" ]]; then
-            echo "::notice::PR author '$head_user' is not claude[bot]; skipping."
+          # Implementer PRs are authored by the jaetill-ai-triage-team App
+          # installation — the SAME identity the auto-merger gates on
+          # (triage-scan.yml). The legacy `claude[bot]` author check was stale:
+          # it matched no current PR, so Mode B fix-iteration was a permanent
+          # no-op (every BLOCK comment skipped here, PRs stalled for a human).
+          # Anchored regex matches both gh serializations (`app/<slug>` and
+          # `<slug>[bot]`); reviewer COMMENTS are still claude[bot] (gated above).
+          if [[ ! "$head_user" =~ ^(app/)?jaetill-ai-triage-team(\[bot\])?$ ]]; then
+            echo "::notice::PR author '$head_user' is not the implementer App (jaetill-ai-triage-team[bot]); skipping fix-iteration."
             echo "skip=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
