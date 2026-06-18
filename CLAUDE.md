@@ -91,3 +91,4 @@ This repo runs an **autonomous agent loop on GitHub Actions cron** — *not* Cow
 - Don't write standards docs without the matching ADR.
 - Don't introduce a new tool without an ADR justifying it over alternatives.
 - Don't ship a standard that hasn't been decided — placeholder pages are fine; fabricated content isn't.
+- Don't pin **first-party** reusable workflows (`jaetill/agentic-dev-environment/...`) to a SHA — they ride `@main` behind the hardened upstream so platform fixes propagate (ADR-0048/0034); pinning is for third-party actions only. Forward explicit minimal secrets to reusables, never `secrets: inherit`.

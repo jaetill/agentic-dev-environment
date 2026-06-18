@@ -212,6 +212,13 @@ Each scaffolded project references reusable workflows from this repo (`workflows
 
 Implementation of these workflows happens in Task #15 (Wire reusable GitHub Actions workflows).
 
+### Workflow reference & secret-forwarding policy (ADR-0048)
+
+- **First-party reusables ride `@main`.** App callers reference these platform reusables at `@main` (ADR-0034) so platform fixes propagate automatically. A `@main` ref on a *first-party* reusable is **accepted policy, not a supply-chain defect** — the mutable-ref risk is mitigated at the source (platform `main` is branch-protected: no force-push, no deletions, required checks + the ADR-0047 firewall). **Do not pin first-party reusables to a SHA** — it breaks propagation, can't auto-merge (the App-token validation gate rejects any caller-file edit on a PR), and can delay reusable security fixes from reaching apps.
+- **Third-party actions are SHA-pinned** (`anthropics/claude-code-action`, `actions/*`, any non-first-party action), with a `# vX` comment. Pinning is for code we don't own.
+- **Forward only the secrets a reusable consumes — never `secrets: inherit`.** Pass an explicit minimal `secrets:` block: `claude-pr-review` → `CLAUDE_CODE_OAUTH_TOKEN`; `claude-implementer` → `CLAUDE_CODE_OAUTH_TOKEN`, `IMPLEMENTER_PAT`, `FLEET_APP_ID`, `FLEET_APP_PRIVATE_KEY`. This bounds a reusable's blast radius to what it actually needs.
+- Caller-workflow edits cannot pass the App-token validation gate on a PR, so they land via maintainer **admin-merge** — never leave such work `ready-for-implementer`.
+
 ## 9. Setup checklist
 
 When bootstrapping a new project, the `new-project.sh` script will:

@@ -137,7 +137,7 @@ jobs:
       # short-lived (~1h). Supersedes FEEDBACK_READ_TOKEN.
       - name: Mint fleet App token
         id: fleet-token
-        uses: actions/create-github-app-token@v1
+        uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1
         with:
           app-id: ${{ secrets.FLEET_APP_ID }}
           private-key: ${{ secrets.FLEET_APP_PRIVATE_KEY }}
@@ -171,7 +171,7 @@ jobs:
           FLEET_MAX_DISPATCH: ${{ vars.FLEET_MAX_DISPATCH_PER_RUN || '6' }}
           AVAILABLE: ${{ steps.budget.outputs.available }}
           WINDOW: ${{ needs.window.outputs.window }}
-        uses: anthropics/claude-code-action@v1
+        uses: anthropics/claude-code-action@d5726de019ec4498aa667642bc3a80fca83aa102 # v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -342,7 +342,7 @@ jobs:
     steps:
       - name: Mint fleet App token
         id: fleet-token
-        uses: actions/create-github-app-token@v1
+        uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1
         with:
           app-id: ${{ secrets.FLEET_APP_ID }}
           private-key: ${{ secrets.FLEET_APP_PRIVATE_KEY }}
@@ -378,12 +378,22 @@ jobs:
           cap=${AUTONOMOUS_MERGE_CAP:-10}
           for repo in $REPOS; do
             slug="jaetill/${repo}"
-            # Implementer-authored PRs only. `gh pr list --json author` renders
-            # a GitHub App bot's login as `app/<slug>` (NOT `<slug>[bot]`, the
-            # webhook/git form) — verified against meal-planner #64/#65/#68,
-            # all `app/claude`. release-please and human PRs are excluded.
+            # Implementer-authored PRs only. The original `author.login ==
+            # "app/claude"` filter (closed #58) never matched. A subsequent
+            # attempt to filter on commit-author-name (security-review #349)
+            # was rejected as spoofable — `git config user.name` is
+            # free-form and can be set by any committer with write access.
+            # The fleet implementer now creates PRs via the
+            # jaetill-ai-triage-team App installation token (claude-implementer-
+            # reusable.yml manual-dispatch step). `gh pr list --json author`
+            # may render the bot's login as either `app/<slug>` (the form
+            # release-please surfaces today) or `<slug>[bot]` (the comment-actor
+            # form) depending on the gh CLI version's serialization. Anchored
+            # regex prevents a bot whose login contains the App slug as a
+            # substring (e.g. "jaetill-ai-triage-team-staging") from slipping
+            # through (#355). `is_bot == true` still gates out human accounts.
             prs=$(gh pr list --repo "$slug" --state open --json number,author \
-                    --jq '.[] | select(.author.login == "app/claude") | .number' 2>/dev/null || true)
+                    --jq '.[] | select(.author.is_bot == true and (.author.login | test("^(app/)?jaetill-ai-triage-team(\\[bot\\])?$"))) | .number' 2>/dev/null || true)
             for pr in $prs; do
               if [[ "$merged" -ge "$cap" ]]; then
                 echo "::notice::Auto-merge per-run cap ($cap) reached — remaining qualifying PRs left for the next window."
@@ -399,15 +409,10 @@ jobs:
                 gh pr edit "$pr" --repo "$slug" --add-label "hold:adr" >/dev/null 2>&1 || true
                 echo "  $slug#$pr — requires-adr label; hold:adr for human"; held=$((held+1)); continue
               fi
-              # ADR-0023 narrowed self-mod floor: compositional self-changes —
-              # changes to the team's gates, agent roster, standards, or
-              # security posture — keep a human checkpoint. The implementer or
-              # architect applies this label when it classifies the change as
-              # compositional; auto-merge holds the PR for a human merge.
-              if echo "$meta" | jq -e '[.labels[].name] | any(. == "compositional-self-change")' >/dev/null 2>&1; then
-                gh pr edit "$pr" --repo "$slug" --add-label "hold:compositional" >/dev/null 2>&1 || true
-                echo "  $slug#$pr — compositional-self-change label; hold:compositional for human (ADR-0023)"; held=$((held+1)); continue
-              fi
+              # ADR-0047: the compositional hold is no longer driven by the
+              # LLM-applied `compositional-self-change` label — it is decided by
+              # the deterministic capability-delta guard below (authoritative).
+              # The label survives as an advisory hint only.
               # ADR-0021 cond. 1, as amended by ADR-0039: a linked issue must be
               # PRESENT for traceability, but its ORIGIN no longer gates the
               # merge. ADR-0023's HHUM hold — human-origin work waiting for a
@@ -416,10 +421,10 @@ jobs:
               # human's checkpoint moves off the merge and onto test->prod
               # promotion for user-facing features (#179); until that gate
               # exists, all merges/releases are treated as test. The
-              # architectural and self-change gates above (requires-adr:*,
-              # compositional-self-change) and the checks battery below still
-              # hold — this is "routine reviewed work ships itself," never
-              # "skip the checks."
+              # architectural gate above (requires-adr:* -> hold:adr), the
+              # capability-delta firewall below (ADR-0047), and the checks
+              # battery still hold — this is "routine reviewed work ships
+              # itself," never "skip the checks."
               issue=$(echo "$meta" | jq -r '.body // ""' \
                         | grep -ioE '(close[sd]?|fix(e[sd])?|resolve[sd]?) +#[0-9]+' \
                         | grep -oE '[0-9]+' | head -1 || true)
@@ -429,23 +434,29 @@ jobs:
               # issue_meta is still read: the ADR-0032 (agent-quality) and
               # ADR-0035 (scope:iac) gates below classify from the issue labels.
               issue_meta=$(gh issue view "$issue" --repo "$slug" --json author,labels 2>/dev/null || echo '{}')
-              # ADR-0032 additive self-change lane. If this PR touches the loop's
-              # own agent definitions, it may auto-merge ONLY if the deterministic
-              # guard classifies it IN_LANE: exactly one non-rail-enforcer agent
-              # file, within the size cap, no guardrail vocabulary on any changed
-              # line, agent-quality origin. OUT_OF_LANE agent edits are held for
-              # human ratification (the self-change firewall — ADR-0019/0023).
-              # Non-agent PRs classify NOT_SELF_CHANGE and pass through unaffected.
-              has_aq=$(echo "$issue_meta" | jq -r '[.labels[].name] | any(. == "agent-quality")' 2>/dev/null || echo false)
+              # ADR-0047 capability-delta firewall (generalizes the ADR-0032
+              # additive self-change lane). The deterministic guard runs on
+              # EVERY candidate PR and decides whether the change expands loop
+              # capability or weakens a control: a changed gate/governance file,
+              # guardrail vocabulary on an added/removed line, a net-new external
+              # action, or a destructive migration. HOLD -> hold:compositional
+              # for human ratification; IN_LANE -> routine reviewed work ships
+              # itself. The guard is authoritative — it does not rely on the
+              # agent-applied compositional-self-change label. Fail closed: a
+              # guard error holds. IAM/IaC risk is judged by the ADR-0035 gate
+              # below, not here.
+              # The compositional firewall is platform-only (ADR-0019/0047):
+              # app-repo changes are never self-changes. Pass repo context so the
+              # guard scopes its gate-machinery checks accordingly.
+              is_platform_repo=$([[ "$slug" == "$GITHUB_REPOSITORY" ]] && echo true || echo false)
               guard=$(CHANGED_FILES="$(gh pr view "$pr" --repo "$slug" --json files --jq '.files[].path' 2>/dev/null || true)" \
                       DIFF="$(gh pr diff "$pr" --repo "$slug" 2>/dev/null || true)" \
-                      HAS_AGENT_QUALITY="$has_aq" \
-                      bash "${GITHUB_WORKSPACE}/scripts/additive-self-change-guard.sh" 2>/dev/null || echo "OUT_OF_LANE: guard error")
+                      IS_PLATFORM="$is_platform_repo" \
+                      bash "${GITHUB_WORKSPACE}/scripts/additive-self-change-guard.sh" 2>/dev/null || echo "HOLD: guard error")
               case "$guard" in
-                NOT_SELF_CHANGE) ;;
-                IN_LANE*) echo "  $slug#$pr — additive self-change, $guard (ADR-0032)";;
+                IN_LANE*) echo "  $slug#$pr — capability-neutral, $guard (ADR-0047)";;
                 *) gh pr edit "$pr" --repo "$slug" --add-label "hold:compositional" >/dev/null 2>&1 || true
-                   echo "  $slug#$pr — self-change hold:compositional for human ($guard)"; held=$((held+1)); continue;;
+                   echo "  $slug#$pr — hold:compositional for human ($guard) (ADR-0047)"; held=$((held+1)); continue;;
               esac
               # ADR-0035 — scope:iac PRs auto-merge (== auto-apply on dev via the
               # push:[main] deploy cascade) ONLY behind an affirmative deterministic
@@ -496,12 +507,56 @@ jobs:
                 held=$((held+1)); continue
               fi
               mss=$(echo "$meta" | jq -r '.mergeStateStatus // "UNKNOWN"')
+              # UNKNOWN = GitHub is still (re)computing mergeability — almost
+              # always transient, and routinely triggered when a PREVIOUS merge
+              # in this same run advanced the base. Holding on UNKNOWN caps the
+              # sweep at ~1 merge per run (every other eligible PR flips to
+              # UNKNOWN the moment the first one lands). Re-poll briefly so one
+              # run can drain a whole batch instead of one-per-sweep.
+              repoll=0
+              while [[ "$mss" == "UNKNOWN" && $repoll -lt 5 ]]; do
+                sleep 4; repoll=$((repoll+1))
+                mss=$(gh pr view "$pr" --repo "$slug" --json mergeStateStatus --jq '.mergeStateStatus // "UNKNOWN"' 2>/dev/null || echo "UNKNOWN")
+              done
               case "$mss" in
                 CLEAN|UNSTABLE) ;;  # required checks green → eligible to merge
-                *) echo "  $slug#$pr — mergeStateStatus=$mss; hold (required check failing/pending, review outstanding, behind, or still computing)"
+                BEHIND) echo "  $slug#$pr — hold: BEHIND base branch (needs branch update)"; held=$((held+1)); continue;;
+                DIRTY)  echo "  $slug#$pr — hold: DIRTY merge conflict (needs rebase — ADR-0042)"; held=$((held+1)); continue;;
+                BLOCKED)
+                  # Distinguish a failing/pending REQUIRED CHECK from a
+                  # branch-protection REVIEW/CODEOWNERS gate: if no check bucket
+                  # is failing or pending, the block is a human review/owner
+                  # requirement, not CI. Made explicit so a codeowner-review
+                  # deadlock can't hide behind a catch-all message (the platform
+                  # repo's `* @jaetill` + "require code-owner review" stalled
+                  # every App-authored PR silently — 2026-06-16).
+                  if printf '%s\n' "$buckets" | grep -Eqi '^(fail|pending)$'; then
+                    echo "  $slug#$pr — hold: BLOCKED — a required check is failing/pending"
+                  else
+                    echo "  $slug#$pr — hold: BLOCKED with all checks green → branch-protection review/CODEOWNERS gate (needs a human; not a CI failure)"
+                  fi
+                  held=$((held+1)); continue;;
+                *) echo "  $slug#$pr — hold: mergeStateStatus=$mss (still computing or unsupported)"
                    held=$((held+1)); continue;;
               esac
-              # All four conditions hold — strip any stale hold:* marker
+              # Belt-and-suspenders: ADR-0021 hard gates — security-review and
+              # code-review must be explicitly present and passing. mergeStateStatus
+              # only enforces these if the repo has them configured as required
+              # checks; if the caller stub is absent or has an unmet `if:`, the
+              # check surfaces as skipping, which does not affect mergeStateStatus
+              # and would pass the gate above silently (issue #61).
+              all_checks=$(gh pr checks "$pr" --repo "$slug" --json name,bucket 2>/dev/null || echo '[]')
+              for hard_gate in security-review code-review; do
+                gate_bucket=$(echo "$all_checks" \
+                  | jq -r --arg g "$hard_gate" \
+                      '[.[] | select(.name | test($g)) | .bucket] | first // ""')
+                if [[ "$gate_bucket" != "pass" ]]; then
+                  gh pr edit "$pr" --repo "$slug" --add-label "hold:review-gate" >/dev/null 2>&1 || true
+                  echo "  $slug#$pr — $hard_gate not passing (bucket: ${gate_bucket:-absent}); hold:review-gate (ADR-0021 #61)"
+                  held=$((held+1)); continue 2
+                fi
+              done
+              # All conditions hold — strip any stale hold:* marker
               # (label law: strip-on-exit, ADR-0044) and merge as the fleet App.
               stale_holds=$(echo "$meta" | jq -r '[.labels[].name | select(startswith("hold:"))] | join(",")' 2>/dev/null || true)
               if [[ -n "$stale_holds" ]]; then
@@ -510,21 +565,23 @@ jobs:
               if gh pr merge "$pr" --repo "$slug" --squash --delete-branch; then
                 echo "::notice::Auto-merged $slug#$pr (fix for #$issue) per ADR-0021."
                 merged=$((merged+1))
-                # ADR-0032 self-change digest — log auto-merged agent self-edits
-                # to a standing issue for after-the-fact visibility. Fully
+                # ADR-0047 self-change digest — log every auto-merged PLATFORM
+                # self-change to a standing issue for after-the-fact visibility
+                # (the compositional firewall is platform-only, so a platform
+                # auto-merge is exactly a guard-passed self-change). Fully
                 # isolated (subshell + || true): a digest failure can never
                 # affect the merge loop, and runs only after the merge succeeded.
-                if [[ "${has_aq:-false}" == "true" ]]; then ( set +e
-                  log=$(gh issue list --repo jaetill/agentic-dev-environment --state open \
+                if [[ "$is_platform_repo" == "true" ]]; then ( set +e
+                  log=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open \
                           --search "Agent self-change log in:title" --json number --jq '.[0].number')
                   if [[ -z "$log" ]]; then
-                    url=$(gh issue create --repo jaetill/agentic-dev-environment \
-                            --title "Agent self-change log (ADR-0032)" \
-                            --body "Running log of additive agent self-edits the loop auto-merged without human review (ADR-0032). Each entry links the merged PR.")
+                    url=$(gh issue create --repo "$GITHUB_REPOSITORY" \
+                            --title "Agent self-change log (ADR-0047)" \
+                            --body "Running log of platform self-changes the loop auto-merged without human review (capability-delta IN_LANE, ADR-0047). Each entry links the merged PR.")
                     log="${url##*/}"
                   fi
-                  [[ -n "$log" ]] && gh issue comment "$log" --repo jaetill/agentic-dev-environment \
-                    --body "Auto-merged self-edit: ${slug}#${pr} (agent-quality fix for #${issue})."
+                  [[ -n "$log" ]] && gh issue comment "$log" --repo "$GITHUB_REPOSITORY" \
+                    --body "Auto-merged self-change: ${slug}#${pr} (fix for #${issue})."
                 ) || true; fi
               else
                 echo "::warning::$slug#$pr qualified but the merge failed; left for a human."
@@ -579,7 +636,7 @@ jobs:
       - uses: actions/checkout@v4   # for scripts/fleet-inflight.sh
       - name: Mint fleet App token
         id: fleet-token
-        uses: actions/create-github-app-token@v1
+        uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1
         with:
           app-id: ${{ secrets.FLEET_APP_ID }}
           private-key: ${{ secrets.FLEET_APP_PRIVATE_KEY }}
