@@ -50,15 +50,15 @@ jobs:
           gh pr create \
             --title "chore(memory): Dreams curation $(date -u +%Y-%m-%d)" \
             --body "$(cat <<'PREOF'
-## Summary
+          ## Summary
 
-Weekly memory curation by the Anthropic Dreams API (\`dreaming-2026-04-21\` beta).
+          Weekly memory curation by the Anthropic Dreams API (\`dreaming-2026-04-21\` beta).
 
-The Dreams pipeline read the current \`memory/\` files alongside recent Managed Agents session transcripts, then produced a reorganised store: duplicates merged, stale entries replaced with the latest value, and cross-session insights surfaced. The input store was not modified.
+          The Dreams pipeline read the current \`memory/\` files alongside recent Managed Agents session transcripts, then produced a reorganised store: duplicates merged, stale entries replaced with the latest value, and cross-session insights surfaced. The input store was not modified.
 
-**Review guidance:**
-- Accept if the curated memories are cleaner and more coherent than the originals.
-- Close/discard if the output dropped important content or introduced noise.
-- The next weekly run will use the merged \`memory/\` as its new baseline.
-PREOF
-)" || true
+          **Review guidance:**
+          - Accept if the curated memories are cleaner and more coherent than the originals.
+          - Close/discard if the output dropped important content or introduced noise.
+          - The next weekly run will use the merged \`memory/\` as its new baseline.
+          PREOF
+          )" || true
