@@ -11,6 +11,11 @@ name: claude-release-captain (reusable)
 
 on:
   workflow_call:
+    # ADR-0048: declare the consumed secret so callers scope it explicitly
+    # instead of `secrets: inherit` (required:false keeps any inherit caller working).
+    secrets:
+      CLAUDE_CODE_OAUTH_TOKEN:
+        required: false
 
 permissions:
   contents: write        # auto-merge the release PR
