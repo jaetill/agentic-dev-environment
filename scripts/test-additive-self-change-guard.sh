@@ -31,6 +31,7 @@ run "plugins hooks (H2) → HOLD" "HOLD: gate/governance" "g 'plugins/ai-team/ho
 run "plugins skills standard → HOLD" "HOLD: gate/governance" "g 'plugins/ai-team/skills/standards-ai-workflows/standard.md' '+t'"
 run "rail-enforcer agent (architect) → HOLD" "HOLD: gate/governance" "g 'plugins/ai-team/agents/architect.md' '+t'"
 run "implementer agent → HOLD" "HOLD: gate/governance" "g 'plugins/ai-team/agents/implementer.md' '+t'"
+run "code-reviewer agent → HOLD" "HOLD: gate/governance" "g 'plugins/ai-team/agents/code-reviewer.md' '+t'"
 run "CODEOWNERS → HOLD" "HOLD: gate/governance" "g 'CODEOWNERS' '+* @x'"
 
 echo "== control-weakening / destructive / net-new HOLDS =="
