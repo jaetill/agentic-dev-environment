@@ -78,7 +78,12 @@ jobs:
           echo "✅ All agent frontmatter fields present"
 
   adr-format-check:
-    # Verify every ADR has the required MADR 4.x sections
+    # Verify every ADR has the required MADR 4.x sections AND, when the ADR
+    # is in Ratified/Implemented state, the **Implementation** tracking line.
+    # The Implementation line addresses the ratification-without-implementation
+    # silent failure: today's auto-merger filter inconsistency lived in the
+    # 6-day gap between ADR-0041 ratification (2026-06-04) and step-3
+    # implementation (2026-06-10). See docs/adr/template.md > Lifecycle.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -86,6 +91,7 @@ jobs:
         run: |
           set -e
           missing=0
+          impl_missing=0
           for adr in docs/adr/[0-9]*.md; do
             for section in \
               "## Context and Problem Statement" \
@@ -99,9 +105,26 @@ jobs:
                 missing=$((missing + 1))
               fi
             done
+            # Implementation tracking. Required when the ADR's Status line
+            # contains Ratified or Implemented. Captures whether the ADR's
+            # decision has actually been wired into code, and through which
+            # PR(s). Pre-existing ADRs without an Implementation line stay
+            # passing as long as their Status remains Accepted/Proposed; an
+            # edit that bumps Status to Ratified/Implemented must add it.
+            status_line=$(grep -E '^- \*\*Status:\*\*' "$adr" | head -1 || true)
+            if echo "$status_line" | grep -qE 'Ratified|Implemented'; then
+              if ! grep -qE '^- \*\*Implementation:\*\*' "$adr"; then
+                echo "::error file=$adr::Status is Ratified/Implemented but no '- **Implementation:**' line. Add: '- **Implementation:** Implemented YYYY-MM-DD via #NNN' OR 'Pending behind {description}' OR 'N/A (no code changes required)'. See docs/adr/template.md."
+                impl_missing=$((impl_missing + 1))
+              fi
+            fi
           done
           if [[ $missing -gt 0 ]]; then
             echo "::error::$missing ADR files have missing required sections"
             exit 1
           fi
-          echo "✅ All ADRs have required MADR 4.x sections"
+          if [[ $impl_missing -gt 0 ]]; then
+            echo "::error::$impl_missing Ratified/Implemented ADRs are missing the Implementation tracking line"
+            exit 1
+          fi
+          echo "✅ All ADRs have required MADR 4.x sections and Implementation tracking where required"

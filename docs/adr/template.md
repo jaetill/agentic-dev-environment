@@ -1,9 +1,12 @@
 # ADR-NNNN: {short title}
 
-- **Status:** Proposed | Accepted | Deprecated | Superseded by ADR-NNNN
+- **Status:** Proposed | Accepted | Ratified | Implemented | Deprecated | Superseded by ADR-NNNN
 - **Date:** YYYY-MM-DD
+- **Implementation:** Implemented YYYY-MM-DD via #NNN[, #NNN] | Pending behind {description} | N/A (no code changes required)
 - **Deciders:** {names}
 - **Tags:** {comma-separated, e.g. testing, ci-cd, aws}
+
+> **Lifecycle:** `Proposed` (drafted, undecided) → `Accepted` (decided, awaiting human ratify) → `Ratified` (human-approved, PR merged, code changes pending) → `Implemented` (code changes merged). `Deprecated` / `Superseded by ADR-NNNN` are terminal. The **Implementation** line is required when the ADR is in `Ratified` or `Implemented` state and is enforced by `adr-format-check`. It exists because ratification-without-implementation is the silent-failure mode that produces today's recurring inconsistency class — an ADR can sit "Accepted/Ratified" for weeks while code still matches the *old* decision (ADR-0041 sat ratified-but-not-implemented from 2026-06-04 to 2026-06-10, which is what produced today's auto-merger filter mess).
 
 > **Format:** This ADR follows [MADR 4.x](https://adr.github.io/madr/) with three documented extensions: (1) **Neutral consequences** as a third bucket alongside Positive/Negative; (2) **Implementation notes** as a separate section before Links; (3) **Bundled sub-decisions** when multiple related decisions are tightly coupled (each sub-decision gets its own Considered Options and Pros and Cons sections).
 
