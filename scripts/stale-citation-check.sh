@@ -28,12 +28,13 @@ set -uo pipefail
 TITLE="${ISSUE_TITLE:-}"
 BODY="${ISSUE_BODY:-}"
 
-# strip_line_number <raw> — strips a trailing :<digits> suffix (line number).
-# A path like "src/auth/session.js:42" becomes "src/auth/session.js".
+# strip_line_number <raw> — strips a trailing :<digits> or :<digits>-<digits>
+# suffix (line number or range).  "src/auth/session.js:42" and
+# "triage-scan.yml:390-391" both become the bare file path.
 # A directory like "src/auth/" is returned unchanged.
 strip_line_number() {
   local raw="$1"
-  if [[ "$raw" =~ ^(.+):[0-9]+$ ]]; then
+  if [[ "$raw" =~ ^(.+):[0-9]+(-[0-9]+)?$ ]]; then
     printf '%s' "${BASH_REMATCH[1]}"
   else
     printf '%s' "$raw"
@@ -51,7 +52,7 @@ while IFS= read -r line; do
     # Strip at most one trailing punctuation char that may close a sentence
     # (e.g. "...at src/foo.js:42." or "...at src/foo.js:42,")
     # Using % (shortest suffix) not %% (longest) so file extensions are safe.
-    raw="${raw%[,.)}"
+    raw="${raw%[,.)]}"
     [[ -z "$raw" ]] && continue
     p="$(strip_line_number "$raw")"
     [[ -n "$p" ]] && paths+=("$p")
