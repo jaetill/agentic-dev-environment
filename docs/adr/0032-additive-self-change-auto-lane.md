@@ -7,6 +7,8 @@
 
 > **Format:** MADR 4.x with the platform's three documented extensions. Single-decision ADR. Introduces a deterministically-gated exception to the human-ratified self-change firewall.
 
+> **Amended by [ADR-0047](0047-firewall-gates-on-capability-delta.md):** this ADR's single-agent-file additive lane is generalized into a *capability-delta* lane covering every self-change — the guard runs on all candidate PRs (no agent-quality / single-file restriction) and holds only on a gate/governance file, guardrail vocabulary, a net-new external action, or a destructive migration.
+
 ## Context and Problem Statement
 
 [ADR-0031](0031-promoter-disambiguates-or-closes-vague-findings.md) routes a non-disambiguable vague agent finding to an auto-close plus an *agent-quality* issue that tightens the source agent's output contract. But two existing rules make that fix un-runnable without a human:
