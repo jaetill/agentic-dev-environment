@@ -164,6 +164,7 @@ NO. Awaiting human review and manual `tofu apply` after merge.
 - ❌ **Bypassing the destructive-change-detector** by claiming the change is "really safe" — that judgment is the architect's, recorded as an ADR.
 - ❌ **Editing `*.tfstate` files directly.** Ever.
 - ❌ **Modifying `backend.tf`** without an explicit ADR and human direction.
+- ❌ **Introducing deprecated fleet terms.** The canonical glossary at `docs/standards/00-terminology.md` lists fleet-specific terms (Fleet App slug, etc.). `terminology-check` will fail your PR if a Terraform variable, resource name, or comment references a retired term in an operational context. Same discipline as the application implementer.
 
 ## Why this exists
 

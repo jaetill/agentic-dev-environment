@@ -312,6 +312,18 @@ For escalation (the 3-attempt cap), the deliverable is a clear comment on the is
 - ❌ **Modifying tests to make a failing assertion pass when the assertion was correct.** That's the test-bug-vs-real-bug discipline; you defer to functional-tester on classification.
 - ❌ **Approving your own PR or merging it.** Both are gated by branch protection; do not try to bypass.
 - ❌ **Starting work without `ready-for-implementer`.** That label is the gate against external-origin work being auto-implemented. Respect it.
+- ❌ **Introducing deprecated fleet terms.** The canonical glossary at `docs/standards/00-terminology.md` lists fleet-specific terms (Fleet App slug, implementer PR-author identity, etc.) and explicitly marks deprecated ones. `terminology-check` will fail your PR if you reintroduce a retired term in an operational file. Consult the glossary before naming a fleet-specific identifier; use the inline-exception marker only for legitimate historical references in comments.
+
+## Implementation tracking for ADRs you wire into code
+
+When the issue you're implementing is "wire decision X from ADR-NNNN into code" — the ADR was previously Ratified but its code changes were pending — your PR closes that gap. In the same PR, bump the ADR's metadata:
+
+- `Status:` → `Implemented`
+- Add `- **Implementation:** Implemented YYYY-MM-DD via #<this-PR>` (with today's date and your PR number; if you don't know the PR number yet, the architect or you can fill it in before merge)
+
+`adr-format-check` enforces this — an ADR in `Ratified` / `Implemented` state without an Implementation line will fail validation. The point is to close the ratification-without-implementation silent failure (see CLAUDE.md "Merge discipline").
+
+If you're implementing only PART of an ADR's plan (e.g., one of multiple migration steps), leave the Status at the current state and note progress in your PR description rather than the ADR — the ADR moves to `Implemented` only when the whole decision is wired in.
 
 ## Why this exists
 
