@@ -108,6 +108,49 @@ else
   fail "STALE: lowercase **file:** should be recognised, got '$out'"
 fi
 
+# ── Line-range annotations (path:N-M) ────────────────────────────────────────
+
+# Existing file cited with a range should be PRESENT (regression from issue #386)
+out="$(run "x" "**File:** ${REAL_FILE}:10-20")"
+if [[ "$out" == "PRESENT" ]]; then
+  pass "PRESENT: body **File:** with line-range (path:N-M) that exists on HEAD"
+else
+  fail "PRESENT: expected 'PRESENT' for existing path with line-range, got '$out'"
+fi
+
+out="$(run "[code-reviewer] ${REAL_FILE}:390-391 — something" "")"
+if [[ "$out" == "PRESENT" ]]; then
+  pass "PRESENT: title convention path with line-range that exists on HEAD"
+else
+  fail "PRESENT: expected 'PRESENT' for title path with line-range, got '$out'"
+fi
+
+# Absent file with range → STALE, path stripped of range
+out="$(run "x" "**File:** ${GONE}:390-391")"
+if [[ "$out" == "STALE ${GONE}" ]]; then
+  pass "STALE: body **File:** absent path with line-range → STALE bare path"
+else
+  fail "STALE: expected 'STALE ${GONE}' for absent path with line-range, got '$out'"
+fi
+
+# ── Trailing punctuation strip ────────────────────────────────────────────────
+
+# Trailing comma after an existing path (e.g. "path/a.md, path/b.md" → first token has comma)
+out="$(run "x" "**File:** ${REAL_FILE},")"
+if [[ "$out" == "PRESENT" ]]; then
+  pass "PRESENT: trailing comma after existing path is stripped"
+else
+  fail "PRESENT: expected 'PRESENT' for path with trailing comma, got '$out'"
+fi
+
+# Trailing period after an absent path → STALE with bare path
+out="$(run "x" "**File:** ${GONE}.")"
+if [[ "$out" == "STALE ${GONE}" ]]; then
+  pass "STALE: trailing period after absent path is stripped → STALE bare path"
+else
+  fail "STALE: expected 'STALE ${GONE}' for absent path with trailing period, got '$out'"
+fi
+
 echo
 if [[ $failures -eq 0 ]]; then
   echo "All tests passed."

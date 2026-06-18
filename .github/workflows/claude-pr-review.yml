@@ -11,6 +11,13 @@ name: claude-pr-review (reusable)
 
 on:
   workflow_call:
+    # ADR-0048: declare the secrets this reusable consumes so callers can pass
+    # them explicitly (scoped) instead of `secrets: inherit`. required:false +
+    # GITHUB_TOKEN swapped to ${{ github.token }} below → inherit callers keep
+    # working AND explicit callers need only name what's below.
+    secrets:
+      CLAUDE_CODE_OAUTH_TOKEN:
+        required: false
 
 concurrency:
   group: claude-pr-review-${{ github.event.pull_request.number }}
@@ -63,7 +70,7 @@ jobs:
         with:
           fetch-depth: 0   # need full history to compute PR diff
       - name: Run code-reviewer agent
-        uses: anthropics/claude-code-action@v1
+        uses: anthropics/claude-code-action@d5726de019ec4498aa667642bc3a80fca83aa102 # v1
         with:
           # Authenticate against the one Claude Max subscription via OAuth.
           # Do NOT add anthropic_api_key here: claude-code-action, given
@@ -176,7 +183,7 @@ jobs:
         # prompt that "forgets" the VERDICT line, AND it catches an
         # honest VERDICT: APPROVE that's inconsistent with the body.
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           body=$(gh api "repos/${{ github.repository }}/issues/${PR_NUMBER}/comments" \
@@ -247,7 +254,7 @@ jobs:
           [ -f lambda/package-lock.json ] && npm ci --prefix lambda || echo "no lambda deps — skipping"
       - name: Run functional-tester agent
         if: needs.detect-node.outputs.node == 'true'
-        uses: anthropics/claude-code-action@v1
+        uses: anthropics/claude-code-action@d5726de019ec4498aa667642bc3a80fca83aa102 # v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           show_full_output: true
@@ -301,7 +308,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.ref }}
           # Use a token that can push to the PR branch. GITHUB_TOKEN
           # has write to contents per the workflow-level permissions block.
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ github.token }}
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -315,7 +322,7 @@ jobs:
           # there (platform issue #32). Mirrors claude-implementer.yml.
           [ -f lambda/package-lock.json ] && npm ci --prefix lambda || echo "no lambda deps — skipping"
       - name: Run test-writer agent
-        uses: anthropics/claude-code-action@v1
+        uses: anthropics/claude-code-action@d5726de019ec4498aa667642bc3a80fca83aa102 # v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           show_full_output: true
@@ -417,7 +424,7 @@ jobs:
           cat /tmp/e2e-output.txt
       - name: Run e2e-tester agent
         if: needs.detect-node.outputs.node == 'true'
-        uses: anthropics/claude-code-action@v1
+        uses: anthropics/claude-code-action@d5726de019ec4498aa667642bc3a80fca83aa102 # v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           show_full_output: true
@@ -487,7 +494,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Run doc-keeper agent
-        uses: anthropics/claude-code-action@v1
+        uses: anthropics/claude-code-action@d5726de019ec4498aa667642bc3a80fca83aa102 # v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           show_full_output: true
@@ -555,7 +562,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Run security-reviewer agent
-        uses: anthropics/claude-code-action@v1
+        uses: anthropics/claude-code-action@d5726de019ec4498aa667642bc3a80fca83aa102 # v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           show_full_output: true
@@ -636,7 +643,7 @@ jobs:
             --append-system-prompt "Follow the platform standards in docs/standards/."
       - name: "Enforce gate (hybrid VERDICT verification)"
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           body=$(gh api "repos/${{ github.repository }}/issues/${PR_NUMBER}/comments" \
@@ -826,7 +833,7 @@ jobs:
     steps:
       - name: Pre-create labels (idempotent)
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           # Severity labels
           gh --repo "${{ github.repository }}" label create severity:critical    --color B60205 --description "Critical issue — must fix before merge" 2>/dev/null || true
@@ -856,7 +863,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Run architect agent for ADR drafting
-        uses: anthropics/claude-code-action@v1
+        uses: anthropics/claude-code-action@d5726de019ec4498aa667642bc3a80fca83aa102 # v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           show_full_output: true

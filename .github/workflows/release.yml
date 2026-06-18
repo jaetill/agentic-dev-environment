@@ -60,7 +60,7 @@ jobs:
     steps:
       - name: Mint fleet App token (so the release PR triggers checks)
         id: app-token
-        uses: actions/create-github-app-token@v1
+        uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1
         continue-on-error: true   # absent secrets → fall back to GITHUB_TOKEN
         with:
           app-id: ${{ secrets.FLEET_APP_ID }}
