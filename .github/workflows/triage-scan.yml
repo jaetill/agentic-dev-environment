@@ -388,12 +388,12 @@ jobs:
             # reusable.yml manual-dispatch step). `gh pr list --json author`
             # may render the bot's login as either `app/<slug>` (the form
             # release-please surfaces today) or `<slug>[bot]` (the comment-actor
-            # form) depending on the gh CLI version's serialization. Match
-            # either with a substring test, gated on `is_bot == true` so a
-            # human PR from a similarly-named user can't slip through.
-            # release-please and human PRs are excluded by this signal.
+            # form) depending on the gh CLI version's serialization. Anchored
+            # regex prevents a bot whose login contains the App slug as a
+            # substring (e.g. "jaetill-ai-triage-team-staging") from slipping
+            # through (#355). `is_bot == true` still gates out human accounts.
             prs=$(gh pr list --repo "$slug" --state open --json number,author \
-                    --jq '.[] | select(.author.is_bot == true and (.author.login | test("jaetill-ai-triage-team"))) | .number' 2>/dev/null || true)
+                    --jq '.[] | select(.author.is_bot == true and (.author.login | test("^(app/)?jaetill-ai-triage-team(\\[bot\\])?$"))) | .number' 2>/dev/null || true)
             for pr in $prs; do
               if [[ "$merged" -ge "$cap" ]]; then
                 echo "::notice::Auto-merge per-run cap ($cap) reached — remaining qualifying PRs left for the next window."
