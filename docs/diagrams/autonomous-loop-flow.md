@@ -216,11 +216,11 @@ flowchart TD
 
 ## Agent ownership (node colours)
 
-Every **action/choice** node is coloured by the agent that owns it — so "is the right agent doing the right job" is a glance, and an agent's work is one colour *wherever it sits*, not confined to a stage box. ② is now the **Promoter** box — its actions (window, exhaustive triage, rank, dispatch, vague-handling, Pass-3 process-flaw scan, cleanup-sweep dispatch) plus the `DEFER` pool drawn inside as a grey state-buffer. The consideration `QUEUE` sits just outside, on the ①→② boundary (the shared inbox sources write into), and the promoter's `EVENTDISP` (deterministic, event-driven dispatch) also sits outside ② — pending the event-dispatch rework — but reads promoter-teal regardless. Terminal/parked end-states keep the outcome palette (🟩/🟧/⬛).
+Every **action/choice** node is coloured by the agent that owns it — so "is the right agent doing the right job" is a glance, and an agent's work is one colour *wherever it sits*, not confined to a stage box. ② is now the **Promoter** box — its actions (window, exhaustive triage, rank, dispatch, vague-handling, Pass-3 process-flaw scan, cleanup-sweep dispatch) plus the `DEFER` pool drawn inside as a grey state-buffer. The consideration `QUEUE` sits at the leading edge of ②, and the promoter's `EVENTDISP` (deterministic, event-driven dispatch) also sits outside ② — pending the event-dispatch rework — but reads promoter-teal regardless. Terminal/parked end-states keep the outcome palette (🟩/🟧/⬛).
 
 | Agent | Colour | Owns (action/choice nodes) |
 |---|---|---|
-| promoter (`triage-bot`) | teal | the ② Promoter box — window, exhaustive triage, stale-citation check, rank, dispatch, vague-handling, Pass-3 process-flaw scan, cleanup-sweep dispatch **+** `EVENTDISP` (still outside, pending the event-dispatch rework). Grey state-buffers: `DEFER` pool (inside ②), consideration `QUEUE` (①→② boundary) |
+| promoter (`triage-bot`) | teal | the ② Promoter box — window, exhaustive triage, stale-citation check, rank, dispatch, vague-handling, Pass-3 process-flaw scan, cleanup-sweep dispatch **+** `EVENTDISP` (still outside, pending the event-dispatch rework). Grey state-buffers: `DEFER` pool (inside ②), consideration `QUEUE` (inside ②) |
 | implementer (+ `iac-implementer`) | indigo | the ③ build flow + the Mode-B fix node |
 | reviewer agents | purple | the ④ review-battery decisions |
 | merger (fleet App) | steel-blue | the ⑤ auto-merge gate, incl. the ADR-0032 self-change guard |
