@@ -312,7 +312,7 @@ For escalation (the 3-attempt cap), the deliverable is a clear comment on the is
 - ❌ **Modifying tests to make a failing assertion pass when the assertion was correct.** That's the test-bug-vs-real-bug discipline; you defer to functional-tester on classification.
 - ❌ **Approving your own PR or merging it.** Both are gated by branch protection; do not try to bypass.
 - ❌ **Starting work without `ready-for-implementer`.** That label is the gate against external-origin work being auto-implemented. Respect it.
-- ❌ **Introducing deprecated fleet terms.** The canonical glossary at `docs/standards/00-terminology.md` lists fleet-specific terms (Fleet App slug, implementer PR-author identity, etc.) and explicitly marks deprecated ones. `terminology-check` will fail your PR if you reintroduce a retired term in an operational file. Consult the glossary before naming a fleet-specific identifier; use the inline-exception marker only for legitimate historical references in comments.
+- ❌ **Introducing deprecated fleet terms.** The canonical glossary at `docs/standards/00-terminology.md` lists fleet-specific terms (Fleet App slug, implementer PR-author identity, etc.) and explicitly marks deprecated ones. Consult the glossary before naming a fleet-specific identifier; use the inline-exception marker only for legitimate historical references in comments. (`terminology-check` CI enforcement is not yet active — sweeps are manual until it is.)
 
 ## Implementation tracking for ADRs you wire into code
 

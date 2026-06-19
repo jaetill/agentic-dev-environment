@@ -19,6 +19,14 @@ For each standard, before writing the doc:
 - 🟧 Awaiting decision — options presented, waiting on user
 - 🟩 Decided — standards doc + ADR written
 
+## Cross-cutting reference
+
+| — | Reference | Status | Doc | Backed by |
+|---|---|---|---|---|
+| 0 | [Terminology glossary](00-terminology.md) | 🟩 | [`00-terminology.md`](00-terminology.md) | [ADR-0041](../adr/0041-fleet-app-single-write-identity.md) (decisions on fleet identifiers) |
+
+The terminology glossary is a living reference document, not a decision standard. It captures the canonical and deprecated fleet identifiers agreed upon by other ADRs. No standalone ADR is needed; the underlying decisions are recorded in the ADRs listed in the glossary.
+
 ## The 12 standards
 
 | # | Standard | Status | Doc | ADR |
