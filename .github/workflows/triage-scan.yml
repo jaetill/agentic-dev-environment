@@ -415,10 +415,11 @@ jobs:
                 gh pr edit "$pr" --repo "$slug" --add-label "hold:adr" >/dev/null 2>&1 || true
                 echo "  $slug#$pr — requires-adr label; hold:adr for human"; held=$((held+1)); continue
               fi
-              # ADR-0047: the compositional hold is no longer driven by the
-              # LLM-applied `compositional-self-change` label — it is decided by
-              # the deterministic capability-delta guard below (authoritative).
-              # The label survives as an advisory hint only.
+              # ADR-0047: the compositional hold is decided by the deterministic
+              # capability-delta guard below (authoritative) — not by the
+              # LLM-applied `compositional-self-change` label. Fallback hold
+              # (#425 defense-in-depth): if the guard returns IN_LANE but the
+              # label is present, the discrepancy is logged and the PR is held.
               # ADR-0021 cond. 1, as amended by ADR-0039: a linked issue must be
               # PRESENT for traceability, but its ORIGIN no longer gates the
               # merge. ADR-0023's HHUM hold — human-origin work waiting for a
@@ -460,7 +461,13 @@ jobs:
                       IS_PLATFORM="$is_platform_repo" \
                       bash "${GITHUB_WORKSPACE}/scripts/additive-self-change-guard.sh" 2>/dev/null || echo "HOLD: guard error")
               case "$guard" in
-                IN_LANE*) echo "  $slug#$pr — capability-neutral, $guard (ADR-0047)";;
+                IN_LANE*)
+                  if echo "$meta" | jq -e '[.labels[].name] | any(. == "compositional-self-change")' >/dev/null 2>&1; then
+                    gh pr edit "$pr" --repo "$slug" --add-label "hold:compositional" >/dev/null 2>&1 || true
+                    echo "::warning::$slug#$pr — label/guard discrepancy: guard=$guard but compositional-self-change label present — held (#425)"
+                    echo "  $slug#$pr — hold:compositional (label/guard discrepancy; guard=$guard)"; held=$((held+1)); continue
+                  fi
+                  echo "  $slug#$pr — capability-neutral, $guard (ADR-0047)";;
                 *) gh pr edit "$pr" --repo "$slug" --add-label "hold:compositional" >/dev/null 2>&1 || true
                    echo "  $slug#$pr — hold:compositional for human ($guard) (ADR-0047)"; held=$((held+1)); continue;;
               esac
