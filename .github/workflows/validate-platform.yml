@@ -30,6 +30,11 @@ jobs:
       - name: Run validate-platform.sh
         run: bash scripts/validate-platform.sh
 
+      - name: Terminology check (no deprecated fleet terms in operational files)
+        # Enforces docs/standards/00-terminology.md > Deprecated. The enforced
+        # term set and deferrals are defined in scripts/terminology-check.sh.
+        run: bash scripts/terminology-check.sh
+
   module-plan-tests:
     # Plan-only tests for shared Terraform modules per ADR-0004 §8.
     # Path-filtered so non-IaC PRs skip this entirely (per ADR-0007 perf budgets).
