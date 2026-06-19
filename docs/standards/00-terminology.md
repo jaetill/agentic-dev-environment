@@ -1,7 +1,7 @@
 # Fleet Terminology Glossary
 
 **Status:** 🟩 Live  
-**Backed by:** [ADR-0041](../adr/0041-fleet-app-single-write-identity.md) (Fleet App write-identity decisions)  
+**ADR:** [ADR-0041](../adr/0041-fleet-app-single-write-identity.md) (Fleet App write-identity decisions)  
 **Last reaffirmed:** 2026-06-18
 
 Canonical reference for fleet-specific identifiers, names, and secrets. When a term is retired, move it to the Deprecated table and sweep operational files for stale references in the same PR.
@@ -14,7 +14,7 @@ Canonical reference for fleet-specific identifiers, names, and secrets. When a t
 |---|---|---|---|---|
 | Fleet App slug | GitHub App name | `jaetill-ai-triage-team` | Owner-controlled first-party App that drives dispatch, merge, and the implementer's write path. | [ADR-0041](../adr/0041-fleet-app-single-write-identity.md) |
 | Implementer bot identity | GitHub actor | `jaetill-ai-triage-team[bot]` | GitHub actor that opens implementer PRs and pushes code. Used in author-keyed filters (auto-merge, cockpit panels). | [ADR-0041](../adr/0041-fleet-app-single-write-identity.md) |
-| Implementer author filter | `gh` / GraphQL filter | `app/jaetill-ai-triage-team` **or** `jaetill-ai-triage-team[bot]` | Older `gh` CLI versions render the bot login as `app/jaetill-ai-triage-team`; newer versions use `jaetill-ai-triage-team[bot]`. The auto-merger uses `test("jaetill-ai-triage-team")` to match both. | [ADR-0041](../adr/0041-fleet-app-single-write-identity.md) |
+| Implementer author filter | `gh` / GraphQL filter | anchored: `^(app/)?jaetill-ai-triage-team(\[bot\])?$` | Matches BOTH `gh` serializations (`app/jaetill-ai-triage-team` from older CLI, `jaetill-ai-triage-team[bot]` from newer) while REJECTING App-slug-substring spoofs like `jaetill-ai-triage-team-staging` (#355). The auto-merger and Mode B fix-iteration both use this anchored `test(...)` form — a bare substring `test("jaetill-ai-triage-team")` is the deprecated, spoofable predecessor; do not reintroduce it. | [ADR-0041](../adr/0041-fleet-app-single-write-identity.md) |
 | Implementer auth secrets | GitHub Secrets | `FLEET_APP_ID` + `FLEET_APP_PRIVATE_KEY` | Mint per-run installation tokens for the fleet App. Primary auth path for implementer pushes and cross-repo dispatches. (`CLAUDE_CODE_OAUTH_TOKEN` remains the OAuth token for claude-code-action review runs.) | [ADR-0041](../adr/0041-fleet-app-single-write-identity.md) |
 
 ## Deprecated terms
