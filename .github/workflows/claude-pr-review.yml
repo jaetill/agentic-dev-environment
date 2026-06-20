@@ -276,7 +276,15 @@ jobs:
           # (e.g. splendor, ai-teacher) have no lambda/package-lock.json,
           # and an unconditional `npm ci --prefix lambda` fails EUSAGE
           # there (platform issue #32). Mirrors claude-implementer.yml.
-          [ -f lambda/package-lock.json ] && npm ci --prefix lambda || echo "no lambda deps — skipping"
+          # Use if/then so a real `npm ci --prefix lambda` integrity failure
+          # propagates (fails the step) instead of being swallowed by `|| echo`
+          # — the A && B || C short-circuit masked B's failure (#48/#49). The
+          # guard still lets backend-less repos skip cleanly (#32).
+          if [ -f lambda/package-lock.json ]; then
+            npm ci --prefix lambda
+          else
+            echo "no lambda deps — skipping"
+          fi
       - name: Run functional-tester agent
         if: needs.detect-node.outputs.node == 'true'
         uses: anthropics/claude-code-action@d5726de019ec4498aa667642bc3a80fca83aa102 # v1
@@ -345,7 +353,15 @@ jobs:
           # (e.g. splendor, ai-teacher) have no lambda/package-lock.json,
           # and an unconditional `npm ci --prefix lambda` fails EUSAGE
           # there (platform issue #32). Mirrors claude-implementer.yml.
-          [ -f lambda/package-lock.json ] && npm ci --prefix lambda || echo "no lambda deps — skipping"
+          # Use if/then so a real `npm ci --prefix lambda` integrity failure
+          # propagates (fails the step) instead of being swallowed by `|| echo`
+          # — the A && B || C short-circuit masked B's failure (#48/#49). The
+          # guard still lets backend-less repos skip cleanly (#32).
+          if [ -f lambda/package-lock.json ]; then
+            npm ci --prefix lambda
+          else
+            echo "no lambda deps — skipping"
+          fi
       - name: Run test-writer agent
         uses: anthropics/claude-code-action@d5726de019ec4498aa667642bc3a80fca83aa102 # v1
         with:
