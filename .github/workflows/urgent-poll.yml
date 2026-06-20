@@ -144,9 +144,9 @@ jobs:
               echo "::warning::${repo}#${num} — watched label not applied by a trusted source; skipping (authz, #138)."
               # Idempotency guard: only post the no-dispatch note once — prevents
               # ~2h spam accumulation on long-lived untrusted issues (#463).
-              already_noted=$(gh api "repos/${repo}/issues/${num}/comments" \
+              already_noted=$(gh api --paginate "repos/${repo}/issues/${num}/comments" \
                 --jq '[.[] | select(.body | startswith("Not auto-dispatched:"))] | length' \
-                2>/dev/null || echo 0)
+                2>/dev/null | awk '{s+=$1} END{print s+0}' || echo 0)
               if [[ "${already_noted:-0}" -eq 0 ]]; then
                 gh issue comment "$num" --repo "$repo" \
                   --body "Not auto-dispatched: the urgent label was not applied by a trusted machine source (the fleet App, Sentry, the internal-review bot, or the maintainer). A maintainer can apply \`ready-for-implementer\` to dispatch intentionally (ADR-0030 / #138)." || true
