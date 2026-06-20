@@ -48,6 +48,10 @@ jobs:
           app-id: ${{ secrets.FLEET_APP_ID }}
           private-key: ${{ secrets.FLEET_APP_PRIVATE_KEY }}
           owner: ${{ github.repository_owner }}
+          # Least privilege (#36): this watcher only calls `gh run list`
+          # (Actions:read) with FLEET_TOKEN. Scope the minted token to
+          # actions:read so it cannot carry the App's broader write scopes.
+          permission-actions: read
 
       - name: Scan the fleet for non-PR workflow failures
         env:
