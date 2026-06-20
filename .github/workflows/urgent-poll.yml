@@ -99,9 +99,13 @@ jobs:
             #   - jaetill                      — the maintainer/owner
             #   - jaetill-ai-triage-team[bot]  — the fleet GitHub App
             #   - sentry-io[bot]               — the Sentry GitHub integration
+            #   - claude[bot]                  — the claude-code-action OAuth
+            #     identity used by origin:internal-review agents (code-reviewer,
+            #     security-reviewer). Severity:critical findings from these
+            #     agents had no dispatch path — #463.
             # (CloudWatch alarms route through the fleet App, covered above.)
             # Extend this list ONLY for a verified machine source.
-            trusted_labelers=$'jaetill\njaetill-ai-triage-team[bot]\nsentry-io[bot]'
+            trusted_labelers=$'jaetill\njaetill-ai-triage-team[bot]\nsentry-io[bot]\nclaude[bot]'
             trusted=false
             while IFS= read -r actor; do
               [[ -z "$actor" ]] && continue
@@ -118,8 +122,15 @@ jobs:
             )
             if [[ "$trusted" != "true" ]]; then
               echo "::warning::${repo}#${num} — watched label not applied by a trusted source; skipping (authz, #138)."
-              gh issue comment "$num" --repo "$repo" \
-                --body "Not auto-dispatched: the urgent label was not applied by a trusted machine source (the fleet App, Sentry, or the maintainer). A maintainer can apply \`ready-for-implementer\` to dispatch intentionally (ADR-0030 / #138)." || true
+              # Idempotency guard: only post the no-dispatch note once — prevents
+              # ~2h spam accumulation on long-lived untrusted issues (#463).
+              already_noted=$(gh api "repos/${repo}/issues/${num}/comments" \
+                --jq '[.[] | select(.body | startswith("Not auto-dispatched:"))] | length' \
+                2>/dev/null || echo 0)
+              if [[ "${already_noted:-0}" -eq 0 ]]; then
+                gh issue comment "$num" --repo "$repo" \
+                  --body "Not auto-dispatched: the urgent label was not applied by a trusted machine source (the fleet App, Sentry, the internal-review bot, or the maintainer). A maintainer can apply \`ready-for-implementer\` to dispatch intentionally (ADR-0030 / #138)." || true
+              fi
               continue
             fi
             # Promote (durable) + dispatch together, so an issue is only marked
