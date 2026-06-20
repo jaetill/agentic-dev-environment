@@ -106,11 +106,11 @@ jobs:
             # (CloudWatch alarms route through the fleet App, covered above.)
             # Extend this list ONLY for a verified machine source.
             trusted_labelers=$'jaetill\njaetill-ai-triage-team[bot]\nsentry-io[bot]\nclaude[bot]'
-            trusted=false
+            trusted_actor=""
             while IFS= read -r actor; do
               [[ -z "$actor" ]] && continue
               if grep -Fxq -- "$actor" <<< "$trusted_labelers"; then
-                trusted=true; break
+                trusted_actor="$actor"; break
               fi
             done < <(
               gh api --paginate "repos/${repo}/issues/${num}/events" \
@@ -120,6 +120,26 @@ jobs:
                                 or .label.name=="source:cloudwatch")
                           | .actor.login' 2>/dev/null || true
             )
+            # Second-factor for claude[bot] (#471): that identity runs over untrusted
+            # PR diffs and can be prompt-injected into filing fabricated urgent issues.
+            # When it is the trusted labeler, also require origin:internal-review —
+            # a fabricated issue is unlikely to carry both labels without a second
+            # coordinated injection payload.
+            trusted=false
+            if [[ -n "$trusted_actor" ]]; then
+              if [[ "$trusted_actor" == "claude[bot]" ]]; then
+                has_origin=$(gh api "repos/${repo}/issues/${num}" \
+                  --jq '[.labels[].name] | index("origin:internal-review") != null' \
+                  2>/dev/null || echo "false")
+                if [[ "$has_origin" == "true" ]]; then
+                  trusted=true
+                else
+                  echo "::warning::${repo}#${num} — claude[bot] applied urgent label but issue lacks origin:internal-review; second-factor failed (#471)."
+                fi
+              else
+                trusted=true
+              fi
+            fi
             if [[ "$trusted" != "true" ]]; then
               echo "::warning::${repo}#${num} — watched label not applied by a trusted source; skipping (authz, #138)."
               # Idempotency guard: only post the no-dispatch note once — prevents
