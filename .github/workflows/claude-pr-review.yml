@@ -116,11 +116,15 @@ jobs:
                   `VERDICT: APPROVE` if no findings at all
               - Say "No issues found." in the body if there are no findings
 
-            ### 2. A GitHub issue per HIGH or MEDIUM finding (with dedup)
+            ### 2. A GitHub issue per finding at/above the severity floor (with dedup)
 
-            For each Critical, High, or Medium finding, file a defect issue
-            so it survives this PR's lifecycle and can be picked up by the
-            implementer agent (per ADR-0026).
+            This repo's issue-filing floor is **${{ vars.REVIEW_FILE_MIN_SEVERITY || 'medium' }}** (ADR-0049).
+            File a defect issue for each finding whose severity is at or above that
+            floor: with the default floor `medium` that is every Critical, High, or
+            Medium finding; with floor `high`, only Critical and High. Findings BELOW
+            the floor remain in the PR comment above — do NOT file them as tracked
+            issues. A filed issue survives this PR's lifecycle and can be picked up by
+            the implementer agent (per ADR-0026).
 
             Dedup (MANDATORY — run for EVERY finding BEFORE filing):
             Pull ALL open internal-review issues in this repo, regardless of
@@ -374,7 +378,10 @@ jobs:
                new public functions, modified API contracts), file each
                as a defect issue with labels
                `defect,severity:medium,origin:internal-review` using the
-               same dedup discipline as code-reviewer. Dedup is MANDATORY and
+               same dedup discipline as code-reviewer — BUT only when this
+               repo's filing floor (`${{ vars.REVIEW_FILE_MIN_SEVERITY || 'medium' }}`,
+               ADR-0049) is `medium`; when the floor is `high`, note coverage
+               gaps in the PR comment instead of filing severity:medium issues. Dedup is MANDATORY and
                CROSS-AGENT: before filing, pull ALL open internal-review
                issues —
                  gh issue list --state open --label "origin:internal-review" \
@@ -621,9 +628,12 @@ jobs:
                   `VERDICT: APPROVE` if no findings at all
               - Say "No security issues found." in the body if there are no findings
 
-            ### 2. A GitHub issue per HIGH or MEDIUM finding (with dedup)
+            ### 2. A GitHub issue per finding at/above the severity floor (with dedup)
 
-            Same pattern as the code-reviewer.
+            Same pattern as the code-reviewer, including the
+            **${{ vars.REVIEW_FILE_MIN_SEVERITY || 'medium' }}** filing floor (ADR-0049):
+            file Medium findings as issues only when the floor is `medium`; when it is
+            `high`, file only Critical/High and leave Medium as PR comments.
 
             Dedup (MANDATORY — run for EVERY finding BEFORE filing):
             Pull ALL open internal-review issues in this repo, regardless of
