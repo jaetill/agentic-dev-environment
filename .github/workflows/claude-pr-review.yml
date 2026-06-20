@@ -90,7 +90,7 @@ jobs:
           # PRs and synchronize events from agent commits). Loop prevention
           # is done by the implementer's 3-attempt cap, not by skipping
           # bot-initiated runs here.
-          allowed_bots: 'claude[bot],jaetill-ai-triage-team[bot],github-actions[bot]'
+          allowed_bots: 'claude[bot],jaetill-ai-triage-team[bot],github-actions[bot],dependabot[bot]'
           prompt: |
             Act as the code-reviewer subagent defined in .claude/agents/code-reviewer.md.
 
@@ -262,7 +262,7 @@ jobs:
           # PRs and synchronize events from agent commits). Loop prevention
           # is done by the implementer's 3-attempt cap, not by skipping
           # bot-initiated runs here.
-          allowed_bots: 'claude[bot],jaetill-ai-triage-team[bot],github-actions[bot]'
+          allowed_bots: 'claude[bot],jaetill-ai-triage-team[bot],github-actions[bot],dependabot[bot]'
           prompt: |
             Act as the functional-tester subagent defined in .claude/agents/functional-tester.md.
 
@@ -330,7 +330,7 @@ jobs:
           # PRs and synchronize events from agent commits). Loop prevention
           # is done by the implementer's 3-attempt cap, not by skipping
           # bot-initiated runs here.
-          allowed_bots: 'claude[bot],jaetill-ai-triage-team[bot],github-actions[bot]'
+          allowed_bots: 'claude[bot],jaetill-ai-triage-team[bot],github-actions[bot],dependabot[bot]'
           prompt: |
             Act as the test-writer subagent defined in .claude/agents/test-writer.md
             in **reviewer mode** (per issue #25 / ADR-0026 follow-up).
@@ -432,7 +432,7 @@ jobs:
           # PRs and synchronize events from agent commits). Loop prevention
           # is done by the implementer's 3-attempt cap, not by skipping
           # bot-initiated runs here.
-          allowed_bots: 'claude[bot],jaetill-ai-triage-team[bot],github-actions[bot]'
+          allowed_bots: 'claude[bot],jaetill-ai-triage-team[bot],github-actions[bot],dependabot[bot]'
           prompt: |
             Act as the e2e-tester subagent defined in .claude/agents/e2e-tester.md.
 
@@ -502,7 +502,7 @@ jobs:
           # PRs and synchronize events from agent commits). Loop prevention
           # is done by the implementer's 3-attempt cap, not by skipping
           # bot-initiated runs here.
-          allowed_bots: 'claude[bot],jaetill-ai-triage-team[bot],github-actions[bot]'
+          allowed_bots: 'claude[bot],jaetill-ai-triage-team[bot],github-actions[bot],dependabot[bot]'
           prompt: |
             Act as the doc-keeper subagent defined in .claude/agents/doc-keeper.md
             in **reviewer mode** (per issue #24 — mirrors test-writer / issue #25).
@@ -570,7 +570,7 @@ jobs:
           # PRs and synchronize events from agent commits). Loop prevention
           # is done by the implementer's 3-attempt cap, not by skipping
           # bot-initiated runs here.
-          allowed_bots: 'claude[bot],jaetill-ai-triage-team[bot],github-actions[bot]'
+          allowed_bots: 'claude[bot],jaetill-ai-triage-team[bot],github-actions[bot],dependabot[bot]'
           prompt: |
             Act as the security-reviewer subagent defined in .claude/agents/security-reviewer.md.
 
@@ -871,7 +871,7 @@ jobs:
           # PRs and synchronize events from agent commits). Loop prevention
           # is done by the implementer's 3-attempt cap, not by skipping
           # bot-initiated runs here.
-          allowed_bots: 'claude[bot],jaetill-ai-triage-team[bot],github-actions[bot]'
+          allowed_bots: 'claude[bot],jaetill-ai-triage-team[bot],github-actions[bot],dependabot[bot]'
           prompt: |
             Act as the architect subagent defined in .claude/agents/architect.md (headless mode).
 
