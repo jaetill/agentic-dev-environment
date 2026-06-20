@@ -122,15 +122,30 @@ jobs:
             so it survives this PR's lifecycle and can be picked up by the
             implementer agent (per ADR-0026).
 
-            Dedup: before filing, check existing open issues for one that
-            already covers this exact file:line + finding category. Run:
-              gh issue list \
-                --label "origin:internal-review,defect" \
-                --state open \
-                --json title,number --limit 100 | \
-                jq -r '.[].title'
-            If you see an existing title containing the same file:line
-            reference, SKIP filing — the issue is already tracked.
+            Dedup (MANDATORY — run for EVERY finding BEFORE filing):
+            Pull ALL open internal-review issues in this repo, regardless of
+            which agent filed them (code-review, security-review, test-writer
+            all share the `origin:internal-review` label):
+              gh issue list --state open --label "origin:internal-review" \
+                --json number,title,body --limit 300 | jq -r '.[] | "#\(.number) \(.title)"'
+            SKIP filing if an existing open issue covers the SAME UNDERLYING
+            PROBLEM. Match on SUBSTANCE, not exact wording or exact file:line:
+              • same file/endpoint AND same concern/vuln-class = the SAME
+                finding even if worded differently and even if filed by a
+                DIFFERENT reviewer. An IDOR / missing-ownership-check on
+                `move-assessment/route.ts` is ONE finding whether code-review
+                calls it "toUnitId not ownership-checked" or security-review
+                calls it "ownership never verified" — do NOT file a second.
+              • compare by file/endpoint path + concern, NOT a literal
+                `file:line` string (paths appear short or fully-qualified;
+                line numbers drift between PRs and reviewers).
+              • a missing-test on a route is the same finding whether raised
+                by code-review, security-review, or test-writer.
+            This applies ACROSS reviewers AND ACROSS review cycles — a finding
+            already tracked by any prior review must not be re-filed. When
+            unsure whether it is the same underlying problem, treat it as a
+            DUPLICATE and SKIP: a missed dup is harmless, a manufactured
+            duplicate is the backlog leak this rule closes.
 
             For each new finding, file via:
               gh issue create \
@@ -359,7 +374,17 @@ jobs:
                new public functions, modified API contracts), file each
                as a defect issue with labels
                `defect,severity:medium,origin:internal-review` using the
-               same dedup pattern as code-reviewer.
+               same dedup discipline as code-reviewer. Dedup is MANDATORY and
+               CROSS-AGENT: before filing, pull ALL open internal-review
+               issues —
+                 gh issue list --state open --label "origin:internal-review" \
+                   --json number,title,body --limit 300 | jq -r '.[] | "#\(.number) \(.title)"'
+               — and SKIP if code-review OR security-review has already filed a
+               finding on the SAME route/endpoint. A missing-ownership/auth fix
+               and its missing test are the SAME underlying work: the test is
+               added when that fix lands, so a separate coverage issue for an
+               already-tracked route is a duplicate. Only file a coverage-gap
+               issue when NO open issue covers that route.
             5. Post a SINGLE PR comment via:
                  gh pr comment ${{ github.event.pull_request.number }} --body-file -
 
@@ -598,15 +623,24 @@ jobs:
 
             ### 2. A GitHub issue per HIGH or MEDIUM finding (with dedup)
 
-            Same pattern as the code-reviewer:
+            Same pattern as the code-reviewer.
 
-            Dedup check:
-              gh issue list \
-                --label "origin:internal-review,defect" \
-                --state open \
-                --json title,number --limit 100 | \
-                jq -r '.[].title'
-            If a title already references the same file:line, SKIP.
+            Dedup (MANDATORY — run for EVERY finding BEFORE filing):
+            Pull ALL open internal-review issues in this repo, regardless of
+            which agent filed them (the `origin:internal-review` label is
+            shared by code-review, security-review, and test-writer):
+              gh issue list --state open --label "origin:internal-review" \
+                --json number,title,body --limit 300 | jq -r '.[] | "#\(.number) \(.title)"'
+            SKIP filing if an existing open issue covers the SAME UNDERLYING
+            PROBLEM — match on SUBSTANCE, not exact wording or file:line.
+            CRITICAL for security-review: code-review runs in parallel and
+            frequently flags the SAME authz/IDOR issue on the SAME endpoint in
+            different words. If code-review has already filed (or you would
+            expect it to file) the same ownership/IDOR/auth concern on this
+            endpoint, do NOT file a second issue — compare by file/endpoint +
+            concern, not a literal `file:line`. This applies across reviewers
+            AND across review cycles. When unsure it's the same problem, treat
+            it as a DUPLICATE and SKIP.
 
             File new findings:
               gh issue create \
