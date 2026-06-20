@@ -6,7 +6,7 @@
 
 Canonical reference for fleet-specific identifiers, names, and secrets. When a term is retired, move it to the Deprecated table and sweep operational files for stale references in the same PR.
 
-> **CI enforcement:** a `terminology-check` gate that blocks PRs reintroducing deprecated terms in operational files is not yet wired into CI. Until it is, deprecated-term sweeps are manual — apply the same discipline proactively.
+> **CI enforcement:** `terminology-check` runs in the `validate` job and blocks PRs that reintroduce deprecated terms in operational files (`scripts/`, `.github/workflows/`, `plugins/ai-team/agents/`). Sweeps for stale terms must still be performed manually when a new deprecation is added.
 
 ## Canonical terms
 
@@ -19,7 +19,7 @@ Canonical reference for fleet-specific identifiers, names, and secrets. When a t
 
 ## Deprecated terms
 
-Do not reintroduce these in new operational files (workflows, scripts, agent prompts). Historical references in ADRs and comments documenting old behaviour are permitted — annotate them with `# deprecated-ref: <reason>` when the surrounding file is operational so the intent is clear.
+Do not reintroduce these in new operational files (workflows, scripts, agent prompts). Historical references in ADRs and comments documenting old behaviour are permitted — suppress the `terminology-check` CI gate by adding `# terminology-check: deprecated-<slug>-ok-here` on any of the 5 lines preceding the deprecated term, where `<slug>` is the term's slug from the table above (e.g. `deprecated-app-claude-ok-here`). The inline-exception window is 5 lines, so a marker at the top of a short comment block covers the reference below it.
 
 | Deprecated term | Kind | Replaced by | Deprecated | ADR |
 |---|---|---|---|---|
