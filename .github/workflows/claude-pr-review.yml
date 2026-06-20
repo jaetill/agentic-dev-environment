@@ -90,6 +90,12 @@ jobs:
           # PRs and synchronize events from agent commits). Loop prevention
           # is done by the implementer's 3-attempt cap, not by skipping
           # bot-initiated runs here.
+          # Note: github-actions[bot] was added (#472) for release-please PRs,
+          # but this identity is shared by any workflow-authored PR, not only
+          # release-please. Per #473, the architect job (which has Write+Edit
+          # tools) is guarded off for github-actions[bot] via its job-level if:
+          # condition, bounding the prompt-injection blast radius to read-only
+          # agents for any non-human-authored PR.
           allowed_bots: 'claude[bot],jaetill-ai-triage-team[bot],github-actions[bot],dependabot[bot]'
           prompt: |
             Act as the code-reviewer subagent defined in .claude/agents/code-reviewer.md.
@@ -889,7 +895,13 @@ jobs:
     needs: destructive-change-check
     # Bot-skip removed per ADR-0026 — implementer-authored PRs that
     # trip destructive-change-detector still need an ADR drafted.
-    if: needs.destructive-change-check.outputs.requires-adr == 'true'
+    # github-actions[bot] is excluded here (per #473): this is the only job
+    # whose claude-code-action step has Write+Edit tools, making it the
+    # highest-risk target for prompt injection via release-please or other
+    # workflow-authored PRs. Read-only agents (code-reviewer, security-reviewer,
+    # etc.) still run for github-actions[bot] PRs — only the ADR-drafting path
+    # is blocked, since a well-formed release PR should never need an ADR anyway.
+    if: needs.destructive-change-check.outputs.requires-adr == 'true' && github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 20   # slightly higher; architect drafts + commits an ADR
     steps:
