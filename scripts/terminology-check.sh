@@ -13,6 +13,7 @@
 #   0 — no violations
 #   1 — one or more violations found
 set -uo pipefail
+shopt -s globstar  # enables ** in OPERATIONAL_GLOBS patterns
 
 # Repo root — assume we're called from the repo root.
 REPO_ROOT="$(pwd)"
@@ -25,6 +26,8 @@ OPERATIONAL_GLOBS=(
   "scripts/*.sh"
   "scripts/*.py"
   "plugins/ai-team/agents/*.md"
+  "infra/**/*.tf"
+  "templates/_shared/**/*.tf"
 )
 
 # Inline-exception marker form. A line containing
