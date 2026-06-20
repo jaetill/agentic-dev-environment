@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.3.0](https://github.com/jaetill/agentic-dev-environment/compare/v0.2.0...v0.3.0) (2026-06-20)
+
+
+### Features
+
+* **review:** per-repo issue-filing severity floor (ADR-0049) ([#485](https://github.com/jaetill/agentic-dev-environment/issues/485)) ([824ee25](https://github.com/jaetill/agentic-dev-environment/commit/824ee2510763c8266c42001869b864985263b68e))
+
+
+### Bug Fixes
+
+* **ci:** add dependabot[bot] to allowed_bots so dependency-bump PRs get reviewed ([#475](https://github.com/jaetill/agentic-dev-environment/issues/475)) ([4bb163b](https://github.com/jaetill/agentic-dev-environment/commit/4bb163b2f991490cce538e6dc68913f3733b26c0))
+* **ci:** gate architect job off github-actions[bot] PRs ([#473](https://github.com/jaetill/agentic-dev-environment/issues/473)) ([#480](https://github.com/jaetill/agentic-dev-environment/issues/480)) ([57dd488](https://github.com/jaetill/agentic-dev-environment/commit/57dd4883e8d39212224782d13086ced90f8b8c8a))
+* **docs:** align deprecated-term inline-exception marker with script ([#468](https://github.com/jaetill/agentic-dev-environment/issues/468)) ([#477](https://github.com/jaetill/agentic-dev-environment/issues/477)) ([6b66be5](https://github.com/jaetill/agentic-dev-environment/commit/6b66be5dedf932a91b2e293d2e0ddffaa70512a0))
+* **reviewers:** cross-agent substance-based dedup before filing findings ([#476](https://github.com/jaetill/agentic-dev-environment/issues/476)) ([2f61541](https://github.com/jaetill/agentic-dev-environment/commit/2f6154140e23cf1607dd0977ad85de5a7f142d1f))
+* **terminology-check:** add Terraform patterns to OPERATIONAL_GLOBS ([#467](https://github.com/jaetill/agentic-dev-environment/issues/467)) ([#479](https://github.com/jaetill/agentic-dev-environment/issues/479)) ([8c3a33f](https://github.com/jaetill/agentic-dev-environment/commit/8c3a33fcfc78c7306531497accb2f7131d6beccc))
+* **urgent-poll:** add --paginate to idempotency guard + awk aggregation ([#470](https://github.com/jaetill/agentic-dev-environment/issues/470)) ([#478](https://github.com/jaetill/agentic-dev-environment/issues/478)) ([7e1576f](https://github.com/jaetill/agentic-dev-environment/commit/7e1576fdc4689220278e6d0bccb17d968138dbe8))
+* **urgent-poll:** require origin:internal-review as second factor for claude[bot] dispatch ([#471](https://github.com/jaetill/agentic-dev-environment/issues/471)) ([#481](https://github.com/jaetill/agentic-dev-environment/issues/481)) ([476c642](https://github.com/jaetill/agentic-dev-environment/commit/476c6425a3d82b85fb10e95490ada93eb51ecc46))
+* **urgent-poll:** trust claude[bot] labeler + idempotency guard ([#463](https://github.com/jaetill/agentic-dev-environment/issues/463)) ([#469](https://github.com/jaetill/agentic-dev-environment/issues/469)) ([4e1e066](https://github.com/jaetill/agentic-dev-environment/commit/4e1e06610c01755e3d18891097929de41ec73df6))
+
 ## [0.2.0](https://github.com/jaetill/agentic-dev-environment/compare/v0.1.0...v0.2.0) (2026-06-20)
 
 
