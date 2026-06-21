@@ -91,6 +91,11 @@ fi
 # --- Existence check against HEAD (current working tree checkout) ---
 absent=()
 for p in "${unique_paths[@]}"; do
+  # #266: the path comes from attacker-influenceable issue content. Only probe
+  # repo-relative paths — reject absolute paths and `..` traversal so crafted
+  # content can't probe the CI runner filesystem. A suspicious path is treated
+  # as present (not added to absent), so it can never drive a stale auto-close.
+  case "$p" in /*|*..*) continue ;; esac
   if [[ ! -e "$p" ]]; then
     absent+=("$p")
   fi
