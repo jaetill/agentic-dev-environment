@@ -376,6 +376,10 @@ jobs:
           # adversarially-prompted implementer cannot land more than this many
           # merges in one window — the rest wait for the next cron or a human.
           cap=${AUTONOMOUS_MERGE_CAP:-10}
+          # Guard a non-integer cap (#62): under `set -uo pipefail` (no -e), a
+          # non-numeric cap makes `[[ $merged -ge $cap ]]` error to false, so the
+          # cap never trips and merges run unbounded. Fall back to the default.
+          [[ "$cap" =~ ^[1-9][0-9]*$ ]] || { echo "::warning::AUTONOMOUS_MERGE_CAP='$cap' is not a positive integer — defaulting to 10"; cap=10; }
           for repo in $REPOS; do
             slug="jaetill/${repo}"
             # terminology-check: deprecated-app-claude-ok-here (historical reference explaining why the old filter was replaced)
