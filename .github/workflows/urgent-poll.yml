@@ -122,21 +122,25 @@ jobs:
                                 or .label.name=="source:cloudwatch")
                           | .actor.login' 2>/dev/null || true
             )
-            # Second-factor for claude[bot] (#471): that identity runs over untrusted
-            # PR diffs and can be prompt-injected into filing fabricated urgent issues.
-            # When it is the trusted labeler, also require origin:internal-review —
-            # a fabricated issue is unlikely to carry both labels without a second
-            # coordinated injection payload.
+            # Second-factor for claude[bot] (#471, #483): that identity runs over
+            # untrusted PR diffs and can be prompt-injected into filing fabricated
+            # urgent issues. When it is the trusted labeler, verify that
+            # origin:internal-review was ALSO applied by claude[bot] via the Events
+            # API — bare label-presence (#471's original check) is bypassable by any
+            # actor with triage-level write who manually applies the label to an issue
+            # not filed by an internal-review agent (#483).
             trusted=false
             if [[ -n "$trusted_actor" ]]; then
               if [[ "$trusted_actor" == "claude[bot]" ]]; then
-                has_origin=$(gh api "repos/${repo}/issues/${num}" \
-                  --jq '[.labels[].name] | index("origin:internal-review") != null' \
-                  2>/dev/null || echo "false")
-                if [[ "$has_origin" == "true" ]]; then
+                origin_ok=$(gh api --paginate "repos/${repo}/issues/${num}/events" \
+                  --jq '.[] | select(.event=="labeled")
+                            | select(.label.name=="origin:internal-review")
+                            | .actor.login' 2>/dev/null \
+                  | grep -Fxq 'claude[bot]' && echo "true" || echo "false")
+                if [[ "$origin_ok" == "true" ]]; then
                   trusted=true
                 else
-                  echo "::warning::${repo}#${num} — claude[bot] applied urgent label but issue lacks origin:internal-review; second-factor failed (#471)."
+                  echo "::warning::${repo}#${num} — claude[bot] applied urgent label but origin:internal-review was not applied by claude[bot]; second-factor failed (#471/#483)."
                 fi
               else
                 trusted=true
