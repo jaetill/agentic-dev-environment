@@ -66,11 +66,23 @@ So a scheduled `triage-scan` run shows `success` even when it did no work — th
 `workflow_dispatch` bypasses the window check (`window=manual`, always treated as in-window):
 
     gh workflow run triage-scan.yml -f reason="<why>"
-    gh workflow run claude-implementer.yml -f issue_number=<n>
 
-To manually drain deferred nits on a specific fleet repo (Mode C cleanup sweep, ADR-0020):
+For the **implementer**, dispatch via the filename-based REST endpoint, not
+`gh workflow run` — the latter resolves the workflow name to an integer ID and
+calls the ID-based endpoint, which returned HTTP 500 fleet-wide on 2026-06-15
+(#410/#432). The filename endpoint succeeds; pass the target repo's default
+branch as `ref` (`master` on `draft`/`carto`, `main` elsewhere — a hardcoded ref 422s):
 
-    gh workflow run claude-implementer.yml --repo jaetill/<repo> -f mode=cleanup-sweep
+    repo=jaetill/<repo>
+    ref=$(gh api "repos/$repo" --jq .default_branch)
+    gh api --method POST "repos/$repo/actions/workflows/claude-implementer.yml/dispatches" \
+      -f ref="$ref" -f "inputs[issue_number]=<n>"
+
+To manually drain deferred nits on a specific fleet repo (Mode C cleanup sweep, ADR-0020),
+swap the input:
+
+    gh api --method POST "repos/$repo/actions/workflows/claude-implementer.yml/dispatches" \
+      -f ref="$ref" -f "inputs[mode]=cleanup-sweep"
 
 ## How work routes
 
@@ -97,7 +109,7 @@ The promoter runs as a GitHub App, and an App's label events *do* cascade — so
 | Scheduled run `success` but nothing happened | Cron fired outside the America/Chicago window; the `window` job skipped the work | None — correct behaviour |
 | `claude-implementer` run shows all jobs `skipped` | The label that was added is not a pickup label | Apply a pickup label (`ready-for-implementer`, `skip-plan`, etc.) |
 | One workflow's action can't trigger another workflow | The triggering action authenticated with `GITHUB_TOKEN` | Use a GitHub App token / PAT for the cross-workflow action |
-| A fleet dispatch did nothing | `gh workflow run` failed — target repo missing the workflow, an undeclared input, or a bad/expired App token | Check the triage-scan run log for the non-zero `gh workflow run` exit; the promoter reports failed dispatches in its summary |
+| A fleet dispatch did nothing | The `gh api .../workflows/claude-implementer.yml/dispatches` call failed — target repo missing the workflow, an undeclared/misnamed input, a wrong `ref` (must be the repo's default branch; `master` on draft/carto → HTTP 422 if `main` is hardcoded), or a bad/expired App token | Check the triage-scan run log for the non-zero exit; the promoter reports failed dispatches in its summary. (Do **not** revert to `gh workflow run` — its ID-based endpoint 500s fleet-wide, #410/#432.) |
 | `event-dispatch` throttle holds urgent work even though no implementer runs look active | The throttle counts **active workflow runs** (`in_progress` + `queued` on `claude-implementer.yml`), not open PRs — so it's unaffected by the open-PR backlog. Verify with `gh run list --repo jaetill/<repo> --workflow=claude-implementer.yml --json status -q '[.[] \| select(.status=="in_progress" or .status=="queued")] \| length'` | Wait for in-flight runs to complete; or, if the run count is stuck (e.g., a zombie in_progress run), cancel the stale run |
 | Auto-merge sweeps all repos but merges nothing (0 PRs found) | Filter targets `author.is_bot == true and (author.login \| test("jaetill-ai-triage-team"))` — the fleet App identity (ADR-0041). If the App is renamed or reinstalled under a different slug, `author.login` changes and the filter silently stops matching. The login may render as either `app/jaetill-ai-triage-team` or `jaetill-ai-triage-team[bot]` depending on the `gh` CLI version; the `test()` predicate covers both. Verify actual author with: `gh pr list --repo jaetill/<affected-repo> --state open --json number,author -q '.[] \| {number: .number, login: .author.login, is_bot: .author.is_bot}'` | If the login no longer matches `jaetill-ai-triage-team`, update the `test()` pattern in `triage-scan.yml`'s auto-merge job. If `is_bot` is false on PRs you expected to auto-merge, the implementer is creating PRs via a token other than the fleet App (e.g. the legacy `IMPLEMENTER_PAT` path) — fix the implementer wiring before changing the filter |
 

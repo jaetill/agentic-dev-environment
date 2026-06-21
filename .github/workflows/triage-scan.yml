@@ -264,13 +264,20 @@ jobs:
                  its own. (You own workload selection; the implementer no longer
                  hunts the queue — it executes what you hand it.)
               3. Dispatch that repo's implementer. Per ADR-0020 the label is
-                 durable state; THIS dispatch is the trigger:
-                   GH_TOKEN=$FLEET_TOKEN gh workflow run claude-implementer.yml \
-                     --repo jaetill/<repo> -f issue_number=<n> \
-                     -f bundle_issues="<comma-separated nit numbers, or omit if none>"
+                 durable state; THIS dispatch is the trigger. Use the filename-based
+                 REST endpoint, NOT `gh workflow run` (the latter resolves to the
+                 ID-based endpoint, which 500s fleet-wide — #410/#432). Detect the
+                 default branch (`draft`/`carto` use `master`, others `main`; a
+                 hardcoded ref 422s):
+                   default_branch=$(GH_TOKEN=$FLEET_TOKEN gh api repos/jaetill/<repo> --jq .default_branch)
+                   GH_TOKEN=$FLEET_TOKEN gh api --method POST \
+                     repos/jaetill/<repo>/actions/workflows/claude-implementer.yml/dispatches \
+                     -f ref="$default_branch" \
+                     -f "inputs[issue_number]=<n>" \
+                     -f "inputs[bundle_issues]=<comma-separated nit numbers, or omit if none>"
               4. GH_TOKEN=$FLEET_TOKEN gh issue comment <n> --repo jaetill/<repo> \
                    --body "Auto-promoted and dispatched by the fleet promoter (ADR-0020). Adjacent nits bundled: <list or none> (ADR-0029)."
-            Confirm each `gh workflow run` exited 0 — a failed dispatch is a
+            Confirm each dispatch `gh api` call exited 0 — a failed dispatch is a
             real failure; name it in the summary.
 
             SPARE-CAPACITY SWEEP: only if you dispatched AT LEAST ONE real
@@ -286,9 +293,13 @@ jobs:
             low/nit issues (`severity:low,severity:nit`, excluding
             `ready-for-implementer`) — skip any repo whose count is
             zero, a cleanup-sweep there is a wasted run — and dispatch one
-            cleanup-only run:
-              GH_TOKEN=$FLEET_TOKEN gh workflow run claude-implementer.yml \
-                --repo jaetill/<repo> -f mode=cleanup-sweep
+            cleanup-only run via the filename-based endpoint (not `gh workflow
+            run` — #410/#432):
+              default_branch=$(GH_TOKEN=$FLEET_TOKEN gh api repos/jaetill/<repo> --jq .default_branch)
+              GH_TOKEN=$FLEET_TOKEN gh api --method POST \
+                repos/jaetill/<repo>/actions/workflows/claude-implementer.yml/dispatches \
+                -f ref="$default_branch" \
+                -f "inputs[mode]=cleanup-sweep"
             One cleanup dispatch per spare slot; never the same repo twice;
             never exceed the cap.
 
@@ -728,6 +739,14 @@ jobs:
             exit 0
           fi
           # Under cap (or fail-open): dispatch the implementer for this issue.
-          gh workflow run claude-implementer.yml --repo "$repo" -f issue_number="$issue"
+          # Use the filename-based REST endpoint, NOT `gh workflow run` (which
+          # resolves to the ID-based endpoint and 500s fleet-wide — #410/#432).
+          # Detect the default branch (master on draft/carto, main elsewhere;
+          # a hardcoded ref 422s on the master repos).
+          default_branch=$(gh api "repos/$repo" --jq .default_branch)
+          gh api --method POST \
+            "repos/$repo/actions/workflows/claude-implementer.yml/dispatches" \
+            -f ref="$default_branch" \
+            -f "inputs[issue_number]=$issue"
           echo "::notice::Dispatched implementer for ${repo}#${issue} (in-flight before dispatch: ${inflight}/${cap}, counted=${counted})."
           gh issue comment "$issue" --repo "$repo" --body "Auto-promoted and dispatched via the promoter's event path (ADR-0030)." || true
