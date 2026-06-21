@@ -125,9 +125,13 @@ jobs:
 
           title="CI health: fleet workflow failures"
 
-          # Existing open CI-health issue, if any (dedup by title).
+          # Dedup by a STABLE label, not the title (#42): a title change would
+          # break title-based dedup and re-file a duplicate on the next run.
+          # Ensure the marker label exists, then match open issues by it.
+          gh label create ci-health --color ededed \
+            --description "CI-health watcher dedup marker" --force >/dev/null 2>&1 || true
           existing=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open \
-            --search "\"$title\" in:title" --json number --jq '.[0].number // empty')
+            --label "ci-health" --json number --jq '.[0].number // empty')
 
           if [[ "$count" -eq 0 ]]; then
             if [[ "$DEGRADED" == "1" ]]; then
@@ -188,7 +192,7 @@ jobs:
             echo "Filing new CI-health issue"
             gh issue create --repo "$GITHUB_REPOSITORY" \
               --title "$title" \
-              --label "bug,triage:medium" \
+              --label "bug,triage:medium,ci-health" \
               --body-file /tmp/ci-health-body.md
           fi
 
