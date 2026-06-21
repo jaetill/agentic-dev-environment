@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.3.1](https://github.com/jaetill/agentic-dev-environment/compare/v0.3.0...v0.3.1) (2026-06-21)
+
+
+### Bug Fixes
+
+* **ci-health:** dedup the watcher issue by stable label, not title ([#492](https://github.com/jaetill/agentic-dev-environment/issues/492)) ([75f2fd5](https://github.com/jaetill/agentic-dev-environment/commit/75f2fd52e7b5d42b71e10ab1648cb7022fa95a05))
+* **ci-health:** scope fleet token to actions:read (least privilege) ([#490](https://github.com/jaetill/agentic-dev-environment/issues/490)) ([da860f9](https://github.com/jaetill/agentic-dev-environment/commit/da860f9fbfafc167d05cf23fbdb116204925c5de))
+* **ci:** use if/then for lambda npm ci so integrity failures propagate ([#486](https://github.com/jaetill/agentic-dev-environment/issues/486)) ([02c78fd](https://github.com/jaetill/agentic-dev-environment/commit/02c78fdc7c301024d6f779c406654a1e6e0f52e6))
+* **cockpit-export:** handle empty PR list + surface pr-create failure ([#502](https://github.com/jaetill/agentic-dev-environment/issues/502)) ([152cc7a](https://github.com/jaetill/agentic-dev-environment/commit/152cc7a90e01b8242ecd253bb3333dd2afb4d9a9))
+* **dep-watch:** SHA-pin claude-code-action ([#287](https://github.com/jaetill/agentic-dev-environment/issues/287)) ([#499](https://github.com/jaetill/agentic-dev-environment/issues/499)) ([997894a](https://github.com/jaetill/agentic-dev-environment/commit/997894ad9940cfccb45098acb6507c5a3610dc12))
+* **dreams-curate:** validate output store before deleting memory files ([#503](https://github.com/jaetill/agentic-dev-environment/issues/503)) ([776af99](https://github.com/jaetill/agentic-dev-environment/commit/776af99e3e54252d8ace945ca94b3f1cd6e56096))
+* **implementer:** validate bundle_issues format on manual dispatch ([#496](https://github.com/jaetill/agentic-dev-environment/issues/496)) ([da5fe77](https://github.com/jaetill/agentic-dev-environment/commit/da5fe77f898bb07e8e1f3603219f7eee33b3ac2b))
+* **implementer:** validate manual-dispatch issue_number is numeric ([#491](https://github.com/jaetill/agentic-dev-environment/issues/491)) ([e6b3520](https://github.com/jaetill/agentic-dev-environment/commit/e6b3520006c1d2c5eb43dc49c28db7615e7cf926))
+* **stale-citation:** constrain existence probe to repo-relative paths ([#266](https://github.com/jaetill/agentic-dev-environment/issues/266)) ([#500](https://github.com/jaetill/agentic-dev-environment/issues/500)) ([b6587ce](https://github.com/jaetill/agentic-dev-environment/commit/b6587cec30ea96a02b3de03d7cece826ef5725a9))
+* **triage-scan:** validate AUTONOMOUS_MERGE_CAP is a positive integer ([#493](https://github.com/jaetill/agentic-dev-environment/issues/493)) ([b6b101b](https://github.com/jaetill/agentic-dev-environment/commit/b6b101bc1d0bada21e415e6c447dd77e1c30bd80))
+* **urgent-poll:** drop unused id-token; surface+retry on dispatch failure ([#497](https://github.com/jaetill/agentic-dev-environment/issues/497)) ([b5482ec](https://github.com/jaetill/agentic-dev-environment/commit/b5482ec99a3fe2448e8e12f59e482ed6d4637f96))
+* **validate:** skip fenced code blocks in markdown link-path check ([#498](https://github.com/jaetill/agentic-dev-environment/issues/498)) ([f1ee3e7](https://github.com/jaetill/agentic-dev-environment/commit/f1ee3e71b03afd25b9d82d5a7e40512b7640be2e))
+* **wip-inventory:** harden branch parsing + cap/sanitize injected output ([#495](https://github.com/jaetill/agentic-dev-environment/issues/495)) ([e739598](https://github.com/jaetill/agentic-dev-environment/commit/e73959844f88ee17a22f6efcf52194b553b1cbd3))
+
 ## [0.3.0](https://github.com/jaetill/agentic-dev-environment/compare/v0.2.0...v0.3.0) (2026-06-20)
 
 
