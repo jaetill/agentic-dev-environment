@@ -23,7 +23,9 @@ on:
 
 permissions:
   contents: read
-  id-token: write   # claude-code-action OIDC / app-token mint
+  # No OIDC consumer here (#137): the fleet App token is minted from the App
+  # private key, not OIDC, and there is no claude-code-action step. id-token
+  # write removed to avoid granting unused OIDC capability.
 
 concurrency:
   group: urgent-dispatch-poll
@@ -164,6 +166,11 @@ jobs:
                 --body "Auto-promoted and dispatched by the central urgent-dispatch poll (ADR-0030)." || true
             else
               echo "::warning::Dispatch failed for ${repo}#${num}."
+              # Surface the failure on the issue and un-promote so the NEXT poll
+              # retries, instead of leaving it labeled-but-unworked / stranded (#140).
+              gh issue edit "$num" --repo "$repo" --remove-label ready-for-implementer || true
+              gh issue comment "$num" --repo "$repo" \
+                --body "Auto-dispatch failed (urgent poll); the \`ready-for-implementer\` label was removed so the next poll retries. If this recurs, a maintainer can dispatch manually (ADR-0030)." || true
             fi
           done < "$tmp"
           echo "## Urgent poll — $candidates candidate(s), $dispatched dispatched" >> "$GITHUB_STEP_SUMMARY"
