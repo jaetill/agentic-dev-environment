@@ -590,12 +590,25 @@ jobs:
               # and would pass the gate above silently (issue #61).
               all_checks=$(gh pr checks "$pr" --repo "$slug" --json name,bucket 2>/dev/null || echo '[]')
               for hard_gate in security-review code-review; do
-                gate_bucket=$(echo "$all_checks" \
-                  | jq -r --arg g "$hard_gate" \
-                      '[.[] | select(.name | test($g)) | .bucket] | first // ""')
-                if [[ "$gate_bucket" != "pass" ]]; then
+                # Anchored, all-must-pass gate match.
+                # #336: `test($g)` was a substring match, so a crafted check name
+                # like `mock-security-review` / `bypass-code-review-x` satisfied the
+                # gate. Anchor to the exact check name (GitHub reports it as
+                # `<workflow> / <job>`, e.g. `review / security-review`, or bare
+                # `security-review`): require the gate name at end, preceded by
+                # start-of-string or `/ `.
+                # #337: require EVERY matching check to pass (`all`), not just the
+                # first (`first`) — mirrors the IaC guard's all(.) above so a green
+                # decoy alongside a failing real check cannot pass. Empty set
+                # (absent caller stub, #61) is also a fail.
+                gate_pass=$(echo "$all_checks" \
+                  | jq -e --arg g "$hard_gate" \
+                      '[.[] | select(.name | test("(^|[/] )" + $g + "$")) | .bucket]
+                       | (length > 0 and all(.[]; . == "pass"))' >/dev/null 2>&1 \
+                  && echo true || echo false)
+                if [[ "$gate_pass" != "true" ]]; then
                   gh pr edit "$pr" --repo "$slug" --add-label "hold:review-gate" >/dev/null 2>&1 || true
-                  echo "  $slug#$pr — $hard_gate not passing (bucket: ${gate_bucket:-absent}); hold:review-gate (ADR-0021 #61)"
+                  echo "  $slug#$pr — $hard_gate not passing or absent; hold:review-gate (ADR-0021 #61)"
                   held=$((held+1)); continue 2
                 fi
               done
