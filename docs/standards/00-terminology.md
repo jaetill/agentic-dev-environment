@@ -21,11 +21,11 @@ Canonical reference for fleet-specific identifiers, names, and secrets. When a t
 
 Do not reintroduce these in new operational files (workflows, scripts, agent prompts). Historical references in ADRs and comments documenting old behaviour are permitted — suppress the `terminology-check` CI gate by adding `# terminology-check: deprecated-<slug>-ok-here` on any of the 5 lines preceding the deprecated term, where `<slug>` is the term's slug from the table above (e.g. `deprecated-app-claude-ok-here`). The inline-exception window is 5 lines, so a marker at the top of a short comment block covers the reference below it.
 
-| Deprecated term | Kind | Replaced by | Deprecated | ADR |
-|---|---|---|---|---|
-| `app/claude` | GitHub author identity | `app/jaetill-ai-triage-team` / `jaetill-ai-triage-team[bot]` | 2026-06-10 | [ADR-0041](../adr/0041-fleet-app-single-write-identity.md) |
-| `IMPLEMENTER_PAT` | GitHub Secret (primary implementer auth) | `FLEET_APP_ID` + `FLEET_APP_PRIVATE_KEY` | 2026-06-10 | [ADR-0041](../adr/0041-fleet-app-single-write-identity.md) |
-| `claude[bot]` as implementer write identity | GitHub actor | `jaetill-ai-triage-team[bot]` | 2026-06-10 | [ADR-0041](../adr/0041-fleet-app-single-write-identity.md) |
+| Deprecated term | Slug | Kind | Replaced by | Deprecated | ADR |
+|---|---|---|---|---|---|
+| `app/claude` | `app-claude` | GitHub author identity | `app/jaetill-ai-triage-team` / `jaetill-ai-triage-team[bot]` | 2026-06-10 | [ADR-0041](../adr/0041-fleet-app-single-write-identity.md) |
+| `IMPLEMENTER_PAT` | `implementer-pat` | GitHub Secret (primary implementer auth) | `FLEET_APP_ID` + `FLEET_APP_PRIVATE_KEY` | 2026-06-10 | [ADR-0041](../adr/0041-fleet-app-single-write-identity.md) |
+| `claude[bot]` as implementer write identity | `claude-bot` | GitHub actor | `jaetill-ai-triage-team[bot]` | 2026-06-10 | [ADR-0041](../adr/0041-fleet-app-single-write-identity.md) |
 
 **Notes on still-present legacy uses:**
 
