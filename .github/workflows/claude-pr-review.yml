@@ -847,11 +847,13 @@ jobs:
           # bug-fix that merely adds an auth guard inside an existing route was
           # ADR-gated and frozen (18 ai-teacher IDOR/auth fixes stuck, 2026-06-06).
           # A *contract* change is the published shape of the API: an OpenAPI
-          # spec, a protobuf/GraphQL schema. Route-handler logic (auth, validation,
+          # spec (openapi.* or its OpenAPI-v2 name swagger.*, the default output of
+          # Spring Boot / Quarkus / API Gateway scaffolding), a protobuf/GraphQL
+          # schema. Route-handler logic (auth, validation,
           # bug fixes) is reviewed normally and merges without an ADR; a genuine
           # breaking change is still caught by code-review + the test suite + the
           # human test->prod gate (ADR-0039/0043).
-          api_changes=$(git diff --name-only "origin/${BASE_REF}...HEAD" | grep -E 'openapi\.(ya?ml|json)|\.proto$|schema\.graphql$' || true)
+          api_changes=$(git diff --name-only "origin/${BASE_REF}...HEAD" | grep -E '(openapi|swagger)\.(ya?ml|json)|\.proto$|schema\.graphql$' || true)
           if [[ -n "$api_changes" ]]; then
             requires_adr=true
             categories="$categories api-contract"
