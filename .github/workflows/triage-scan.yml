@@ -570,7 +570,13 @@ jobs:
                       '^(FAILURE|TIMED_OUT|CANCELLED|ACTION_REQUIRED|ERROR|failure|fail|pending|IN_PROGRESS|QUEUED|WAITING|REQUESTED)$'; then
                     echo "  $slug#$pr — hold: BLOCKED — a required check is failing or pending"
                   else
-                    echo "  $slug#$pr — hold: BLOCKED with all required checks green → branch-protection review/CODEOWNERS gate (needs a human; not a CI failure)"
+                    # All required checks green but still BLOCKED → the CODEOWNERS /
+                    # branch-protection review gate (a bot PR touching rails paths
+                    # needs @jaetill's review-approval). Mark it so the cockpit's
+                    # waiting-on-Jason counts see it, instead of an invisible
+                    # resting state (#271, ADR-0044).
+                    gh pr edit "$pr" --repo "$slug" --add-label "hold:compositional" >/dev/null 2>&1 || true
+                    echo "  $slug#$pr — hold:compositional — BLOCKED with all required checks green → CODEOWNERS/branch-protection review gate (needs @jaetill; not a CI failure)"
                   fi
                   held=$((held+1)); continue;;
                 *) echo "  $slug#$pr — hold: mergeStateStatus=$mss (still computing or unsupported)"
@@ -621,7 +627,12 @@ jobs:
                     --body "Auto-merged self-change: ${slug}#${pr} (fix for #${issue})."
                 ) || true; fi
               else
-                echo "::warning::$slug#$pr qualified but the merge failed; left for a human."
+                # Qualified (checks green, hard gates passed) but the merge was
+                # still refused — almost always the CODEOWNERS review gate on a
+                # rails-path PR. Mark hold:compositional so it surfaces in the
+                # waiting-on-Jason counts rather than resting invisibly (#271).
+                gh pr edit "$pr" --repo "$slug" --add-label "hold:compositional" >/dev/null 2>&1 || true
+                echo "::warning::$slug#$pr qualified but the merge was refused (likely the CODEOWNERS review gate); hold:compositional for a human (#271)."
                 held=$((held+1))
               fi
             done
@@ -720,6 +731,19 @@ jobs:
             echo "::warning::event-dispatch: malformed repo ('$repo') or issue ('$issue'); refusing to dispatch."; exit 0
           fi
           echo "Trusted-origin event for ${repo}#${issue}."
+          # scope:iac exclusion (#131): the `issues` event path filters scope:iac
+          # in this job's `if:`, but `github.event.issue.labels` is empty on a
+          # repository_dispatch event, so that guard is a no-op for forwarded
+          # (model B) events. A forwarded scope:iac issue must NOT take the
+          # regular implementer path — its IaC path is unchanged for now
+          # (ADR-0030 §IaC). Re-check via the API on the repository_dispatch path.
+          if [[ "$EVENT_NAME" == "repository_dispatch" ]]; then
+            if gh issue view "$issue" --repo "$repo" --json labels \
+                 --jq '[.labels[].name] | any(. == "scope:iac")' 2>/dev/null | grep -q true; then
+              echo "::notice::event-dispatch: ${repo}#${issue} is scope:iac; its IaC path is unchanged (ADR-0030) — not dispatching the regular implementer."
+              exit 0
+            fi
+          fi
           # Durable promotion state (idempotent).
           gh issue edit "$issue" --repo "$repo" --add-label ready-for-implementer || true
           # Throttle (ADR-0030): the cap is FLEET-WIDE — count actively running
