@@ -68,7 +68,11 @@ jobs:
         run: |
           set -euo pipefail
           # Export caller-supplied environment (TF_VAR_* a root module requires
-          # but keeps out of source). Values never echoed; Actions masks them.
+          # but keeps out of source). Actions masks the whole `extra-tf-env`
+          # SECRET blob, but NOT the individual values parsed out of it — once
+          # split, a value is no longer in the redaction list and could surface
+          # in `tofu plan` diffs or error output. So register each parsed value
+          # with ::add-mask:: before exporting it.
           # NB: explicit if, not `[[ ... ]] && continue` — under set -e a
           # false test in that idiom returns 1 as the statement's exit code
           # and kills the shell on every VALID line (game-night#168's first
@@ -76,6 +80,8 @@ jobs:
           if [[ -n "${EXTRA_TF_ENV:-}" ]]; then
             while IFS= read -r kv; do
               if [[ -n "$kv" && "$kv" == *=* ]]; then
+                val="${kv#*=}"
+                [[ -n "$val" ]] && echo "::add-mask::$val"
                 export "${kv?}"
               fi
             done <<< "$EXTRA_TF_ENV"
