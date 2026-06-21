@@ -531,6 +531,12 @@ jobs:
             `chore: drain deferred low/nit findings`. Each bundled fix must
             be bounded and unambiguous; skip any that is not. If there are no
             open low/nit issues, do nothing and exit.
+
+            SKIP `scope:ci` findings and any fix that edits `.github/workflows/`
+            files (#334): Mode C runs on a token without `workflow` scope, so a
+            push touching a workflow file fails — silently wasting the run. Leave
+            those issues open at their severity; they need a real dispatch (Mode A)
+            with the fleet App token, not a cleanup sweep.
           claude_args: |
             --model claude-sonnet-4-6
             --permission-mode bypassPermissions
