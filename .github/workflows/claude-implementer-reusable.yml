@@ -345,6 +345,19 @@ jobs:
       issues: write
       id-token: write
     steps:
+      - name: Validate issue_number is numeric
+        # Defense-in-depth (#46): inputs.issue_number is a free-form string that
+        # gets interpolated into the agent prompt below. Gate the whole job on a
+        # strict numeric check, reading the value from env (never interpolating
+        # it into the shell), so a non-numeric / injection payload cannot reach
+        # the prompt. Steps run in order, so a failure here skips the agent.
+        env:
+          ISSUE_NUMBER_RAW: ${{ inputs.issue_number }}
+        run: |
+          if ! [[ "$ISSUE_NUMBER_RAW" =~ ^[0-9]+$ ]]; then
+            echo "::error::issue_number must be a positive integer (got a non-numeric value)"
+            exit 1
+          fi
       - name: Mint implementer App token
         id: app-token
         # Pinned to SHA — this action receives FLEET_APP_PRIVATE_KEY (the
