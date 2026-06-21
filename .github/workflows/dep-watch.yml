@@ -102,6 +102,18 @@ jobs:
             || git checkout -B reports/dep-watch
           mkdir -p docs
           cp "${RUNNER_TEMP}/depwatch/dependency-report.md" docs/dependency-report.md
+          # Content validation (#290): the report is LLM output over attacker-
+          # influenced npm-advisory text. Gate it deterministically (no LLM)
+          # before commit — reject rather than push suspect content. Bounds the
+          # unsanitized-LLM-output-to-repo-write path (writer-not-approver, ADR-0045).
+          if ! head -1 docs/dependency-report.md | grep -qE '^## Dependency Watch'; then
+            echo "::error::dep-watch report failed header check (expected '## Dependency Watch …'); refusing to publish."
+            exit 1
+          fi
+          if [ "$(wc -c < docs/dependency-report.md)" -gt 1048576 ]; then
+            echo "::error::dep-watch report exceeds the 1 MB size cap; refusing to publish."
+            exit 1
+          fi
           git add docs/dependency-report.md
           if git diff --cached --quiet; then
             echo "Report unchanged; nothing to publish."
