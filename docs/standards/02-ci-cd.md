@@ -67,12 +67,12 @@ The choice between topologies is per-project, made at scaffold time — and revi
 | `release-please` opens release PR | (Generated automatically from Conventional Commits since last release.) |
 | Release PR merged | Tag created (`vX.Y.Z`). |
 | Tag created | Deploy tag to `staging`. Run AI verification (functional-tester + e2e-tester + smoke tests). |
-| Staging verification green | **Auto-promote tag to `prod`.** No manual click. |
+| Staging verification green | **Promote tag to `prod` through the protected `prod` environment** — a required reviewer approves the deployment (ADR-0043). |
 | Prod deploy succeeds | Post-deploy health monitoring (15 min window). |
 | Prod health check fails within window | **Automated rollback** to previous version. incident-responder triages. |
 | Rollback fails | incident-responder pages the human. |
 
-In normal operation, **there are zero human touchpoints in the pipeline**. The release-please PR auto-merges (handled by `release-captain`); feature PRs auto-merge (per ADR-0003's AI shipping authority).
+In normal operation, the **only** human touchpoint is the **production deployment approval**: the `prod` environment is protected and a required reviewer approves each prod deploy (ADR-0043). Everything up to it is autonomous — the release-please PR auto-merges (handled by `release-captain`), feature PRs auto-merge (per ADR-0003's AI shipping authority), and staging deploys + AI verification run with no human. (A single-environment project is compliant too: its one protected deploy *is* the prod gate — ADR-0043 phase-1.)
 
 The cases that *do* require a human:
 
@@ -119,7 +119,7 @@ If all gates pass and PR **is** in an ADR-gated category: hold for paired ADR (s
 | Smoke tests | `functional-tester` agent |
 | e2e tests on staging | `e2e-tester` agent |
 | Performance baseline check | (TBD per observability standard) |
-| All green → deploy to `prod` | Auto |
+| All green → deploy to `prod` | **Human-approved** (protected `prod` environment, ADR-0043) |
 | Post-deploy health watch | 15 minute window |
 | Health failure → rollback | Auto |
 
@@ -244,6 +244,6 @@ When bootstrapping a new project, the `new-project.sh` script will:
 
 - ❌ **"Just this once" manual approval gates.** They rot. Either automate or formally ADR-gate the change category.
 - ❌ **Different code in different environments.** Same artifact, different config. Period.
-- ❌ **Skipping staging "because it's a small change."** Staging exists so the testing agent can verify; bypassing it bypasses the AI safety net.
+- ❌ **Bypassing the AI verification safety net.** The testing agents (functional-tester, e2e-tester) must verify a build before it reaches the human-gated prod deploy. A *separate* staging environment is one way to run that verification, but it is not mandatory — a single-environment project (ADR-0043 phase-1) is fully compliant. The anti-pattern is skipping verification, not skipping a second environment.
 - ❌ **Auto-rollback that doesn't actually verify health post-rollback.** A rollback that reintroduces the previous bug is a worse outcome than the original failure.
 - ❌ **Letting the calibration sample atrophy.** During the first 2–4 weeks, *do* spot-check what AI shipped. Trust is earned, not assumed.
