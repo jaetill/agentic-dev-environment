@@ -80,6 +80,16 @@ jobs:
           if [[ -n "${EXTRA_TF_ENV:-}" ]]; then
             while IFS= read -r kv; do
               if [[ -n "$kv" && "$kv" == *=* ]]; then
+                # Allowlist the TF_VAR_ namespace only (#278). Without this, a
+                # caller (or compromised caller) could inject TF_CLI_ARGS_plan=
+                # -destroy / -target=, AWS_ACCESS_KEY_ID/SECRET overrides, or
+                # PATH to redirect the plan away from the real changeset and
+                # defeat the writer≠approver invariant. Reject anything else.
+                key="${kv%%=*}"
+                if [[ ! "$key" =~ ^TF_VAR_[A-Za-z0-9_]+$ ]]; then
+                  echo "::warning::extra-tf-env: rejecting non-TF_VAR_ key '${key}'"
+                  continue
+                fi
                 val="${kv#*=}"
                 [[ -n "$val" ]] && echo "::add-mask::$val"
                 export "${kv?}"
