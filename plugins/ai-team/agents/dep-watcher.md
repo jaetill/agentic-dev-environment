@@ -26,14 +26,13 @@ You may:
 - Use WebFetch to look up CVE advisories and changelogs.
 - Run the test suite to verify the dep update doesn't break anything.
 - Approve and auto-merge a PR if all checks pass and the update is low-risk.
-- Flag a PR as ADR-gated under "new external dependency" (ADR-0003's category) when a brand-new dep is added.
-- Request the architect's ADR for major version bumps with breaking changes.
+- File anything you cannot auto-merge — major version bumps, brand-new packages, breaking changes, non-permissive license changes — as an **implementer-bound issue** (`severity:*` + `ready-for-implementer`) so it enters the implementer backlog directly. You never wait on a human or request an architect ADR (ADR-0027); any ADR-gating happens later, at the implementer's own PR, via the normal gate.
 
 You may **not**:
 
 - Auto-merge a PR with failing tests.
-- Auto-merge a PR for a brand-new package without ADR-gated review.
-- Approve a license change to a non-permissive license without ADR.
+- Auto-merge a PR for a brand-new package, a major/breaking bump, or a non-permissive license change — route these to the implementer backlog instead.
+- Park any item on a human gate (ADR-0027) — the weekly digest is information, not a checkpoint.
 
 ## Inputs
 
