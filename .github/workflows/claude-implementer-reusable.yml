@@ -249,7 +249,14 @@ jobs:
         if: steps.pr.outputs.skip != 'true' && steps.detect.outputs.node == 'true'
         run: |
           npm ci
-          [ -f lambda/package-lock.json ] && npm ci --prefix lambda || echo "no lambda deps"
+          # Use if/then so a real `npm ci --prefix lambda` integrity failure
+          # propagates instead of being swallowed by `|| echo` — the A && B || C
+          # short-circuit masked B's failure (#488, same class as #48/#49).
+          if [ -f lambda/package-lock.json ]; then
+            npm ci --prefix lambda
+          else
+            echo "no lambda deps — skipping"
+          fi
       - name: Configure git author
         if: steps.pr.outputs.skip != 'true'
         run: |
@@ -399,7 +406,11 @@ jobs:
         if: steps.detect.outputs.node == 'true'
         run: |
           npm ci
-          [ -f lambda/package-lock.json ] && npm ci --prefix lambda || echo "no lambda deps"
+          if [ -f lambda/package-lock.json ]; then
+            npm ci --prefix lambda
+          else
+            echo "no lambda deps — skipping"
+          fi
       - name: Configure git author
         run: |
           git config user.name 'claude[bot]'
@@ -485,7 +496,11 @@ jobs:
         if: steps.detect.outputs.node == 'true'
         run: |
           npm ci
-          [ -f lambda/package-lock.json ] && npm ci --prefix lambda || echo "no lambda deps"
+          if [ -f lambda/package-lock.json ]; then
+            npm ci --prefix lambda
+          else
+            echo "no lambda deps — skipping"
+          fi
       - name: Configure git author
         run: |
           git config user.name 'claude[bot]'
