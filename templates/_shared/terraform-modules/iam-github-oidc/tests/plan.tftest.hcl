@@ -79,3 +79,24 @@ run "additional_policies_attach" {
     error_message = "additional_policy_arns should produce one attachment per element"
   }
 }
+
+run "default_omits_environment_form_trust" {
+  command = plan
+  # Fail-closed default (github_environments=[], #214/#215): the role must trust
+  # only ref-form subs and grant NO environment-form trust unless asked.
+  assert {
+    condition     = !strcontains(aws_iam_role.github_actions.assume_role_policy, ":environment:")
+    error_message = "Default (github_environments=[]) must not emit any environment-form OIDC sub"
+  }
+}
+
+run "environment_form_trust_when_set" {
+  command = plan
+  variables {
+    github_environments = ["production"]
+  }
+  assert {
+    condition     = strcontains(aws_iam_role.github_actions.assume_role_policy, "repo:example/test-project:environment:production")
+    error_message = "Setting github_environments must emit the environment-form OIDC sub for each environment (#216)"
+  }
+}

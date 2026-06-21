@@ -25,8 +25,8 @@ variable "github_branch" {
 
 variable "github_environments" {
   type        = list(string)
-  description = "GitHub Environments whose deploy jobs may assume this role. Jobs running in an environment present an environment-form OIDC sub (repo:<org/repo>:environment:<name>) instead of the ref form, so gated prod deploys (ADR-0043) need this. Default matches the platform's protected prod environment."
-  default     = ["production"]
+  description = "GitHub Environments whose deploy jobs may assume this role. Jobs running in an environment present an environment-form OIDC sub (repo:<org/repo>:environment:<name>) instead of the ref form, so gated prod deploys (ADR-0043) need this. Defaults to [] — fail closed (#214/#215): a role trusts environment-form subs only when a consumer sets this explicitly, so a non-prod role never silently inherits production trust. Set [\"production\"] (or the relevant environment) on prod roles that deploy through a protected GitHub Environment."
+  default     = []
 }
 
 variable "additional_policy_arns" {
