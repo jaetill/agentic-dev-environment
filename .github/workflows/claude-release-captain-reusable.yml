@@ -35,7 +35,9 @@ jobs:
         with:
           fetch-depth: 0
       - name: Run release-captain agent
-        uses: anthropics/claude-code-action@v1
+        # SHA-pinned (#501): floating @v1 with contents:write + id-token:write +
+        # the OAuth token is a high-value target; pin to the fleet SHA.
+        uses: anthropics/claude-code-action@d5726de019ec4498aa667642bc3a80fca83aa102 # v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           show_full_output: true

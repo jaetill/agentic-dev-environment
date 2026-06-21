@@ -66,7 +66,9 @@ jobs:
             });
 
       - name: Invoke incident-responder for postmortem
-        uses: anthropics/claude-code-action@v1
+        # SHA-pinned (#405): floating @v1 with id-token:write + environment:prod
+        # is a high-value target; pin to the fleet SHA.
+        uses: anthropics/claude-code-action@d5726de019ec4498aa667642bc3a80fca83aa102 # v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           prompt: |
