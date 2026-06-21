@@ -145,6 +145,14 @@ echo "Dream completed successfully."
 out_store=$(jq -r 'first(.outputs[] | select(.type == "memory_store")).memory_store_id' <<< "$dream_resp")
 echo "Output store: $out_store"
 
+# Validate the output store BEFORE deleting existing memories (#383): an
+# empty/null store id would otherwise wipe the .md files with nothing to
+# replace them.
+if [[ -z "$out_store" || "$out_store" == "null" ]]; then
+  echo "::error::Dream produced no memory_store output; refusing to delete existing memory files."
+  exit 1
+fi
+
 # Remove previous .md files so renamed/merged memories replace them cleanly
 for f in "${mem_files[@]}"; do rm -f "$f"; done
 
