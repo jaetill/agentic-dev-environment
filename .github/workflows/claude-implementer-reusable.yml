@@ -345,17 +345,25 @@ jobs:
       issues: write
       id-token: write
     steps:
-      - name: Validate issue_number is numeric
-        # Defense-in-depth (#46): inputs.issue_number is a free-form string that
-        # gets interpolated into the agent prompt below. Gate the whole job on a
-        # strict numeric check, reading the value from env (never interpolating
-        # it into the shell), so a non-numeric / injection payload cannot reach
-        # the prompt. Steps run in order, so a failure here skips the agent.
+      - name: Validate dispatch inputs (issue_number, bundle_issues)
+        # Defense-in-depth (#46, #116/#118): issue_number and bundle_issues are
+        # free-form strings interpolated into the agent prompt below. Gate the
+        # whole job on strict format checks, reading values from env (never
+        # interpolating them into the shell), so a non-numeric / injection
+        # payload cannot reach the prompt. Steps run in order, so a failure here
+        # skips the agent.
         env:
           ISSUE_NUMBER_RAW: ${{ inputs.issue_number }}
+          BUNDLE_ISSUES_RAW: ${{ inputs.bundle_issues }}
         run: |
           if ! [[ "$ISSUE_NUMBER_RAW" =~ ^[0-9]+$ ]]; then
             echo "::error::issue_number must be a positive integer (got a non-numeric value)"
+            exit 1
+          fi
+          # bundle_issues is optional; when present it must be comma-separated
+          # positive integers (the promoter's adjacent-nit selection, ADR-0029).
+          if [[ -n "$BUNDLE_ISSUES_RAW" ]] && ! [[ "$BUNDLE_ISSUES_RAW" =~ ^[0-9]+(,[0-9]+)*$ ]]; then
+            echo "::error::bundle_issues must be empty or comma-separated positive integers"
             exit 1
           fi
       - name: Mint implementer App token
