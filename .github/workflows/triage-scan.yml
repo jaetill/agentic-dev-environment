@@ -495,6 +495,21 @@ jobs:
               # Absent or non-passing check -> hold (closed conservatively before
               # the per-repo guard caller is propagated — no auto-merge regression).
               is_iac=$(echo "$issue_meta" | jq -e '[.labels[].name] | any(. == "scope:iac")' >/dev/null 2>&1 && echo true || echo false)
+              # #275: the linked issue may lack the scope:iac label (triage applied
+              # only severity/defect), yet a PR touching terraform still auto-applies
+              # on dev via the push:[main] cascade and MUST clear the iac-additive-
+              # guard. So also classify from the PR's CHANGED FILES, not just labels.
+              # Fail closed: an unreadable file list is treated as IaC so the guard
+              # is required rather than skipped.
+              if [[ "$is_iac" != "true" ]]; then
+                if ! pr_files=$(gh pr view "$pr" --repo "$slug" --json files --jq '.files[].path' 2>/dev/null); then
+                  echo "  $slug#$pr — could not read changed files; treating as scope:iac (fail closed, #275)"
+                  is_iac=true
+                elif printf '%s\n' "$pr_files" | grep -Eq '\.(tf|tfvars)$|(^|/)terraform/'; then
+                  echo "  $slug#$pr — PR touches terraform but issue lacks scope:iac; requiring the IaC guard anyway (#275)"
+                  is_iac=true
+                fi
+              fi
               if [[ "$is_iac" == "true" ]]; then
                 iac_buckets=$(gh pr checks "$pr" --repo "$slug" --json name,bucket \
                                 --jq '[.[] | select(.name | test("iac-additive-guard")) | .bucket]' 2>/dev/null || echo '[]')
@@ -751,8 +766,17 @@ jobs:
           # regular implementer path — its IaC path is unchanged for now
           # (ADR-0030 §IaC). Re-check via the API on the repository_dispatch path.
           if [[ "$EVENT_NAME" == "repository_dispatch" ]]; then
-            if gh issue view "$issue" --repo "$repo" --json labels \
-                 --jq '[.labels[].name] | any(. == "scope:iac")' 2>/dev/null | grep -q true; then
+            # #521: fail CLOSED on a read error. If the label read fails (transient
+            # API blip), do NOT dispatch — a scope:iac issue could otherwise slip
+            # onto the regular implementer path. Skip this cycle; the next poll
+            # retries (the issue stays labelled ready-for-implementer below only
+            # after this guard passes).
+            if ! iac_label=$(gh issue view "$issue" --repo "$repo" --json labels \
+                 --jq '[.labels[].name] | any(. == "scope:iac")' 2>/dev/null); then
+              echo "::warning::event-dispatch: could not read labels for ${repo}#${issue}; failing closed — not dispatching this cycle (#521)."
+              exit 0
+            fi
+            if [[ "$iac_label" == "true" ]]; then
               echo "::notice::event-dispatch: ${repo}#${issue} is scope:iac; its IaC path is unchanged (ADR-0030) — not dispatching the regular implementer."
               exit 0
             fi
