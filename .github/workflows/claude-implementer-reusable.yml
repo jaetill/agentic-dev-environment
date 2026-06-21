@@ -447,9 +447,12 @@ jobs:
           # the App carries), gh CLI calls, and PR creation. PR author will
           # be `jaetill-ai-triage-team[bot]` — a platform-enforced identity
           # the auto-merger can filter on without spoofing risk (#58/#349).
-          # Scoped to manual-dispatch only — Mode B (issue_comment) and
-          # Mode C (cleanup-sweep) run on attacker-influenceable triggers
-          # and keep the lower-privilege runtime token per security-review #323.
+          # Scoped to manual-dispatch only. Mode B (issue_comment) runs on an
+          # attacker-reachable trigger; Mode C (cleanup-sweep) runs on a
+          # permission-gated workflow_dispatch — NOT attacker-triggered (#332) —
+          # but drains pre-existing low/nit issues whose content may be attacker-
+          # influenced. Both therefore keep the lower-privilege runtime token
+          # (security-review #323).
           github_token: ${{ steps.app-token.outputs.token }}
           # The fleet promoter (ADR-0020) dispatches this workflow as the
           # GitHub App jaetill-ai-triage-team[bot] — a Bot actor.
