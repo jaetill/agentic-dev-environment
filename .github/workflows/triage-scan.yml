@@ -773,6 +773,18 @@ jobs:
           if [[ ! "$repo" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ || ! "$issue" =~ ^[0-9]+$ ]]; then
             echo "::warning::event-dispatch: malformed repo ('$repo') or issue ('$issue'); refusing to dispatch."; exit 0
           fi
+          # Fleet-owner guard (#127): a repository_dispatch client_payload is
+          # caller-controlled, so $repo must be confined to THIS owner — the only
+          # org the fleet App is installed on — or a crafted payload could aim the
+          # dispatch (and the write-capable App token) at an arbitrary repo. Derive
+          # the owner from the trusted github.repository (THIS_REPO), never the
+          # payload. (Per-repo allowlisting is intentionally avoided to not
+          # duplicate the fleet roster — #39; owner-confinement is the security
+          # boundary, and a non-fleet repo under the owner still 404s the App.)
+          owner="${THIS_REPO%%/*}"
+          if [[ "${repo%%/*}" != "$owner" ]]; then
+            echo "::warning::event-dispatch: repo '$repo' is not under the fleet owner '$owner'; refusing to dispatch (#127)."; exit 0
+          fi
           echo "Trusted-origin event for ${repo}#${issue}."
           # scope:iac exclusion (#131): the `issues` event path filters scope:iac
           # in this job's `if:`, but `github.event.issue.labels` is empty on a
