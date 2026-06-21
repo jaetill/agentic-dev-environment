@@ -249,7 +249,14 @@ jobs:
         if: steps.pr.outputs.skip != 'true' && steps.detect.outputs.node == 'true'
         run: |
           npm ci
-          [ -f lambda/package-lock.json ] && npm ci --prefix lambda || echo "no lambda deps"
+          # if/then so a real npm ci --prefix lambda failure fails the step
+          # instead of being swallowed by `|| echo` (#488); backend-less repos
+          # still skip cleanly.
+          if [ -f lambda/package-lock.json ]; then
+            npm ci --prefix lambda
+          else
+            echo "no lambda deps"
+          fi
       - name: Configure git author
         if: steps.pr.outputs.skip != 'true'
         run: |
@@ -399,7 +406,14 @@ jobs:
         if: steps.detect.outputs.node == 'true'
         run: |
           npm ci
-          [ -f lambda/package-lock.json ] && npm ci --prefix lambda || echo "no lambda deps"
+          # if/then so a real npm ci --prefix lambda failure fails the step
+          # instead of being swallowed by `|| echo` (#488); backend-less repos
+          # still skip cleanly.
+          if [ -f lambda/package-lock.json ]; then
+            npm ci --prefix lambda
+          else
+            echo "no lambda deps"
+          fi
       - name: Configure git author
         run: |
           git config user.name 'claude[bot]'
@@ -485,7 +499,14 @@ jobs:
         if: steps.detect.outputs.node == 'true'
         run: |
           npm ci
-          [ -f lambda/package-lock.json ] && npm ci --prefix lambda || echo "no lambda deps"
+          # if/then so a real npm ci --prefix lambda failure fails the step
+          # instead of being swallowed by `|| echo` (#488); backend-less repos
+          # still skip cleanly.
+          if [ -f lambda/package-lock.json ]; then
+            npm ci --prefix lambda
+          else
+            echo "no lambda deps"
+          fi
       - name: Configure git author
         run: |
           git config user.name 'claude[bot]'
