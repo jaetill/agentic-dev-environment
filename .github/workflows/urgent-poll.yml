@@ -159,7 +159,13 @@ jobs:
             # ready once it is actually being worked (a failed-dispatch issue is
             # rare and surfaces to a human rather than silently stranding).
             gh issue edit "$num" --repo "$repo" --add-label ready-for-implementer || true
-            if gh workflow run claude-implementer.yml --repo "$repo" -f issue_number="$num"; then
+            # Filename-based REST dispatch, NOT `gh workflow run` (ID-based endpoint
+            # 500s fleet-wide — #410/#432). Default branch is master on draft/carto,
+            # main elsewhere; a hardcoded ref 422s.
+            default_branch=$(gh api "repos/$repo" --jq .default_branch)
+            if gh api --method POST \
+                 "repos/$repo/actions/workflows/claude-implementer.yml/dispatches" \
+                 -f ref="$default_branch" -f "inputs[issue_number]=$num"; then
               dispatched=$((dispatched + 1))
               echo "::notice::Dispatched ${repo}#${num} (urgent poll)."
               gh issue comment "$num" --repo "$repo" \
