@@ -41,6 +41,8 @@ run "DROP COLUMN (platform) → HOLD" "HOLD: destructive" "g 'migrations/003.sql
 run "added new third-party action → HOLD" "HOLD: net-new external action" "g '.github/workflows/docs.yml' '+      - uses: some/new-action@abc123'"
 run "non-pin workflow edit (M1) → HOLD" "HOLD: workflow edit" "g '.github/workflows/ci-health.yml' '+      run: echo suppress'"
 run "removed set -e (M2) → HOLD" "HOLD: removes a safety pragma" "g 'scripts/dreams-curate.sh' '-set -e'"
+run "removed set -euo pipefail (M2 combined-flag, #415) → HOLD" "HOLD: removes a safety pragma" "g 'scripts/dreams-curate.sh' '-set -euo pipefail'"
+run "removed set -o pipefail (M2 long-form, #415) → HOLD" "HOLD: removes a safety pragma" "g 'scripts/dreams-curate.sh' '-set -o pipefail'"
 run ".sh refactors exit 1 into helper (removal + addition) → IN_LANE" "IN_LANE" "g 'scripts/dreams-curate.sh' \$'-  exit 1\n+  die \"error\"'"
 
 echo "== H1 / H3 fail-closed HOLDS =="

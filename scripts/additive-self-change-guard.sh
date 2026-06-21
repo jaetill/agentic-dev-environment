@@ -113,12 +113,16 @@ while IFS= read -r f; do
   fi
 done <<< "$CHANGED_FILES"
 
-# (M2) Removal of a structural safety pragma (set -e / errexit) is a control
-# weakening the vocabulary denylist would miss. Individual `exit N` removals are
-# NOT flagged here — they are normal error-handling idioms whose removal has no
-# structural effect on the script's failure behaviour outside that branch.
-if removed_lines | grep -Eq 'set[[:space:]]+-e([[:space:]]|$)|set[[:space:]]+-o[[:space:]]+errexit|\berrexit\b'; then
-  echo "HOLD: removes a safety pragma/guard (set -e / errexit) — control weakening (ADR-0047)"; exit 1
+# (M2) Removal of a structural safety pragma (errexit / nounset / pipefail) is a
+# control weakening the vocabulary denylist would miss (#415). Matches the
+# combined short-flag idioms this repo actually uses — `set -e`, `set -eu`,
+# `set -euo pipefail`, `set -uo pipefail` — not just the bare `set -e` form the
+# earlier regex required (a `-e` followed by another flag, as in `-euo`, slipped
+# through). Also covers the `set -o errexit|pipefail|nounset` long forms.
+# Individual `exit N` removals are NOT flagged here — they are normal error-
+# handling idioms whose removal has no structural effect outside that branch.
+if removed_lines | grep -Eq 'set[[:space:]]+-[a-z]*e[a-z]*([[:space:]]|$)|set[[:space:]]+-[a-z]*u[a-z]*([[:space:]]|$)|set[[:space:]]+-o[[:space:]]+(errexit|nounset|pipefail)|\b(errexit|nounset|pipefail)\b'; then
+  echo "HOLD: removes a safety pragma (errexit/nounset/pipefail) — control weakening (ADR-0047)"; exit 1
 fi
 
 # (2) guardrail vocabulary on any changed line -> HOLD
