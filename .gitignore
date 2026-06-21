@@ -25,6 +25,7 @@ dist/
 # Claude / AI
 .claude/audit.log
 .claude/sessions/
+.claude/settings.local.json   # per-user local config — never commit (#435)
 
 # Local secrets — never commit
 .env
