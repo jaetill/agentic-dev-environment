@@ -142,6 +142,21 @@ jobs:
           app-id: ${{ secrets.FLEET_APP_ID }}
           private-key: ${{ secrets.FLEET_APP_PRIVATE_KEY }}
           owner: ${{ github.repository_owner }}
+          # Least-privilege (#65/#35): this token is handed to the LLM promoter
+          # step, which reads attacker-influenceable fleet issue content. Scope to
+          # exactly what the promoter does — label/comment/file issues
+          # (issues:write), dispatch implementers (actions:write), count in-flight
+          # runs + read PRs (pull-requests:read; actions:read via the write grant),
+          # read repo metadata e.g. default_branch (contents:read). It does NOT
+          # merge or push, so drop the contents:write / pull-requests:write the
+          # default install grant would include. The auto-merge and event-dispatch
+          # jobs mint their OWN full-scope tokens, so this narrowing is isolated to
+          # the promoter pass — a wrong scope only skips a dispatch cycle
+          # (recoverable next run); it cannot break merge or dispatch elsewhere.
+          permission-contents: read
+          permission-issues: write
+          permission-pull-requests: read
+          permission-actions: write
 
       # ADR-0030 shared ceiling: the windowed promoter must respect the SAME
       # fleet-wide in-flight budget as event-dispatch and the urgent poll — not a
