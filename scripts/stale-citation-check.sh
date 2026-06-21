@@ -28,13 +28,13 @@ set -uo pipefail
 TITLE="${ISSUE_TITLE:-}"
 BODY="${ISSUE_BODY:-}"
 
-# strip_line_number <raw> — strips a trailing :<digits> or :<digits>-<digits>
-# suffix (line number or range).  "src/auth/session.js:42" and
-# "triage-scan.yml:390-391" both become the bare file path.
-# A directory like "src/auth/" is returned unchanged.
+# strip_line_number <raw> — strips a trailing :<digits> suffix that may be a
+# single line, a range, or a comma-separated list (#508): "src/auth/session.js:42",
+# "triage-scan.yml:390-391", and "claude-implementer-reusable.yml:252,381,467"
+# all become the bare file path. A directory like "src/auth/" is returned unchanged.
 strip_line_number() {
   local raw="$1"
-  if [[ "$raw" =~ ^(.+):[0-9]+(-[0-9]+)?$ ]]; then
+  if [[ "$raw" =~ ^(.+):[0-9]+([,-][0-9]+)*$ ]]; then
     printf '%s' "${BASH_REMATCH[1]}"
   else
     printf '%s' "$raw"
