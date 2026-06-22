@@ -60,7 +60,7 @@ Live exhibits (2026-06-03): game-night-pwa #132 and meal-planner #64 conflicted 
 
 ## Implementation notes
 
-- `plugins/ai-team/agents/implementer.md` — Mode A step 11 (and the Mode B analog): replace comment-for-human with strip + `conflict-retry` increment + one-line comment.
+- `plugins/ai-team/agents/implementer.md` — Mode A step 11 and Mode B step 7 (the pre-push rebase conflict check in fix iteration): replace the bail-and-comment with strip + `conflict-retry` increment + one-line comment.
 - `.github/workflows/triage-scan.yml` auto-merge job — split the merge-failure branch: conflict → close/strip/increment; other failures → `HFAIL` unchanged.
 - `plugins/ai-team/agents/triage-bot.md` — eligibility: `conflict-retry:7` → apply `human-todo`, comment, skip.
 - Labels `conflict-retry:1..7` created on first use; `docs/diagrams/autonomous-loop-flow.md` `CONF`/`CONFWAIT` + merge-gate `MFAIL` branch updated.
