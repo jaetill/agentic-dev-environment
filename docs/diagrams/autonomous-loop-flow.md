@@ -96,7 +96,7 @@ flowchart TD
     %% cross-boundary edges into the Promoter's consideration queue (sources → ②)
     LBL --> QUEUE
     CILBL --> QUEUE
-    DEPFIND -->|"ADR-0027 · no human gate"| QUEUE
+    DEPFIND -->|"ADR-0027 · no human gate · ready-for-implementer at creation"| EVENTDISP
     APPROVED --> QUEUE
     PF --> QUEUE
     QUEUE -. "agent-applied severity:critical" .-> EVENTDISP
