@@ -77,7 +77,7 @@ jobs:
           # Matches the export recipe in HANDOFF.md and the User-env tofu apply
           # path so a manual apply downstream sees no churn.
           echo "$live" \
-            | jq '.dashboard | del(.id, .version) | .uid = "ops-cockpit"' \
+            | jq '.dashboard | del(.id, .version, .panels[].id) | .uid = "ops-cockpit"' \
             > infra/ops-cockpit/dashboard.json
 
           # Schema sanity check — refuse to commit a structurally broken file
