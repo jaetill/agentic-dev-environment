@@ -351,6 +351,7 @@ jobs:
     if: |
       github.event_name == 'workflow_dispatch'
       && inputs.issue_number != ''
+      && inputs.mode != 'cleanup-sweep'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     # Inherit workflow-level perms. The agent's git push and PR creation
