@@ -114,7 +114,10 @@ flowchart TD
         SLICE -. "remainder = follow-up issue, re-dispatched next cycle" .-> QUEUE
         SCOPE -->|yes| BUILD["Build: branch impl/* ·<br/>code + tests · lint · typecheck · commit"]
         BUILD --> CONF{"Pre-flight rebase clean?"}
-        CONF -->|"no — conflict"| CONFWAIT["Abort + comment +<br/>exit without push · retry next dispatch"]
+        CONF -->|"no — conflict"| CONFRETRY{"conflict-retry &lt; 7?"}
+        CONFRETRY -->|"yes"| CONFWAIT["Abort (no LLM hunk merge) ·<br/>strip ready-for-implementer ·<br/>bump conflict-retry:n · ADR-0042"]
+        CONFRETRY -->|"no — 7 reached"| HCONF["conflict-retry:7 →<br/>human-todo · escalate (ADR-0042)"]
+        CONFWAIT -. "re-enters promoter pool · rebuild fresh" .-> QUEUE
         CONF -->|yes| OPENPR["Push + open PR · Closes #n"]
     end
 
@@ -161,7 +164,11 @@ flowchart TD
         CAPM -. "re-considered next window" .-> MG0
         MG5 -->|yes| DOMERGE["Squash-merge + delete branch<br/>cascades release-please + deploy"]
         DOMERGE --> MFAIL{"Merge succeeded?"}
-        MFAIL -->|no| HFAIL["Merge failed — left for human"]
+        MFAIL -->|"no — DIRTY conflict"| MCONF{"conflict-retry &lt; 7?"}
+        MCONF -->|"yes"| MREQUEUE["Close PR + delete branch ·<br/>strip ready-for-implementer ·<br/>bump conflict-retry:n · ADR-0042"]
+        MCONF -->|"no — 7 reached"| HCONF
+        MREQUEUE -. "re-enters promoter pool · rebuild fresh" .-> QUEUE
+        MFAIL -->|"no — other failure"| HFAIL["Merge failed (non-conflict) — left for human"]
         MFAIL -->|yes| APPLY["deploy cascade · push:main → tofu apply on dev<br/>(IaC) · release path → prod · ADR-0035"]
         APPLY --> CLOSED["Issue closed"]
     end
@@ -184,14 +191,14 @@ flowchart TD
     classDef merger fill:#2b5b8a,stroke:#5a9fd4,color:#eaf6ff;
 
     class CLOSED,DEPAUTO success;
-    class ESCAL,HADR,HNOISS,HIAC,HFAIL,HSELF,PAUSED human;
+    class ESCAL,HADR,HNOISS,HIAC,HFAIL,HSELF,HCONF,PAUSED human;
     class CAPTURE,FORM,APPROVED,PARKED intake;
     class WWAIT,CAPWAIT,CONFWAIT,CAPM,DEFER,HCHK,DIGSINK,QUEUE wait;
 
     class PF,EVENTDISP,WIN,EVALALL,STALECHECK,CLOSESTALE,PROMO,DISAMB,ENRICH,CLOSEV,AQUAL,PROMSET,RANK,DISPATCH,SWEEP promoter;
-    class IAC,IACIMPL,CG,ARCH,SCOPE,SLICE,BUILD,CONF,OPENPR,FIX,SWEEPIMPL implementer;
+    class IAC,IACIMPL,CG,ARCH,SCOPE,SLICE,BUILD,CONF,CONFRETRY,OPENPR,FIX,SWEEPIMPL implementer;
     class REVIEW,VERDICT,FIXIT reviewer;
-    class MG0,MG1,MG3,MGIAC,IACGUARD,MGGUARD,MG4,MG5,DOMERGE,MFAIL,APPLY merger;
+    class MG0,MG1,MG3,MGIAC,IACGUARD,MGGUARD,MG4,MG5,DOMERGE,MFAIL,MCONF,MREQUEUE,APPLY merger;
 ```
 
 ## Terminal states

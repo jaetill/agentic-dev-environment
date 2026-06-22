@@ -617,7 +617,42 @@ jobs:
               case "$mss" in
                 CLEAN|UNSTABLE) ;;  # required checks green → eligible to merge
                 BEHIND) echo "  $slug#$pr — hold: BEHIND base branch (needs branch update)"; held=$((held+1)); continue;;
-                DIRTY)  echo "  $slug#$pr — hold: DIRTY merge conflict (needs rebase — ADR-0042)"; held=$((held+1)); continue;;
+                DIRTY)
+                  # ADR-0042: a merge-time conflict is recovered autonomously by
+                  # re-queue, NOT by an LLM splicing hunks (ADR-0026 forbids that).
+                  # Close the PR, delete the branch, strip ready-for-implementer
+                  # from the linked issue, and bump its conflict-retry:<n> counter.
+                  # The issue re-enters the promoter's pool and the implementer
+                  # rebuilds FRESH on a later cycle. Bounded at 7, then escalate.
+                  # The counter lives on the ISSUE (1-based), so read it via
+                  # `gh issue view` — do NOT use vhold() (that's for hold:* PR
+                  # labels only).
+                  retry=$(gh issue view "$issue" --repo "$slug" --json labels \
+                            --jq '[.labels[].name|select(startswith("conflict-retry:"))|sub("conflict-retry:";"")|tonumber]|max // 0' \
+                            2>/dev/null || echo 0)
+                  if [[ "$retry" -ge 7 ]]; then
+                    # Persistent structural conflict — two work streams fighting
+                    # over the same code. Stop retrying; hand it to a human.
+                    gh label create human-todo --repo "$slug" --color b60205 \
+                      --description "Needs a human decision" >/dev/null 2>&1 || true
+                    gh issue edit "$issue" --repo "$slug" --add-label human-todo >/dev/null 2>&1 || true
+                    gh issue comment "$issue" --repo "$slug" \
+                      --body "Exhausted 7 conflict re-queue attempts (ADR-0042): this issue's fix keeps conflicting at merge time — a persistent structural conflict (two work streams fighting over the same code). Escalating to a human for resolution-path ratification. PR #$pr closed; branch deleted." >/dev/null 2>&1 || true
+                    echo "  $slug#$pr — DIRTY conflict-retry cap (7) hit on issue #$issue → human-todo (ADR-0042)"
+                    held=$((held+1)); continue
+                  fi
+                  next=$((retry+1))
+                  gh label create "conflict-retry:$next" --repo "$slug" --color ededed \
+                    --description "ADR-0042 conflict re-queue attempt $next" >/dev/null 2>&1 || true
+                  gh pr close "$pr" --repo "$slug" --delete-branch \
+                    --comment "Closing on a merge-time conflict — re-queued for a fresh rebuild, attempt $next of 7 (ADR-0042); no LLM hunk resolution (ADR-0026)." >/dev/null 2>&1 || true
+                  gh issue edit "$issue" --repo "$slug" --remove-label ready-for-implementer >/dev/null 2>&1 || true
+                  if [[ "$retry" -gt 0 ]]; then
+                    gh issue edit "$issue" --repo "$slug" --remove-label "conflict-retry:$retry" >/dev/null 2>&1 || true
+                  fi
+                  gh issue edit "$issue" --repo "$slug" --add-label "conflict-retry:$next" >/dev/null 2>&1 || true
+                  echo "  $slug#$pr — DIRTY merge conflict → autonomous re-queue of issue #$issue, attempt $next/7 (ADR-0042)"
+                  held=$((held+1)); continue;;
                 BLOCKED)
                   # Distinguish failing/pending required check from a
                   # CODEOWNERS/review gate. Filter to required-only via

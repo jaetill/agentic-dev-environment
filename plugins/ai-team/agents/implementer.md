@@ -198,20 +198,42 @@ Only after the oscillation check passes do you proceed to the numbered steps:
     leave each branch stale relative to a sibling PR that merged first
     (issue #29).
 
+    On conflict, recovery is **autonomous re-queue, bounded at 7** (ADR-0042):
+    abort the rebase (NEVER resolve the hunks — ADR-0026), strip
+    `ready-for-implementer`, increment the issue's `conflict-retry:<n>` label,
+    and post one line. The issue re-enters the promoter's pool and re-dispatches
+    on a later cycle, by which time the conflicting sibling has typically merged.
+    At `conflict-retry:7` the promoter escalates to `human-todo` instead of
+    re-dispatching (see triage-bot eligibility). The counter increments **only**
+    on a conflicted attempt — never on queue-waiting cycles.
+
     ```bash
     git fetch origin master
     if git rebase origin/master; then
       echo "Rebase clean — continuing to push."
     else
       git rebase --abort
-      gh issue comment "$ISSUE_NUMBER" --body "Implementer detected a merge conflict with current master after writing the fix. Most likely cause: a parallel implementer dispatch shipped overlapping changes first. The branch has been discarded; re-dispatch (remove + re-add `ready-for-implementer`) once the conflicting work has merged. Filed per issue #29 pre-flight check."
+      # ADR-0042 bounded autonomous re-queue: read the current retry counter,
+      # strip the dispatch label, and bump conflict-retry:<n> on the ISSUE.
+      retry=$(gh issue view "$ISSUE_NUMBER" --json labels \
+                --jq '[.labels[].name|select(startswith("conflict-retry:"))|sub("conflict-retry:";"")|tonumber]|max // 0' \
+                2>/dev/null || echo 0)
+      next=$((retry+1))
+      gh label create "conflict-retry:$next" --color ededed \
+        --description "ADR-0042 conflict re-queue attempt $next" >/dev/null 2>&1 || true
+      gh issue edit "$ISSUE_NUMBER" --remove-label ready-for-implementer >/dev/null 2>&1 || true
+      if [[ "$retry" -gt 0 ]]; then
+        gh issue edit "$ISSUE_NUMBER" --remove-label "conflict-retry:$retry" >/dev/null 2>&1 || true
+      fi
+      gh issue edit "$ISSUE_NUMBER" --add-label "conflict-retry:$next" >/dev/null 2>&1 || true
+      gh issue comment "$ISSUE_NUMBER" --body "Pre-flight rebase conflict; re-queued for a fresh rebuild, attempt $next of 7 — ADR-0042."
       exit 0
     fi
     ```
 
     Successful rebase = your branch is on top of latest master, push it.
-    Conflict = bail cleanly without pushing; the human or a future
-    dispatch will retry.
+    Conflict = bail cleanly without pushing; the re-queue above lets the
+    promoter rebuild fresh on a later cycle (bounded at 7, then escalate).
 
 12. **Push the branch.**
 
@@ -252,13 +274,39 @@ Only after the oscillation check passes do you proceed to the numbered steps:
 7. **Pre-flight conflict check** (same as Mode A step 11; per issue #43,
    the conflict-race also applies to fix-iteration). Before pushing, run:
 
+   On conflict, abort the rebase (NEVER resolve hunks — ADR-0026) and bump the
+   bounded `conflict-retry:<n>` counter on the **linked issue** (ADR-0042) so a
+   pathological fix-iteration conflict still escalates at 7 rather than spinning
+   forever on each reviewer-block retrigger. Unlike Mode A, the PR stays open and
+   the next reviewer-block retriggers this job once `master` settles — so this is
+   a counter bump plus a one-line comment, not a strip-and-requeue. The counter
+   increments only on a conflicted attempt.
+
    ```bash
    git fetch origin master
    if git rebase origin/master; then
      echo "Rebase clean — continuing to push."
    else
      git rebase --abort
-     gh pr comment "$PR_NUMBER" --body "Fix-iteration aborted: branch can't cleanly rebase onto current master (likely a parallel merge during the review cycle). The PR remains open; the next reviewer-block comment will retrigger this job once master has settled. Per issue #43 pre-flight check."
+     # ADR-0042: track the bounded conflict-retry counter on the LINKED issue so
+     # a persistent fix-iteration conflict reaches the 7-cap escalation too.
+     issue=$(gh pr view "$PR_NUMBER" --json body \
+               --jq '.body' 2>/dev/null \
+               | grep -ioE '(close[sd]?|fix(e[sd])?|resolve[sd]?) +#[0-9]+' \
+               | grep -oE '[0-9]+' | head -1 || true)
+     if [[ -n "$issue" ]]; then
+       retry=$(gh issue view "$issue" --json labels \
+                 --jq '[.labels[].name|select(startswith("conflict-retry:"))|sub("conflict-retry:";"")|tonumber]|max // 0' \
+                 2>/dev/null || echo 0)
+       next=$((retry+1))
+       gh label create "conflict-retry:$next" --color ededed \
+         --description "ADR-0042 conflict re-queue attempt $next" >/dev/null 2>&1 || true
+       if [[ "$retry" -gt 0 ]]; then
+         gh issue edit "$issue" --remove-label "conflict-retry:$retry" >/dev/null 2>&1 || true
+       fi
+       gh issue edit "$issue" --add-label "conflict-retry:$next" >/dev/null 2>&1 || true
+     fi
+     gh pr comment "$PR_NUMBER" --body "Fix-iteration rebase conflict; PR left open for a fresh rebuild on the next reviewer-block retrigger, attempt ${next:-?} of 7 — ADR-0042 (no LLM hunk resolution, ADR-0026)."
      exit 0
    fi
    ```
