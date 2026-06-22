@@ -644,13 +644,22 @@ jobs:
                   next=$((retry+1))
                   gh label create "conflict-retry:$next" --repo "$slug" --color ededed \
                     --description "ADR-0042 conflict re-queue attempt $next" >/dev/null 2>&1 || true
-                  gh pr close "$pr" --repo "$slug" --delete-branch \
-                    --comment "Closing on a merge-time conflict — re-queued for a fresh rebuild, attempt $next of 7 (ADR-0042); no LLM hunk resolution (ADR-0026)." >/dev/null 2>&1 || true
-                  gh issue edit "$issue" --repo "$slug" --remove-label ready-for-implementer >/dev/null 2>&1 || true
+                  # Record the durable retry counter on the ISSUE *before* the
+                  # destructive PR close + branch delete (code-review, #552). If the
+                  # close landed but a subsequent label edit failed on a transient
+                  # API error, the counter would be lost and the 7-cap could drift
+                  # above 7. Advancing the counter first means a post-increment
+                  # failure just leaves the PR open to be retried on the next sweep
+                  # with the counter already advanced — the bound holds either way.
+                  # (ADR-0042 already tolerates a missed increment as non-spinning;
+                  # this ordering tightens it so the bound is robust to API flakiness.)
+                  gh issue edit "$issue" --repo "$slug" --add-label "conflict-retry:$next" >/dev/null 2>&1 || true
                   if [[ "$retry" -gt 0 ]]; then
                     gh issue edit "$issue" --repo "$slug" --remove-label "conflict-retry:$retry" >/dev/null 2>&1 || true
                   fi
-                  gh issue edit "$issue" --repo "$slug" --add-label "conflict-retry:$next" >/dev/null 2>&1 || true
+                  gh issue edit "$issue" --repo "$slug" --remove-label ready-for-implementer >/dev/null 2>&1 || true
+                  gh pr close "$pr" --repo "$slug" --delete-branch \
+                    --comment "Closing on a merge-time conflict — re-queued for a fresh rebuild, attempt $next of 7 (ADR-0042); no LLM hunk resolution (ADR-0026)." >/dev/null 2>&1 || true
                   echo "  $slug#$pr — DIRTY merge conflict → autonomous re-queue of issue #$issue, attempt $next/7 (ADR-0042)"
                   held=$((held+1)); continue;;
                 BLOCKED)
