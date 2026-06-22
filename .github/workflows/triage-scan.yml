@@ -46,6 +46,8 @@ on:
     # waiting for a triage window. ONLY the auto-merge job acts on these
     # fires — triage/promotion remain window-gated (ADR-0017). Offset to
     # :15/:45 so it doesn't stack on the window-band fires above.
+    # These fires use a separate concurrency group (triage-scan-merge-only-*)
+    # so they don't queue behind long-running triage runs (#270).
     - cron: '15,45 * * * *'
   workflow_dispatch:
     inputs:
@@ -76,7 +78,10 @@ permissions:
   id-token: write       # claude-code-action OIDC
 
 concurrency:
-  group: triage-scan-${{ github.repository }}
+  # All-day merge-sweep fires (15,45 * * * *) get their own group so they don't
+  # queue behind long-running triage runs (up to 30 min). Window-band fires and
+  # event-driven triggers share triage-scan-<repo> as before. (#270)
+  group: ${{ github.event.schedule == '15,45 * * * *' && format('triage-scan-merge-only-{0}', github.repository) || format('triage-scan-{0}', github.repository) }}
   cancel-in-progress: false
 
 jobs:
