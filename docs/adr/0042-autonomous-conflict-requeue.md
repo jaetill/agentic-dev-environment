@@ -1,7 +1,7 @@
 # ADR-0042: Conflict recovery is autonomous re-queue — bounded at 7, then escalate
 
 - **Status:** Implemented
-- **Implementation:** Implemented 2026-06-22 via #<PR_NUMBER>
+- **Implementation:** Implemented 2026-06-22 via #560
 - **Date:** 2026-06-04
 - **Deciders:** Jason Tilley
 - **Tags:** ai-workflows, orchestration, autonomy, resilience
