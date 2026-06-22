@@ -215,11 +215,12 @@ jobs:
                 write across the fleet. Use it for EVERY scan, label, and
                 dispatch: `GH_TOKEN=$FLEET_TOKEN gh ... --repo jaetill/<repo>`.
 
-            The fleet — repos the promoter scans and can dispatch:
-              agentic-dev-environment game-night-pwa meal-planner ai-teacher
-              jaetill-portal splendor draft carto
-            (genealogy is intentionally excluded — it has no implementer
-            workflow yet; never dispatch to it.)
+            The fleet — repos the promoter scans and can dispatch — is every
+            repo under `jaetill` carrying the GitHub topic **`fleet`**. Resolve
+            it at runtime with `scripts/fleet-repos.sh` (live topic read); never
+            hardcode the list (#139/#39). genealogy is intentionally NOT in the
+            fleet (it has no implementer workflow yet and carries no `fleet`
+            topic), so it never resolves and you never dispatch to it.
 
             The platform repo (agentic-dev-environment) IS in the fleet: its
             own agent-discovered findings, and the process-flaw issues Pass 3
@@ -435,8 +436,15 @@ jobs:
           # The platform repo is included for routine/mechanical fixes.
           # Compositional self-changes (team gates / agents / standards /
           # security) and ADR-gated changes are still held by the label checks
-          # below. genealogy still has no implementer loop.
-          REPOS="game-night-pwa meal-planner ai-teacher jaetill-portal splendor draft carto agentic-dev-environment"
+          # below. genealogy still has no implementer loop (and no `fleet` topic).
+          # Roster resolved LIVE from the `fleet` repo topic (#139/#39), no
+          # hardcoded list. FAIL CLOSED: an unresolvable/empty roster skips the
+          # sweep this run rather than merging against a wrong/partial fleet.
+          REPOS="$(bash "$GITHUB_WORKSPACE/scripts/fleet-repos.sh")"
+          if [[ -z "$REPOS" ]]; then
+            echo "::warning::auto-merge: empty fleet roster — skipping sweep this run"
+            exit 0
+          fi
           merged=0 ; held=0 ; evaluated=0
           # Per-run blast-radius cap (security-review): a malfunctioning or
           # adversarially-prompted implementer cannot land more than this many

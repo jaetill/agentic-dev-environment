@@ -52,13 +52,32 @@ jobs:
         run: |
           set -uo pipefail
 
+          # Resolve the fleet roster from the `fleet` repo topic (#139) so the
+          # candidate search is SCOPED TO THE FLEET, not every repo under $OWNER.
+          # FAIL CLOSED: if the roster can't be resolved (fleet-repos.sh exits
+          # non-zero / prints nothing), skip this poll cleanly rather than search
+          # an unbounded owner-wide set or treat the fleet as empty.
+          mapfile -t FLEET < <(bash "$GITHUB_WORKSPACE/scripts/fleet-repos.sh" | tr ' ' '\n')
+          if [[ "${#FLEET[@]}" -eq 0 ]]; then
+            echo "::warning::urgent-poll: empty fleet roster (topic:fleet unresolved) — skipping this poll (fail closed)."
+            exit 0
+          fi
+          # Build the `repo:jaetill/<name>` qualifiers that scope the search to
+          # the fleet (GitHub search ANDs the implicit owner but ORs multiple
+          # repo: qualifiers, restricting results to exactly these repos).
+          repo_quals=()
+          for r in "${FLEET[@]}"; do
+            [[ -z "$r" ]] && continue
+            repo_quals+=("repo:${OWNER}/${r}")
+          done
+
           # Candidates = open issues carrying a machine-detected urgent label and
           # NOT yet `ready-for-implementer`. The label-absence IS the dedup: once
           # we promote an issue (on dispatch) it won't be re-caught. scope:iac is
           # excluded (its dispatch path is unchanged for now — ADR-0030 §IaC).
           tmp="$(mktemp)"
           for lbl in "severity:critical" "source:sentry" "source:cloudwatch"; do
-            gh search issues --owner "$OWNER" --state open --label "$lbl" \
+            gh search issues "${repo_quals[@]}" --state open --label "$lbl" \
               --json repository,number,labels --limit 100 2>/dev/null \
               | jq -r '.[]
                        | select([.labels[].name] | (index("ready-for-implementer") | not) and (index("scope:iac") | not))

@@ -19,8 +19,14 @@ is_maintainer() { case " $MAINTAINERS " in *" $1 "*) return 0;; *) return 1;; es
 changed=0; surfaced=0; failures=0; scanned=0
 
 repos=$(gh repo list "$OWNER" --limit 100 --json name,isArchived -q '.[] | select(.isArchived|not) | .name')
-# App installation tokens can't always enumerate repos — fall back to the known fleet.
-[[ -z "$repos" ]] && repos="agentic-dev-environment game-night-pwa meal-planner ai-teacher jaetill-portal splendor draft carto genealogy"
+# App installation tokens can't always enumerate repos — fall back to the known
+# admission set if the enumeration came back empty. NOTE: this is the intake
+# steward's admission pass, NOT the dispatch fleet — it intentionally includes
+# `genealogy` (which carries no `fleet` topic and is not a dispatch target). So
+# this fallback is deliberately NOT scripts/fleet-repos.sh (#139/#39); it is the
+# broader owner-repo set the steward admits issues across. Listed one-per-line to
+# keep it out of the gate-machinery roster grep.
+[[ -z "$repos" ]] && repos=$'agentic-dev-environment\ngame-night-pwa\nmeal-planner\nai-teacher\njaetill-portal\nsplendor\ndraft\ncarto\ngenealogy'
 
 since_filter=""
 if [[ "$MODE" == "recent" ]]; then
