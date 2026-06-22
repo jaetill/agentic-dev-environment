@@ -389,6 +389,22 @@ jobs:
             echo "## Auto-merge: paused (AUTONOMOUS_MERGE=off)" >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
+          # Verified hold-label write (ADR-0044 §1(d), #269): apply, read back, and
+          # warn LOUDLY if it didn't stick. A silently-dropped hold leaves a PR
+          # resting in the wrong state with no signal — the silent-failure §1(d)
+          # exists to catch. Best-effort: a read-back API error logs 'unknown',
+          # not a false alarm. Replaces the prior bare `… >/dev/null 2>&1 || true`.
+          vhold() {  # $1=add|remove  $2=pr  $3=slug  $4=label
+            gh pr edit "$2" --repo "$3" "--$1-label" "$4" >/dev/null 2>&1 || true
+            local have
+            have=$(gh pr view "$2" --repo "$3" --json labels \
+                     --jq "[.labels[].name] | index(\"$4\") != null" 2>/dev/null || echo unknown)
+            if [[ "$1" == "add" && "$have" == "false" ]]; then
+              echo "::warning::verified-write: hold label '$4' did not apply to $3#$2 (#269 / ADR-0044 §1d)"
+            elif [[ "$1" == "remove" && "$have" == "true" ]]; then
+              echo "::warning::verified-write: label '$4' still present on $3#$2 after remove (#269 / ADR-0044 §1d)"
+            fi
+          }
           # Per ADR-0039, code merge is autonomous for all review-passing linked
           # work regardless of origin (ADR-0023's origin boundary is retired at
           # the merge; the human checkpoint moves to test->prod promotion, #179).
@@ -443,7 +459,7 @@ jobs:
               # ADR-0021 cond. 3 — no requires-adr:* label (ADR-gated → human).
               # ADR-0044 §3: mark the resting state exact-match queryable.
               if echo "$meta" | jq -e '[.labels[].name] | any(startswith("requires-adr"))' >/dev/null 2>&1; then
-                gh pr edit "$pr" --repo "$slug" --add-label "hold:adr" >/dev/null 2>&1 || true
+                vhold add "$pr" "$slug" "hold:adr"
                 echo "  $slug#$pr — requires-adr label; hold:adr for human"; held=$((held+1)); continue
               fi
               # ADR-0047: the compositional hold is decided by the deterministic
@@ -494,12 +510,12 @@ jobs:
               case "$guard" in
                 IN_LANE*)
                   if echo "$meta" | jq -e '[.labels[].name] | any(. == "compositional-self-change")' >/dev/null 2>&1; then
-                    gh pr edit "$pr" --repo "$slug" --add-label "hold:compositional" >/dev/null 2>&1 || true
+                    vhold add "$pr" "$slug" "hold:compositional"
                     echo "::warning::$slug#$pr — label/guard discrepancy: guard=$guard but compositional-self-change label present — held (#425)"
                     echo "  $slug#$pr — hold:compositional (label/guard discrepancy; guard=$guard)"; held=$((held+1)); continue
                   fi
                   echo "  $slug#$pr — capability-neutral, $guard (ADR-0047)";;
-                *) gh pr edit "$pr" --repo "$slug" --add-label "hold:compositional" >/dev/null 2>&1 || true
+                *) vhold add "$pr" "$slug" "hold:compositional"
                    echo "  $slug#$pr — hold:compositional for human ($guard) (ADR-0047)"; held=$((held+1)); continue;;
               esac
               # ADR-0035 — scope:iac PRs auto-merge (== auto-apply on dev via the
@@ -529,7 +545,7 @@ jobs:
                 iac_buckets=$(gh pr checks "$pr" --repo "$slug" --json name,bucket \
                                 --jq '[.[] | select(.name | test("iac-additive-guard")) | .bucket]' 2>/dev/null || echo '[]')
                 if ! echo "$iac_buckets" | jq -e 'length > 0 and all(.[]; . == "pass")' >/dev/null 2>&1; then
-                  gh pr edit "$pr" --repo "$slug" --add-label "hold:iac-unverified" >/dev/null 2>&1 || true
+                  vhold add "$pr" "$slug" "hold:iac-unverified"
                   echo "  $slug#$pr — scope:iac requires a passing iac-additive-guard check (ADR-0035); hold:iac-unverified"
                   held=$((held+1)); continue
                 fi
@@ -605,7 +621,7 @@ jobs:
                     # needs @jaetill's review-approval). Mark it so the cockpit's
                     # waiting-on-Jason counts see it, instead of an invisible
                     # resting state (#271, ADR-0044).
-                    gh pr edit "$pr" --repo "$slug" --add-label "hold:compositional" >/dev/null 2>&1 || true
+                    vhold add "$pr" "$slug" "hold:compositional"
                     echo "  $slug#$pr — hold:compositional — BLOCKED with all required checks green → CODEOWNERS/branch-protection review gate (needs @jaetill; not a CI failure)"
                   fi
                   held=$((held+1)); continue;;
@@ -637,7 +653,7 @@ jobs:
                        | (length > 0 and all(.[]; . == "pass"))' >/dev/null 2>&1 \
                   && echo true || echo false)
                 if [[ "$gate_pass" != "true" ]]; then
-                  gh pr edit "$pr" --repo "$slug" --add-label "hold:review-gate" >/dev/null 2>&1 || true
+                  vhold add "$pr" "$slug" "hold:review-gate"
                   echo "  $slug#$pr — $hard_gate not passing or absent; hold:review-gate (ADR-0021 #61)"
                   held=$((held+1)); continue 2
                 fi
@@ -647,6 +663,12 @@ jobs:
               stale_holds=$(echo "$meta" | jq -r '[.labels[].name | select(startswith("hold:"))] | join(",")' 2>/dev/null || true)
               if [[ -n "$stale_holds" ]]; then
                 gh pr edit "$pr" --repo "$slug" --remove-label "$stale_holds" >/dev/null 2>&1 || true
+                # Verified-write read-back (ADR-0044 §1(d), #269): confirm NO hold:*
+                # label survives the strip before we merge — a stale hold that
+                # silently failed to remove would leave a merged PR mislabeled.
+                remaining_holds=$(gh pr view "$pr" --repo "$slug" --json labels \
+                                   --jq '[.labels[].name | select(startswith("hold:"))] | join(",")' 2>/dev/null || echo "")
+                [[ -n "$remaining_holds" ]] && echo "::warning::verified-write: hold label(s) still on $slug#$pr after strip-on-exit: $remaining_holds (#269 / ADR-0044 §1d)"
               fi
               if gh pr merge "$pr" --repo "$slug" --squash --delete-branch; then
                 echo "::notice::Auto-merged $slug#$pr (fix for #$issue) per ADR-0021."
@@ -674,7 +696,7 @@ jobs:
                 # still refused — almost always the CODEOWNERS review gate on a
                 # rails-path PR. Mark hold:compositional so it surfaces in the
                 # waiting-on-Jason counts rather than resting invisibly (#271).
-                gh pr edit "$pr" --repo "$slug" --add-label "hold:compositional" >/dev/null 2>&1 || true
+                vhold add "$pr" "$slug" "hold:compositional"
                 echo "::warning::$slug#$pr qualified but the merge was refused (likely the CODEOWNERS review gate); hold:compositional for a human (#271)."
                 held=$((held+1))
               fi
