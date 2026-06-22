@@ -39,6 +39,9 @@ jobs:
   watch:
     runs-on: ubuntu-latest
     steps:
+      - name: Check out platform repo (for scripts/fleet-repos.sh)
+        uses: actions/checkout@v4
+
       # Cross-repo credential — Actions:read across the fleet (ADR-0020).
       - name: Mint fleet App token
         id: fleet-token
@@ -66,11 +69,6 @@ jobs:
           since=$(date -u -d '25 hours ago' +%Y-%m-%dT%H:%M:%SZ)
           echo "Scanning fleet runs since $since"
 
-          # The fleet — the 8 loop-participating repos. Matches the
-          # triage-scan promoter's list exactly; genealogy is excluded (it
-          # has no claude-* loop workflows) until it adopts the platform.
-          FLEET="game-night-pwa meal-planner ai-teacher jaetill-portal splendor draft carto agentic-dev-environment"
-
           # Degraded mode: FLEET_TOKEN is empty when the App token minting
           # failed (continue-on-error above). In that case scope the scan to
           # the platform repo only and use the step-level GH_TOKEN directly —
@@ -79,6 +77,22 @@ jobs:
           if [[ -z "$FLEET_TOKEN" ]]; then
             DEGRADED=1
             echo "::warning::ci-health: FLEET_TOKEN unavailable — degraded mode, scanning platform repo only"
+          fi
+
+          # The fleet — resolved LIVE from the `fleet` repo topic (#139/#39),
+          # no hardcoded list. Resolution needs cross-repo read, so use
+          # FLEET_TOKEN. FAIL CLOSED: an empty/unresolvable roster must NOT be
+          # treated as "fleet healthy" — skip the scan cleanly so we don't
+          # false-alarm (or false-all-clear) on a roster we couldn't read.
+          # In degraded mode (no FLEET_TOKEN) we already scope to the platform
+          # repo only, so the roster resolution is skipped there.
+          FLEET=""
+          if [[ "$DEGRADED" != "1" ]]; then
+            FLEET="$(OWNER="$OWNER" GH_TOKEN="$FLEET_TOKEN" bash "$GITHUB_WORKSPACE/scripts/fleet-repos.sh")" || FLEET=""
+            if [[ -z "${FLEET// }" ]]; then
+              echo "::warning::ci-health: could not resolve topic:fleet roster — skipping scan this run (fail closed)."
+              exit 0
+            fi
           fi
 
           if [[ "$DEGRADED" == "1" ]]; then

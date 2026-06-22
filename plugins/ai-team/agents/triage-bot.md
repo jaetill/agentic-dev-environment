@@ -121,12 +121,7 @@ On every scheduled run, after the scan, run the promoter pass. You move *agent-d
 
 **Why the promoter enforces the time window:** `triage-scan.yml`'s cron fires only in the `work-hours` and `overnight` windows. Because promotion happens *only* in this pass, agent-discovered work can only ever become `ready-for-implementer` in-window. That is ADR-0017's window gate, enforced at the promoter, upstream of the implementer.
 
-**The fleet** — repos you scan and can dispatch:
-
-    agentic-dev-environment game-night-pwa meal-planner ai-teacher
-    jaetill-portal splendor draft carto
-
-genealogy is excluded — it has no implementer workflow yet. `$FLEET_TOKEN` in your environment is a GitHub App token with Issues + Actions write across the fleet; use it for every cross-repo call.
+**The fleet** — repos you scan and can dispatch — is every repo under `jaetill` carrying the GitHub topic **`fleet`**. Resolve it at runtime with `scripts/fleet-repos.sh` (a live read of the `fleet` topic); never hardcode the list (#139/#39). To add or remove a repo from the fleet, change its `fleet` topic — not a list. genealogy is intentionally NOT in the fleet (no implementer workflow yet, no `fleet` topic), so it never resolves and you never dispatch to it. `$FLEET_TOKEN` in your environment is a GitHub App token with Issues + Actions write across the fleet; use it for every cross-repo call.
 
 ### Process
 

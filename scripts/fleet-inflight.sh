@@ -10,7 +10,9 @@
 # done-and-awaiting-merge and must not consume a dispatch slot (ADR-0030).
 #
 # Env:
-#   FLEET_REPOS  space-separated repo names (default: the 8 fleet repos)
+#   FLEET_REPOS  space-separated repo names. Default: resolved live from the
+#                GitHub `fleet` repo topic via scripts/fleet-repos.sh (#139/#39)
+#                — no hardcoded list. Override only for testing.
 #   OWNER        org/user owner (default: jaetill)
 # Output: the integer in-flight count on stdout (partial count on a read error).
 # Exit:   0 = fully counted — stdout is authoritative.
@@ -18,7 +20,20 @@
 #             transient API error). stdout is the best-effort partial count.
 set -uo pipefail
 OWNER="${OWNER:-jaetill}"
-FLEET_REPOS="${FLEET_REPOS:-game-night-pwa meal-planner ai-teacher jaetill-portal splendor draft carto agentic-dev-environment}"
+FLEET_REPOS="${FLEET_REPOS:-$(OWNER="$OWNER" bash "$(dirname "$0")/fleet-repos.sh")}"
+
+# FAIL CLOSED on an UNRESOLVABLE roster. If fleet-repos.sh could not resolve the
+# fleet (it printed nothing / exited non-zero), FLEET_REPOS is EMPTY here. This
+# is the THROTTLE: an empty roster would count 0 in-flight runs and let callers
+# OVER-DISPATCH without bound. So emit a sentinel that exceeds ANY cap and exit
+# 0 — callers read in-flight=99999 >= cap and dispatch NOTHING this cycle.
+# (Distinct from the per-repo read-error path below, which legitimately fails
+# OPEN with a partial count on a transient single-repo API blip.)
+if [[ -z "${FLEET_REPOS// }" ]]; then
+  echo "::warning::fleet-inflight: empty fleet roster (topic:fleet unresolved) — emitting over-cap sentinel to fail closed (no dispatch)" >&2
+  echo 99999
+  exit 0
+fi
 
 inflight=0
 for r in $FLEET_REPOS; do
