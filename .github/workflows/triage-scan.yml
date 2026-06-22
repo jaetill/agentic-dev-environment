@@ -188,8 +188,11 @@ jobs:
           WINDOW: ${{ needs.window.outputs.window }}
         uses: anthropics/claude-code-action@d5726de019ec4498aa667642bc3a80fca83aa102 # v1
         with:
+          # OAuth-only (#44): with BOTH an OAuth token and an API key,
+          # claude-code-action picks the API key — a pay-per-token account the
+          # fleet does not fund (the billing_error this repo already hit). The
+          # promoter runs on Max via OAuth.
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           show_full_output: true
           prompt: |
             Act as the `triage-bot` subagent (see plugins/ai-team/agents/triage-bot.md).
