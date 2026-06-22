@@ -116,11 +116,15 @@ jobs:
               fi
             done < <(
               gh api --paginate "repos/${repo}/issues/${num}/events" \
-                --jq '.[] | select(.event=="labeled")
-                          | select(.label.name=="severity:critical"
-                                or .label.name=="source:sentry"
-                                or .label.name=="source:cloudwatch")
-                          | .actor.login' 2>/dev/null || true
+                --jq '[.[] | select(.event=="labeled" or .event=="unlabeled")
+                           | select(.label.name=="severity:critical"
+                                 or .label.name=="source:sentry"
+                                 or .label.name=="source:cloudwatch")]
+                     | group_by(.label.name)[]
+                     | sort_by(.created_at)
+                     | last
+                     | select(.event=="labeled")
+                     | .actor.login' 2>/dev/null || true
             )
             # Second-factor for claude[bot] (#471, #483): that identity runs over
             # untrusted PR diffs and can be prompt-injected into filing fabricated
@@ -133,9 +137,13 @@ jobs:
             if [[ -n "$trusted_actor" ]]; then
               if [[ "$trusted_actor" == "claude[bot]" ]]; then
                 origin_ok=$(gh api --paginate "repos/${repo}/issues/${num}/events" \
-                  --jq '.[] | select(.event=="labeled")
-                            | select(.label.name=="origin:internal-review")
-                            | .actor.login' 2>/dev/null \
+                  --jq '[.[] | select(.event=="labeled" or .event=="unlabeled")
+                             | select(.label.name=="origin:internal-review")]
+                       | group_by(.label.name)[]
+                       | sort_by(.created_at)
+                       | last
+                       | select(.event=="labeled")
+                       | .actor.login' 2>/dev/null \
                   | grep -Fxq 'claude[bot]' && echo "true" || echo "false")
                 if [[ "$origin_ok" == "true" ]]; then
                   trusted=true
