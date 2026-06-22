@@ -41,8 +41,11 @@ jobs:
         # rest of the fleet uses.
         uses: anthropics/claude-code-action@d5726de019ec4498aa667642bc3a80fca83aa102 # v1
         with:
+          # OAuth-only (#44): with BOTH an OAuth token and an API key,
+          # claude-code-action picks the API key — a pay-per-token account the
+          # fleet does not fund (the billing_error this repo already hit, see
+          # claude-pr-review.yml's note). dep-watch runs on Max via OAuth.
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           show_full_output: true
           prompt: |
             Act as the dep-watcher subagent defined in .claude/agents/dep-watcher.md.
