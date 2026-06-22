@@ -1,0 +1,78 @@
+name: cockpit-ci
+# IaC CI for infra/ops-cockpit/ (#94). The ops cockpit had NO validate/lint/
+# security gate — its Terraform merged and applied (via cockpit-apply.yml)
+# entirely unchecked. This runs credential-free static analysis on every PR that
+# touches the cockpit: `tofu fmt`/`validate`, `tflint`, and a Trivy IaC config
+# scan (the platform's existing security scanner, cf. security-scan.yml).
+#
+# A real `tofu plan` needs the Grafana + AWS credentials owned by
+# cockpit-apply.yml and is intentionally out of scope here — this gate catches
+# config, style, and security-misconfig errors before merge, not live drift.
+# Trivy is reported (SARIF) but non-blocking for now: the cockpit's known
+# plaintext-secret-in-state finding (#91) is being remediated separately, and a
+# hard gate would red every PR until that lands. Flip trivy to blocking once #91
+# is resolved.
+
+on:
+  pull_request:
+    paths:
+      - 'infra/ops-cockpit/**'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  security-events: write   # upload Trivy SARIF to the Security tab
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: infra/ops-cockpit
+    steps:
+      - uses: actions/checkout@v4
+      - uses: opentofu/setup-opentofu@v1
+      # Report-only for now (||-guarded so it can't red the gate): the cockpit
+      # predates this CI, so fmt/lint nits shouldn't block the first run. `tofu
+      # validate` IS a hard gate — it passes on valid config and catches real
+      # config errors. Tighten fmt/tflint to blocking once the cockpit is clean.
+      - name: tofu fmt (report-only)
+        run: tofu fmt -check -recursive || echo "::warning::tofu fmt drift — run 'tofu fmt -recursive' in infra/ops-cockpit"
+      - name: tofu init (no backend — credential-free)
+        run: tofu init -backend=false
+      - name: tofu validate
+        run: tofu validate
+
+  tflint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: terraform-linters/setup-tflint@v4
+      - name: tflint (report-only)
+        working-directory: infra/ops-cockpit
+        run: |
+          tflint --init || true
+          tflint || echo "::warning::tflint findings in infra/ops-cockpit — review"
+
+  trivy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Trivy IaC config scan (report-only — see header re #91)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: config
+          scan-ref: infra/ops-cockpit
+          format: sarif
+          output: trivy-cockpit.sarif
+          severity: CRITICAL,HIGH
+          exit-code: '0'
+      - name: Upload SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-cockpit.sarif
+          category: cockpit-iac
