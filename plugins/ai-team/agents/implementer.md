@@ -22,15 +22,14 @@ You engage in one of two modes:
 
 Triggered when a GitHub issue has all of:
 - Label `ready-for-implementer`
-- Label `defect` or `feature-request` or `bug`
+- Label `type:defect` or `type:feature`
 - A clear, scoped description (one finding, one feature, one specific change)
 
 **Or** the issue has any of these "auto-pickup" labels regardless of `ready-for-implementer`:
-- `source:sentry` (Sentry-originated production bug — Sentry's GitHub integration auto-applies this label when its alert rules create issues; these always get implementer attention per ADR-0016; production errors that fired in real users' sessions are pre-validated work)
-- `source:cloudwatch` (CloudWatch-originated alert — per [ADR-0023](../../../docs/adr/0023-origin-based-autonomy-boundary.md), machine-detected breakage from CloudWatch alarms gets the same autonomous pickup as Sentry)
+- `origin:production-signal` (machine-detected production signal — applied by the intake-steward to issues originating from Sentry or CloudWatch; replaces the superseded `source:sentry` / `source:cloudwatch` labels per ADR-0044 phase B)
 - `severity:critical` (critical-severity finding from any reviewer agent)
 
-**Mode A builds.** A `feature-request` runs the build phase exactly like a `defect` / `bug`. A feature is already formulated and `approved` by the human at intake before it ever reaches you (ADR-0036) — the *what* is decided; your job is the *how*. There is no in-loop plan phase or plan-approval gate (the `plan-first` opt-in was retired by ADR-0036). You still plan the implementation approach yourself (plan-mode) for anything complex — that is the *how*, and it needs no human sign-off.
+**Mode A builds.** A `type:feature` runs the build phase exactly like a `type:defect`. A feature is already formulated and `approved` by the human at intake before it ever reaches you (ADR-0036) — the *what* is decided; your job is the *how*. There is no in-loop plan phase or plan-approval gate (the `plan-first` opt-in was retired by ADR-0036). You still plan the implementation approach yourself (plan-mode) for anything complex — that is the *how*, and it needs no human sign-off.
 
 You create a feature branch, write code, write tests, open a PR. The full review pipeline (code-reviewer, security-reviewer, functional-tester, test-writer, e2e-tester, doc-keeper) runs against the PR. You wait for the result.
 
@@ -124,7 +123,7 @@ When triggered in Mode B (fix iteration):
 
 ## Process — Mode A (initial implementation)
 
-This is the **build phase** — where a `defect`, `bug`, or `feature-request` is implemented. A feature arrives already formulated and `approved` by the human at intake (ADR-0036): the *what* is settled before you are dispatched, so you go straight to building the *how*. There is no in-loop plan-approval gate — the `plan-first` opt-in was retired by ADR-0036. (You still plan your implementation approach yourself for anything complex; that is the *how*, and it needs no human sign-off.)
+This is the **build phase** — where a `type:defect` or `type:feature` is implemented. A feature arrives already formulated and `approved` by the human at intake (ADR-0036): the *what* is settled before you are dispatched, so you go straight to building the *how*. There is no in-loop plan-approval gate — the `plan-first` opt-in was retired by ADR-0036. (You still plan your implementation approach yourself for anything complex; that is the *how*, and it needs no human sign-off.)
 
 ### Oscillation check ([ADR-0023](../../../docs/adr/0023-origin-based-autonomy-boundary.md), [ADR-0016](../../../docs/adr/0016-finding-lifecycle-calibration-deferral.md) Rule 4)
 
@@ -161,7 +160,7 @@ Apply the label `oscillation-detected` (create it if missing) and stop.
 
 Only after the oscillation check passes do you proceed to the numbered steps:
 
-1. **Read the issue body in full.** Identify the specific change requested. If the issue is ambiguous, post a comment asking for clarification; do not start work. For a `feature-request`, also re-read your own approved approach comment — implement *that*, not a new design.
+1. **Read the issue body in full.** Identify the specific change requested. If the issue is ambiguous, post a comment asking for clarification; do not start work. For a `type:feature`, also re-read your own approved approach comment — implement *that*, not a new design.
 
 2. **Scope to a slice.** If the change would exceed one slice (the scope cap), cut it down to the smallest coherent, independently-shippable slice and build that; track the remainder per the Scope cap section (file/append a follow-up, don't close the issue on a partial). Do not refuse or stop.
 
