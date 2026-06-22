@@ -34,9 +34,15 @@ The fleet already owns a first-party App — `jaetill-ai-triage-team` — which 
 
 **Security sequencing (hard precondition):** the fleet token with `workflows: write` can rewrite the loop's own gates if hijacked. The known injection surfaces — **#126/#128** (script injection via `repository_dispatch` `client_payload` interpolation with the fleet token in scope) and **#138** (label-dispatch without applicator verification) — must be fixed and merged **before** the permission grant. The grant is the last step, not the first.
 
+The step 3 implementation PR must carry the following preflight checklist in its description, and a reviewer must confirm all three are checked before approving:
+
+- [ ] #126 merged
+- [ ] #128 merged
+- [ ] #138 merged
+
 **Migration order:**
 
-1. Fix #126/#128 (+#138) — injection hardening lands first.
+1. Fix #126/#128 (+#138) — injection hardening lands first. (**Done** — #126, #128, and #138 all closed before step 3 was dispatched.)
 2. Owner grants the App `Workflows: Read and write` and approves the installation update (human-only, account-side).
 3. Wire `github_token: <fleet token>` into `claude-implementer-reusable.yml` (one file per ADR-0034) and the platform's caller; sweep author-keyed logic in the same PR: triage-scan auto-merge filter (`app/claude` → `app/jaetill-ai-triage-team`), `allowed_bots` entries, ADR-0032 digest queries, and ops-cockpit panels keyed on PR author.
 4. **Staged rollout:** flip one small app repo first, drive one full issue→PR→auto-merge pass in a manual window (claude-code-action's behavior with a custom `github_token` across our modes is unverified — this run is the verification), then sweep the fleet.
