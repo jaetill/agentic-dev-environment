@@ -136,6 +136,7 @@ On every scheduled run, after the scan, run the promoter pass. You move *agent-d
    - **Medium or High severity.** It carries `severity:medium`, `severity:high`, or `triage:medium`. ADR-0020 folds `severity:high` in — it previously had no automatic path. `severity:critical` and `source:sentry` still auto-pick-up at the implementer; do not promote those.
    - **Not already promoted.** It does not already carry `ready-for-implementer`.
    - **Survived one cycle.** It was created before the *previous* triage-scan run — never promote an issue in the same scan that could have filed it. Compare `createdAt` against ~35 minutes ago.
+   - **Not at the conflict-retry cap (ADR-0042).** If the issue carries `conflict-retry:7`, do NOT promote it. Instead: apply the `human-todo` label, post a comment — "This issue has reached the conflict-retry cap (7 consecutive conflicted builds — ADR-0042). A persistent merge conflict is a structural signal that needs human direction." — and skip it. Issues carrying `conflict-retry:1` through `conflict-retry:6` are eligible as normal candidates.
    - **Stale-citation check (pre-LLM).** Before checking well-specified, run `scripts/stale-citation-check.sh` with `ISSUE_TITLE` and `ISSUE_BODY` set. See the **Stale-citation procedure** below.
    - **Well-specified.** A clear repro or acceptance criteria, a single bounded change. This is the judgement call. When a candidate is vague, do not promote it as-is — run the **vague-finding procedure** below instead of commenting-and-leaving.
 

@@ -7,7 +7,7 @@ fork shown is `scope:iac` (which agent builds it) and the no-app vs. app behavio
 folded into the review battery (ADR-0024). There is intentionally no per-repo split.
 
 Source of truth: `triage-scan.yml`, `claude-implementer.yml`, `claude-pr-review.yml`,
-and ADR-0016 / 0017 / 0019 / 0020 / 0021 / 0023 / 0024 / 0025 / 0026 / 0027 / 0028 / 0029 / 0030 / 0031 / 0032 / 0035 / 0037 / 0038 / 0039 / 0040.
+and ADR-0016 / 0017 / 0019 / 0020 / 0021 / 0023 / 0024 / 0025 / 0026 / 0027 / 0028 / 0029 / 0030 / 0031 / 0032 / 0035 / 0037 / 0038 / 0039 / 0040 / 0042.
 
 > **Dispatch routing (ADR-0030):** machine-detected work (severity:critical, source:sentry/cloudwatch) flows through the promoter's deterministic, throttled dispatch — **event-dispatch** on the platform repo (immediate), a **central `*/15` urgent-poll** for app repos (they hold no cross-repo credential to be pushed). Human-approved work (`ready-for-implementer`) stays on each repo's **local** trigger — immediate, no throttle needed (humans don't storm). The fleet-wide `FLEET_MAX_DISPATCH` throttle is enforced centrally as a shared **in-flight ceiling** — all three dispatch paths (windowed promoter, event-dispatch, urgent-poll) count concurrent implementer runs through one source of truth (`scripts/fleet-inflight.sh`), so none can dispatch on top of the others' in-flight work.
 
@@ -114,7 +114,7 @@ flowchart TD
         SLICE -. "remainder = follow-up issue, re-dispatched next cycle" .-> QUEUE
         SCOPE -->|yes| BUILD["Build: branch impl/* ·<br/>code + tests · lint · typecheck · commit"]
         BUILD --> CONF{"Pre-flight rebase clean?"}
-        CONF -->|"no — conflict"| CONFWAIT["Abort + comment +<br/>exit without push · retry next dispatch"]
+        CONF -->|"no — conflict"| CONFWAIT["Abort + strip ready-for-implementer +<br/>increment conflict-retry · re-queued (ADR-0042)"]
         CONF -->|yes| OPENPR["Push + open PR · Closes #n"]
     end
 
@@ -122,6 +122,8 @@ flowchart TD
     DISPATCH --> IAC
     IACIMPL --> OPENPR
     ARCH -. "enters human formulation · architect drafts ADR · you ratify (ADR-0019/0038)" .-> FORM
+    CONFWAIT -. "re-queued per ADR-0042 · promoter re-dispatches next cycle" .-> QUEUE
+    MCONF -. "re-queued per ADR-0042 · promoter re-dispatches next cycle" .-> QUEUE
 
     %% ===================== ④ REVIEW BATTERY =====================
     subgraph REV["④ Review battery · claude-pr-review on the PR"]
@@ -161,7 +163,8 @@ flowchart TD
         CAPM -. "re-considered next window" .-> MG0
         MG5 -->|yes| DOMERGE["Squash-merge + delete branch<br/>cascades release-please + deploy"]
         DOMERGE --> MFAIL{"Merge succeeded?"}
-        MFAIL -->|no| HFAIL["Merge failed — left for human"]
+        MFAIL -->|"no — conflict (DIRTY)"| MCONF["Close PR + strip ready-for-implementer +<br/>increment conflict-retry · re-queued (ADR-0042)"]
+        MFAIL -->|"no — other"| HFAIL["Merge failed — left for human"]
         MFAIL -->|yes| APPLY["deploy cascade · push:main → tofu apply on dev<br/>(IaC) · release path → prod · ADR-0035"]
         APPLY --> CLOSED["Issue closed"]
     end
@@ -191,7 +194,7 @@ flowchart TD
     class PF,EVENTDISP,WIN,EVALALL,STALECHECK,CLOSESTALE,PROMO,DISAMB,ENRICH,CLOSEV,AQUAL,PROMSET,RANK,DISPATCH,SWEEP promoter;
     class IAC,IACIMPL,CG,ARCH,SCOPE,SLICE,BUILD,CONF,OPENPR,FIX,SWEEPIMPL implementer;
     class REVIEW,VERDICT,FIXIT reviewer;
-    class MG0,MG1,MG3,MGIAC,IACGUARD,MGGUARD,MG4,MG5,DOMERGE,MFAIL,APPLY merger;
+    class MG0,MG1,MG3,MGIAC,IACGUARD,MGGUARD,MG4,MG5,DOMERGE,MFAIL,MCONF,APPLY merger;
 ```
 
 ## Terminal states
@@ -206,9 +209,10 @@ flowchart TD
 | Hold: compositional | 🟧 | capability-delta guard holds — gate/governance file, guardrail vocab, net-new action, or destructive migration (ADR-0019/0047). |
 | Hold: not implementer-authored / unlinked | 🟧 | PR isn't authored by the implementer agent, or has no `Closes/Fixes #n` linked issue — not eligible for autonomous merge. Origin no longer gates the merge (ADR-0039); the human checkpoint moves to test→prod promotion for user-facing features (#179). |
 | Hold: IaC unverified | 🟧 | `scope:iac` PR whose `tofu plan` isn't provably safe-additive (destroy/replace/exposure), or has no `iac-additive-guard` check — held for human merge (ADR-0035). |
-| Hold: merge failed | 🟧 | Qualified but `gh pr merge` rejected — left for human. *(This was the platform-repo deadlock fixed in ADR-0024.)* |
+| Hold: merge failed | 🟧 | Qualified but `gh pr merge` rejected for a non-conflict reason — left for human. *(This was the platform-repo deadlock fixed in ADR-0024.)* |
 | Paused | 🟧 | `AUTONOMOUS_MERGE=off`. |
-| Wait: window / cap / conflict / checks | ⬛ | Parked, re-evaluated next cycle or window. |
+| Wait: window / cap / checks | ⬛ | Parked, re-evaluated next cycle or window. |
+| Conflict re-queued (pre-flight or merge-gate) | ⬛ | Pre-flight rebase or merge-gate conflict — PR closed, `ready-for-implementer` stripped, `conflict-retry:<n>` incremented, re-enters promoter pool (ADR-0042). At `conflict-retry:7` the promoter escalates to human via `human-todo` instead. |
 | deferred (severity:low/nit) | ⬛ | Low/Nit finding — defers by severity, drained later by cleanup-sweep (ADR-0016/0037). |
 | Parked (rejected idea) | 🟡 | A formulated idea the human rejected — closed + `parked` label, saved and reopenable on a re-request or second thoughts (ADR-0036). Not a failure, not deleted. |
 | Auto-closed (malformed finding) | 🟩 | Promoter couldn't disambiguate a vague agent finding — closed, and a fix to the source agent's contract dispatched (ADR-0031). |

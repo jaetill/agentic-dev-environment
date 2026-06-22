@@ -430,6 +430,28 @@ jobs:
               echo "::warning::verified-write: label '$4' still present on $3#$2 after remove (#269 / ADR-0044 §1d)"
             fi
           }
+          # ADR-0042: close a conflict-stuck PR and re-queue its linked issue.
+          # Args: $1=pr $2=slug $3=issue  $4=reason (for the closing comment)
+          requeue_conflict() {
+            local pr="$1" slug="$2" issue="$3" reason="${4:-merge conflict}" current_n=0 current_lbl new_n branch
+            current_lbl=$(gh issue view "$issue" --repo "$slug" --json labels \
+              --jq '[.labels[].name | select(startswith("conflict-retry:"))] | first // ""' 2>/dev/null || true)
+            if [[ "$current_lbl" =~ ^conflict-retry:([0-9]+)$ ]]; then
+              current_n="${BASH_REMATCH[1]}"
+              gh issue edit "$issue" --repo "$slug" --remove-label "$current_lbl" 2>/dev/null || true
+            fi
+            new_n=$((current_n + 1))
+            gh label create "conflict-retry:${new_n}" --repo "$slug" --color "FBCA04" 2>/dev/null || true
+            gh issue edit "$issue" --repo "$slug" \
+              --remove-label "ready-for-implementer" \
+              --add-label "conflict-retry:${new_n}" 2>/dev/null || true
+            branch=$(gh pr view "$pr" --repo "$slug" --json headRefName --jq .headRefName 2>/dev/null || true)
+            gh pr close "$pr" --repo "$slug" \
+              --comment "${reason} — PR closed and issue #${issue} re-queued, attempt ${new_n} of 7 (ADR-0042)." \
+              2>/dev/null || true
+            [[ -n "$branch" ]] && gh api --method DELETE "repos/${slug}/git/refs/heads/${branch}" 2>/dev/null || true
+            echo "  ${slug}#${pr} — conflict re-queue: issue #${issue} attempt ${new_n}/7 (ADR-0042)"
+          }
           # Per ADR-0039, code merge is autonomous for all review-passing linked
           # work regardless of origin (ADR-0023's origin boundary is retired at
           # the merge; the human checkpoint moves to test->prod promotion, #179).
@@ -629,7 +651,7 @@ jobs:
               case "$mss" in
                 CLEAN|UNSTABLE) ;;  # required checks green → eligible to merge
                 BEHIND) echo "  $slug#$pr — hold: BEHIND base branch (needs branch update)"; held=$((held+1)); continue;;
-                DIRTY)  echo "  $slug#$pr — hold: DIRTY merge conflict (needs rebase — ADR-0042)"; held=$((held+1)); continue;;
+                DIRTY)  requeue_conflict "$pr" "$slug" "$issue" "DIRTY merge conflict"; held=$((held+1)); continue;;
                 BLOCKED)
                   # Distinguish failing/pending required check from a
                   # CODEOWNERS/review gate. Filter to required-only via
@@ -724,12 +746,18 @@ jobs:
                     --body "Auto-merged self-change: ${slug}#${pr} (fix for #${issue})."
                 ) || true; fi
               else
-                # Qualified (checks green, hard gates passed) but the merge was
-                # still refused — almost always the CODEOWNERS review gate on a
-                # rails-path PR. Mark hold:compositional so it surfaces in the
-                # waiting-on-Jason counts rather than resting invisibly (#271).
-                vhold add "$pr" "$slug" "hold:compositional"
-                echo "::warning::$slug#$pr qualified but the merge was refused (likely the CODEOWNERS review gate); hold:compositional for a human (#271)."
+                # Qualified (checks green, hard gates passed) but merge failed.
+                # ADR-0042: split on cause — conflict → re-queue; other → hold.
+                post_mss=$(gh pr view "$pr" --repo "$slug" --json mergeStateStatus \
+                  --jq '.mergeStateStatus // "UNKNOWN"' 2>/dev/null || echo "UNKNOWN")
+                if [[ "$post_mss" == "DIRTY" ]]; then
+                  requeue_conflict "$pr" "$slug" "$issue" "Merge-time conflict"
+                else
+                  # Non-conflict refusal — almost always the CODEOWNERS review gate.
+                  # Mark hold:compositional so it surfaces rather than resting invisibly (#271).
+                  vhold add "$pr" "$slug" "hold:compositional"
+                  echo "::warning::$slug#$pr qualified but the merge was refused (likely the CODEOWNERS review gate); hold:compositional for a human (#271)."
+                fi
                 held=$((held+1))
               fi
             done

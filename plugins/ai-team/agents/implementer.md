@@ -204,14 +204,29 @@ Only after the oscillation check passes do you proceed to the numbered steps:
       echo "Rebase clean — continuing to push."
     else
       git rebase --abort
-      gh issue comment "$ISSUE_NUMBER" --body "Implementer detected a merge conflict with current master after writing the fix. Most likely cause: a parallel implementer dispatch shipped overlapping changes first. The branch has been discarded; re-dispatch (remove + re-add `ready-for-implementer`) once the conflicting work has merged. Filed per issue #29 pre-flight check."
+      # ADR-0042: autonomous re-queue — strip ready-for-implementer, increment
+      # conflict-retry, re-enter the promoter pool.  No human poke required.
+      current_n=0
+      current_lbl=$(gh issue view "$ISSUE_NUMBER" --json labels \
+        --jq '[.labels[].name | select(startswith("conflict-retry:"))] | first // ""')
+      if [[ "$current_lbl" =~ ^conflict-retry:([0-9]+)$ ]]; then
+        current_n="${BASH_REMATCH[1]}"
+        gh issue edit "$ISSUE_NUMBER" --remove-label "$current_lbl" 2>/dev/null || true
+      fi
+      new_n=$((current_n + 1))
+      gh label create "conflict-retry:${new_n}" --color "FBCA04" 2>/dev/null || true
+      gh issue edit "$ISSUE_NUMBER" \
+        --remove-label "ready-for-implementer" \
+        --add-label "conflict-retry:${new_n}" 2>/dev/null || true
+      gh issue comment "$ISSUE_NUMBER" \
+        --body "Pre-flight conflict — re-queued, attempt ${new_n} of 7 (ADR-0042). Branch discarded; the promoter will re-dispatch once the conflicting work has merged."
       exit 0
     fi
     ```
 
     Successful rebase = your branch is on top of latest master, push it.
-    Conflict = bail cleanly without pushing; the human or a future
-    dispatch will retry.
+    Conflict = bail cleanly without pushing; the issue re-enters the
+    promoter pool automatically (ADR-0042 — no human re-poke needed).
 
 12. **Push the branch.**
 
@@ -258,14 +273,38 @@ Only after the oscillation check passes do you proceed to the numbered steps:
      echo "Rebase clean — continuing to push."
    else
      git rebase --abort
-     gh pr comment "$PR_NUMBER" --body "Fix-iteration aborted: branch can't cleanly rebase onto current master (likely a parallel merge during the review cycle). The PR remains open; the next reviewer-block comment will retrigger this job once master has settled. Per issue #43 pre-flight check."
+     # ADR-0042: close the PR, strip ready-for-implementer from the linked
+     # issue, increment conflict-retry, and re-queue — same recovery as Mode A.
+     linked_issue=$(gh pr view "$PR_NUMBER" --json body --jq '.body' \
+       | grep -ioE '(close[sd]?|fix(e[sd])?|resolve[sd]?) +#[0-9]+' \
+       | grep -oE '[0-9]+' | head -1 || true)
+     if [[ -n "$linked_issue" ]]; then
+       current_n=0
+       current_lbl=$(gh issue view "$linked_issue" --json labels \
+         --jq '[.labels[].name | select(startswith("conflict-retry:"))] | first // ""')
+       if [[ "$current_lbl" =~ ^conflict-retry:([0-9]+)$ ]]; then
+         current_n="${BASH_REMATCH[1]}"
+         gh issue edit "$linked_issue" --remove-label "$current_lbl" 2>/dev/null || true
+       fi
+       new_n=$((current_n + 1))
+       gh label create "conflict-retry:${new_n}" --color "FBCA04" 2>/dev/null || true
+       gh issue edit "$linked_issue" \
+         --remove-label "ready-for-implementer" \
+         --add-label "conflict-retry:${new_n}" 2>/dev/null || true
+       gh pr close "$PR_NUMBER" \
+         --comment "Fix-iteration conflict — PR closed and issue #${linked_issue} re-queued, attempt ${new_n} of 7 (ADR-0042). The promoter will re-dispatch once the conflicting work has merged." \
+         2>/dev/null || true
+     else
+       gh pr comment "$PR_NUMBER" \
+         --body "Fix-iteration conflict — branch can't rebase onto current master. No linked issue found; cannot re-queue automatically. Please re-dispatch manually (ADR-0042)." \
+         2>/dev/null || true
+     fi
      exit 0
    fi
    ```
 
    Clean rebase = your branch is on top of latest master, proceed to push.
-   Conflict = bail without pushing; the PR stays open and the next BLOCK
-   verdict re-triggers.
+   Conflict = close the PR and re-queue the issue autonomously (ADR-0042).
 8. **Push to the same branch.**
 
 9. **Post a brief comment on the PR.** One sentence per finding, what you changed. Example:
