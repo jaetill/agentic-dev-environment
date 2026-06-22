@@ -1,0 +1,40 @@
+name: test-inbox-ci
+# Runs the test-inbox component's Vitest suite + typecheck on every PR that
+# touches it (#249). test-inbox is a published npm component (consumed by app
+# repos' e2e email tests via a file: dep, ADR-0014) with unit/contract tests
+# (`vitest run`) that NO CI ran — a regression could ship to consumers silently.
+#
+# Credential-free: the Gmail-backed integration suite (tests/integration.test.ts)
+# self-skips via `describe.skipIf(!process.env.TEST_INBOX_INTEGRATION)`, so the
+# default `npm test` runs only the offline unit/contract tests.
+
+on:
+  pull_request:
+    paths:
+      - 'templates/_shared/test-inbox/**'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: templates/_shared/test-inbox
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: templates/_shared/test-inbox/package-lock.json
+      - name: Install
+        run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Unit + contract tests (vitest; integration self-skips)
+        run: npm test
