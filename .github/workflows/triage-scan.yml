@@ -639,6 +639,7 @@ jobs:
                     gh issue comment "$issue" --repo "$slug" \
                       --body "Exhausted 7 conflict re-queue attempts (ADR-0042): this issue's fix keeps conflicting at merge time — a persistent structural conflict (two work streams fighting over the same code). Escalating to a human for resolution-path ratification. PR #$pr closed; branch deleted." >/dev/null 2>&1 || true
                     echo "  $slug#$pr — DIRTY conflict-retry cap (7) hit on issue #$issue → human-todo (ADR-0042)"
+                    gh pr close "$pr" --repo "$slug" --delete-branch >/dev/null 2>&1 || true
                     held=$((held+1)); continue
                   fi
                   next=$((retry+1))
