@@ -10,9 +10,9 @@
 # done-and-awaiting-merge and must not consume a dispatch slot (ADR-0030).
 #
 # Env:
-#   FLEET_REPOS  space-separated repo names. Default: resolved live from the
-#                GitHub `fleet` repo topic via scripts/fleet-repos.sh (#139/#39)
-#                — no hardcoded list. Override only for testing.
+#   FLEET_REPOS  space-separated repo names. Default: resolved from the
+#                committed manifest (fleet/repos.txt) via scripts/fleet-repos.sh
+#                (ADR-0051) — no hardcoded list. Override only for testing.
 #   OWNER        org/user owner (default: jaetill)
 # Output: the integer in-flight count on stdout (partial count on a read error).
 # Exit:   0 = fully counted — stdout is authoritative.
@@ -30,7 +30,7 @@ FLEET_REPOS="${FLEET_REPOS:-$(OWNER="$OWNER" bash "$(dirname "$0")/fleet-repos.s
 # (Distinct from the per-repo read-error path below, which legitimately fails
 # OPEN with a partial count on a transient single-repo API blip.)
 if [[ -z "${FLEET_REPOS// }" ]]; then
-  echo "::warning::fleet-inflight: empty fleet roster (topic:fleet unresolved) — emitting over-cap sentinel to fail closed (no dispatch)" >&2
+  echo "::warning::fleet-inflight: empty fleet roster (manifest unresolved) — emitting over-cap sentinel to fail closed (no dispatch)" >&2
   echo 99999
   exit 0
 fi
