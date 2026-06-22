@@ -113,6 +113,8 @@ Three rotation paths for `fleet-github`, in increasing order of effort:
 
 **Also required — every rotation:** update the `grafanacloud-infinity` header. Grafana Cloud → Connections → Data sources → `grafanacloud-infinity` → Settings → **Secure HTTP headers** → edit the `Authorization` row → paste `token <new-PAT>` → **Save & test**. Skipping this step leaves panel 8 (triage-job stat) authenticating with a stale token, silently re-exposing the shared-egress-IP 403 risk (issue #158). Verify: panel 8 should render a green/red value (not blank) after saving.
 
+**Also required — every rotation:** update the `infinity-github-auth` datasource (UID `afo51rbbobke8a`, added in PR #233, used by all 8 issue-flow bar panels). It is **UI-managed and absent from Terraform**, so `tofu apply` will not touch it. Grafana Cloud → Connections → Data sources → `infinity-github-auth` → Settings → **Auth** → **Bearer Token** → paste the new PAT → **Save & test**. Skipping this leaves all 8 issue-flow bars dark on rotation (expired PAT → 401 from GitHub GraphQL). Verify: the issue-flow bar panels return data (not blank) after saving. **If this datasource is ever deleted and recreated** (its UID is environment-specific), the new UID must be patched into `dashboard.json` everywhere `afo51rbbobke8a` appears — there is otherwise no Terraform link to update it automatically (#234).
+
 The Grafana SA token (step 2 of prereqs) rotates without TF involvement — it's read by the provider from the env var each apply, so a fresh value just works.
 
 ## Files
