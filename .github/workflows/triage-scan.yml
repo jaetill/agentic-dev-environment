@@ -76,7 +76,14 @@ permissions:
   id-token: write       # claude-code-action OIDC
 
 concurrency:
-  group: triage-scan-${{ github.repository }}
+  # event-dispatch triggered runs (issues + repository_dispatch) get a unique
+  # run-scoped group so they start immediately without queuing behind a
+  # long-running triage/auto-merge pass (ADR-0030, #130). Same-issue
+  # serialization is handled by the job-level concurrency on event-dispatch.
+  group: >-
+    ${{ (github.event_name == 'issues' || github.event_name == 'repository_dispatch')
+        && format('event-dispatch-{0}', github.run_id)
+        || format('triage-scan-{0}', github.repository) }}
   cancel-in-progress: false
 
 jobs:
@@ -736,6 +743,13 @@ jobs:
   # `approved` (promoter, medium tier) or a human `ready-for-implementer`
   # fast-track. `feature-request` was therefore dropped from the opened branch.
   event-dispatch:
+    # Serialize concurrent event-dispatch runs for the SAME issue (e.g. both
+    # `opened` and `labeled` firing within seconds) while allowing different
+    # issues to dispatch in parallel. Run-id fallback covers repository_dispatch
+    # where github.event.issue.number is absent (#130).
+    concurrency:
+      group: event-dispatch-${{ github.repository }}-${{ github.event.issue.number || github.run_id }}
+      cancel-in-progress: false
     if: |
       github.event_name == 'repository_dispatch'
       || (
