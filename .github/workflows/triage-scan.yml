@@ -75,9 +75,12 @@ permissions:
   actions: write        # ADR-0030: dispatch claude-implementer.yml
   id-token: write       # claude-code-action OIDC
 
-concurrency:
-  group: triage-scan-${{ github.repository }}
-  cancel-in-progress: false
+# Concurrency is PER-JOB, not workflow-level (#130). A single workflow-level
+# group serialized everything, so an urgent `event-dispatch` (a severity:critical
+# issue) queued behind a running ≤30-min `triage` scan. Each job now serializes
+# only against its own kind: the promoter pass and the merge sweep each keep a
+# single shared in-flight group (correctness — no double-promote / double-sweep),
+# while event-dispatch serializes per-issue so it never waits on triage.
 
 jobs:
   # ── Window check — skip scheduled runs that fall outside the window ──────
@@ -115,6 +118,11 @@ jobs:
   # ── triage-bot: scan + fleet promoter + flaw pull ───────────────────────
   triage:
     needs: window
+    # Serialize promoter passes against each other (no double-promote / double-
+    # dispatch); independent of the merge sweep and event-dispatch (#130).
+    concurrency:
+      group: triage-promoter-${{ github.repository }}
+      cancel-in-progress: false
     # The full LLM fleet-scan runs only on the schedule and manual dispatch.
     # Issues / repository_dispatch events are handled deterministically by
     # event-dispatch (ADR-0030); running the scan on them is redundant AND fails
@@ -362,6 +370,11 @@ jobs:
   # `vars.AUTONOMOUS_MERGE=off` pauses this job fleet-wide;
   # `vars.AUTONOMOUS_MERGE_CAP` (default 10) caps merges per run.
   auto-merge:
+    # Serialize merge sweeps against each other (no two sweeps racing the same
+    # PRs); independent of the promoter pass and event-dispatch (#130).
+    concurrency:
+      group: triage-automerge-${{ github.repository }}
+      cancel-in-progress: false
     # #268: gate the workflow_run trigger on a SUCCESSFUL upstream conclusion.
     # The merge sweep mints the fleet App token; a failed/cancelled pr-review run
     # should not wake it (the sweep is self-validating per-PR, but running it off
@@ -736,6 +749,13 @@ jobs:
   # `approved` (promoter, medium tier) or a human `ready-for-implementer`
   # fast-track. `feature-request` was therefore dropped from the opened branch.
   event-dispatch:
+    # Per-ISSUE concurrency (#130): an urgent dispatch serializes only against
+    # another dispatch for the SAME issue (idempotency) — never behind the
+    # promoter pass or the merge sweep, so severity:critical work no longer waits
+    # ≤30 min for a long triage scan to finish.
+    concurrency:
+      group: triage-eventdispatch-${{ github.repository }}-${{ github.event.client_payload.issue || github.event.issue.number || github.run_id }}
+      cancel-in-progress: false
     if: |
       github.event_name == 'repository_dispatch'
       || (
