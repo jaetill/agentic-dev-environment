@@ -82,12 +82,16 @@ function Test-IsClaudeCheck($ctx) {
   return $claudeJobs -contains $bare
 }
 
-# Full-protection payload for the CREATE path — matches game-night-pwa's model.
-function New-ProtectionBody {
+# Full-protection payload — matches game-night-pwa's model. Used by BOTH the
+# CREATE path and (since #72) the UPDATE path, so an already-protected repo whose
+# enforce_admins / force-push / deletions / linear-history settings have drifted
+# gets the whole peer model re-asserted, not just its status-check contexts.
+# $checks defaults to $canonical (CREATE); the UPDATE path passes the merged set.
+function New-ProtectionBody($checks = $canonical) {
   @{
     required_status_checks = @{
       strict = $false
-      checks = @($canonical | ForEach-Object { @{ context = $_ } })
+      checks = @($checks | ForEach-Object { @{ context = $_ } })
     }
     enforce_admins = $true
     required_pull_request_reviews = @{
@@ -169,15 +173,25 @@ foreach ($repo in $repos.Keys) {
   # strict = true must still be PATCHed, so do not skip on contexts alone.
   $strictDrift = [bool]$rsc.strict
   if ($strictDrift) { Write-Host "    ~ strict: true -> false (ADR-0021)" -ForegroundColor Yellow }
-  if (-not $added -and -not $removed -and -not $strictDrift) {
+  # #72: detect drift on the OTHER protection settings the UPDATE path used to
+  # ignore (it only PATCHed required_status_checks). GitHub returns each as an
+  # { enabled = bool } object.
+  $secDrift = ($prot.enforce_admins.enabled -ne $true) -or
+              ($prot.allow_force_pushes.enabled -ne $false) -or
+              ($prot.allow_deletions.enabled -ne $false) -or
+              ($prot.required_linear_history.enabled -ne $true)
+  if ($secDrift) { Write-Host "    ~ security settings drifted -> re-asserting peer model (#72)" -ForegroundColor Yellow }
+  if (-not $added -and -not $removed -and -not $strictDrift -and -not $secDrift) {
     Write-Host "  already uniform - no change" -ForegroundColor DarkGray
     continue
   }
   if (-not $Apply) { Write-Host "  [DRY RUN] not applied" -ForegroundColor DarkGray; continue }
 
-  # strict forced false (see header) — never preserve a drifted strict = true.
-  $payload = @{ strict = $false; checks = @($final | ForEach-Object { @{ context = $_ } }) }
-  $exit = Invoke-GhJson 'PATCH' "repos/jaetill/$repo/branches/$branch/protection/required_status_checks" $payload
+  # #72: re-assert the FULL peer model via PUT (not a partial PATCH of only the
+  # status checks), so enforce_admins / no-force-push / no-deletions / linear-
+  # history are restored if drifted. Pass the merged contexts ($final) so any
+  # non-Claude required checks are preserved. strict forced false (see header).
+  $exit = Invoke-GhJson 'PUT' "repos/jaetill/$repo/branches/$branch/protection" (New-ProtectionBody $final)
   if ($exit -eq 0) { Write-Host "  APPLIED" -ForegroundColor Green }
   else             { Write-Host "  FAILED (gh api exit $exit)" -ForegroundColor Red }
 }
