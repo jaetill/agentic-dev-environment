@@ -362,10 +362,14 @@ jobs:
   # `vars.AUTONOMOUS_MERGE=off` pauses this job fleet-wide;
   # `vars.AUTONOMOUS_MERGE_CAP` (default 10) caps merges per run.
   auto-merge:
+    # #268: gate the workflow_run trigger on a SUCCESSFUL upstream conclusion.
+    # The merge sweep mints the fleet App token; a failed/cancelled pr-review run
+    # should not wake it (the sweep is self-validating per-PR, but running it off
+    # a red gate is needless and obscures intent). schedule/dispatch are unguarded.
     if: |
       github.event_name == 'schedule'
       || github.event_name == 'workflow_dispatch'
-      || github.event_name == 'workflow_run'
+      || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
