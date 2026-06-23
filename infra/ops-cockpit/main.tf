@@ -23,9 +23,13 @@ resource "grafana_data_source" "github" {
   })
 
   # The PAT. Grafana stores secureJsonData encrypted and never renders it
-  # back into Terraform state.
+  # back into Terraform state. The source of the PAT now comes from AWS
+  # Secrets Manager (ops-cockpit/github-token) via local.github_token (#91)
+  # rather than var.github_token -- the value is read at plan time and never
+  # written into a *_secret_version, so it stays out of Terraform state on
+  # both ends. See secrets.tf and SECRETS-MANAGER-MIGRATION.md.
   secure_json_data_encoded = jsonencode({
-    accessToken = var.github_token
+    accessToken = local.github_token
   })
 
   # The Grafana Cloud free-tier service-account token lacks `datasources:write`

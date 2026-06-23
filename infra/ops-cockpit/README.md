@@ -60,17 +60,32 @@ In the platform repo, so the cockpit has TODOs to read. You file a TODO by openi
 gh label create human-todo --repo jaetill/agentic-dev-environment --color FFA500 --description "Human-authored TODO surfaced on the ops cockpit"
 ```
 
+## Secrets — where they live (#91)
+
+| Secret | Storage | How Terraform reads it |
+|---|---|---|
+| Grafana service-account token | **AWS Secrets Manager** `ops-cockpit/grafana-api-key` | `data.aws_secretsmanager_secret_version` (read-only, plan time); value never in TF state. See `secrets.tf`. |
+| GitHub read-only PAT | **AWS Secrets Manager** `ops-cockpit/github-token` | same pattern; feeds the `fleet-github` data source `accessToken`. |
+| Grafana stack URL | **env var** `TF_VAR_grafana_url` | non-secret; still a plain `var`. |
+
+The two tokens moved out of `TF_VAR_*` (which captured them in state) into
+Secrets Manager for #91. The value is **never** written into a Terraform
+`*_secret_version` — Terraform owns only the empty container and reads the
+out-of-band-populated value. First-time setup and the required ordered
+bootstrap apply are in [`SECRETS-MANAGER-MIGRATION.md`](SECRETS-MANAGER-MIGRATION.md).
+
 ## Configure & apply
 
-Set the three inputs as environment variables (PowerShell) — keeps the two secrets off disk in this public repo:
+Set the non-secret stack URL as an environment variable (PowerShell):
 
 ```powershell
-$env:TF_VAR_grafana_url     = "https://<stack>.grafana.net"
-$env:TF_VAR_grafana_api_key = "<grafana service-account token>"
-$env:TF_VAR_github_token    = "<fine-grained read-only PAT>"
+$env:TF_VAR_grafana_url = "https://<stack>.grafana.net"
 ```
 
-Then:
+The two tokens come from AWS Secrets Manager (above) — **not** env vars. On a
+fresh setup the secrets must be bootstrapped before a full apply will succeed;
+follow [`SECRETS-MANAGER-MIGRATION.md`](SECRETS-MANAGER-MIGRATION.md). Once the
+secrets carry values:
 
 ```powershell
 tofu init
@@ -122,8 +137,10 @@ The Grafana SA token (step 2 of prereqs) rotates without TF involvement — it's
 | File | Purpose |
 |---|---|
 | `backend.tf` | S3 remote state |
-| `providers.tf` | Grafana provider + auth |
-| `variables.tf` | Inputs (1 URL, 2 secrets) |
+| `providers.tf` | Grafana provider + auth (auth from Secrets Manager) |
+| `secrets.tf` | AWS provider + Secrets Manager containers + read-only value reads (#91) |
+| `variables.tf` | Inputs (URL only; the two token vars are deprecated, see #91) |
 | `main.tf` | GitHub data source + folder |
 | `dashboard.tf` | The dashboard (Phase 1a placeholder → Phase 1b panels) |
 | `terraform.tfvars.example` | Documents the inputs; real `*.tfvars` is gitignored |
+| `SECRETS-MANAGER-MIGRATION.md` | Ordered bootstrap apply + rollback for the #91 secrets move |
