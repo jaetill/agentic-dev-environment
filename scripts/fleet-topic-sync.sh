@@ -16,6 +16,12 @@
 # The only authoritative reader is fleet-repos.sh, which reads the manifest, not
 # the topic.
 #
+# INVOCATION: run on-demand by an ADMIN principal (e.g. Jason via local `gh`).
+# It is deliberately NOT wired to a workflow: the fleet App is intentionally not
+# granted repo-Administration (decided 2026-06-22, ADR-0051) — handing the loop
+# repo-admin to keep a cosmetic topic fresh would widen its blast radius, the
+# opposite of what #555 asks for. So the topic is reconciled manually, rarely.
+#
 # Requires: gh (authenticated; repo-admin on the owner's repos for writes to
 # succeed). Reads the manifest via scripts/fleet-repos.sh.
 #

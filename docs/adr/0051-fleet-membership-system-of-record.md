@@ -2,7 +2,7 @@
 
 - **Status:** Accepted — ratified by Jason 2026-06-22 (chat decision); implemented by this PR
 - **Date:** 2026-06-22
-- **Implementation:** Implemented 2026-06-22 via this PR (#563) — adds the system-of-record manifest `fleet/repos.txt`; repoints the single resolver `scripts/fleet-repos.sh` to read it; adds the best-effort derived-topic reconciler `scripts/fleet-topic-sync.sh` + `.github/workflows/fleet-topic-sync.yml`; updates roster-comment references in `ci-health.yml`, `urgent-poll.yml`, `scripts/fleet-inflight.sh`.
+- **Implementation:** Implemented 2026-06-22 via this PR (#563) — adds the system-of-record manifest `fleet/repos.txt`; repoints the single resolver `scripts/fleet-repos.sh` to read it; adds the manual, on-demand derived-topic reconciler `scripts/fleet-topic-sync.sh` (run by an admin principal — NOT automated, see below); updates roster-comment references in `ci-health.yml`, `urgent-poll.yml`, `scripts/fleet-inflight.sh`.
 - **Deciders:** Jason
 - **Tags:** fleet, security, governance, ci-cd
 
@@ -35,7 +35,7 @@ Fleet membership is a **capability grant**: a repo in the fleet receives FLEET_T
 
 Chosen option: **Option D**, because it puts the authoritative record in a **reviewed, audited artifact** (the committed manifest, whose git history is the admission log) while keeping the `fleet` topic for queryability as a cosmetic, best-effort projection.
 
-Capability derives from the reviewed manifest: the single resolver `scripts/fleet-repos.sh` reads `fleet/repos.txt`, applying the same fail-closed contract it had before (missing/empty manifest → print nothing, warn, exit 3 → callers do-nothing-this-cycle). Because #554 already funneled every consumer (throttle, urgent-poll, ci-health, triage-scan) through that one resolver, repointing the resolver repoints the whole fleet — no other consumer logic changes. The topic becomes a derived projection synced best-effort by `scripts/fleet-topic-sync.sh`; a topic-write failure (no repo-admin) warns and never fails, because the topic gates nothing. No privileged decision is ever made against the topic again.
+Capability derives from the reviewed manifest: the single resolver `scripts/fleet-repos.sh` reads `fleet/repos.txt`, applying the same fail-closed contract it had before (missing/empty manifest → print nothing, warn, exit 3 → callers do-nothing-this-cycle). Because #554 already funneled every consumer (throttle, urgent-poll, ci-health, triage-scan) through that one resolver, repointing the resolver repoints the whole fleet — no other consumer logic changes. The topic becomes a derived projection, reconciled to the manifest **manually and on-demand** by an admin principal via `scripts/fleet-topic-sync.sh`; it is not automated, because the fleet App is deliberately not granted repo-admin (below). A stale topic gates nothing. No privileged decision is ever made against the topic again.
 
 ## Consequences
 
@@ -87,9 +87,9 @@ Capability derives from the reviewed manifest: the single resolver `scripts/flee
 
 - System of record: `fleet/repos.txt` (newline-delimited names; `#` comments + blanks allowed).
 - Resolver: `scripts/fleet-repos.sh` reads the manifest, strips comments/blanks, normalizes to one space-separated line; fail-closed exit 3 on missing/empty.
-- Derived-topic reconciler: `scripts/fleet-topic-sync.sh` (best-effort; warns-not-fails on topic-write errors) + `.github/workflows/fleet-topic-sync.yml` (push to `fleet/repos.txt` + manual dispatch; mints the fleet App token).
+- Derived-topic reconciler: `scripts/fleet-topic-sync.sh` (best-effort; warns-not-fails on topic-write errors), run **manually and on-demand by an admin principal** (e.g. Jason via local `gh`). Not wired to a workflow.
 - Affected consumers (roster-comment references only, logic unchanged): `.github/workflows/ci-health.yml`, `.github/workflows/urgent-poll.yml`, `scripts/fleet-inflight.sh`.
-- Deliberately NOT done: granting the fleet App Administration(write). Full topic auto-sync needs it; until then the sync warns and the topic is reconciled manually. Granting admin would broaden the loop's blast radius, contrary to #555's intent.
+- Deliberately NOT done: granting the fleet App Administration(write). **Decided 2026-06-22 (Jason): the App will not have repo-admin** — handing the loop admin to keep a cosmetic topic fresh would broaden its blast radius, contrary to #555's intent. Consequently the topic is reconciled manually (rarely; membership changes are rare) rather than by an automated workflow.
 
 ## Links
 
