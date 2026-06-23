@@ -1,0 +1,26 @@
+# fleet/repos.txt — THE SYSTEM OF RECORD for fleet membership (ADR-0051, #555).
+#
+# A repo is a fleet member IF AND ONLY IF it is listed here. Admission to the
+# fleet is a deliberate, reviewed PR against this file — git history is the
+# admission log (who, when, approved by whom). Capability (FLEET_TOKEN scope,
+# implementer dispatch, auto-merge) DERIVES from membership in this list; it is
+# NEVER granted by a repo setting. A repo owner with write access to a non-fleet
+# repo cannot self-enroll — enrollment requires merging a change to this file.
+#
+# The `fleet` GitHub topic is a DERIVED, non-authoritative projection of THIS
+# file (reconciled best-effort by scripts/fleet-topic-sync.sh + the
+# fleet-topic-sync workflow). It exists only for dashboards / `gh search`
+# convenience. NEVER gate a privileged decision on the topic — gate on this list
+# (resolved via scripts/fleet-repos.sh).
+#
+# Format: one repo NAME per line (owner is implicit). Blank lines and lines
+# starting with `#` are ignored.
+
+game-night-pwa
+meal-planner
+ai-teacher
+jaetill-portal
+splendor
+draft
+carto
+agentic-dev-environment

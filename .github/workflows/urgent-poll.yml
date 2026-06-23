@@ -52,14 +52,15 @@ jobs:
         run: |
           set -uo pipefail
 
-          # Resolve the fleet roster from the `fleet` repo topic (#139) so the
-          # candidate search is SCOPED TO THE FLEET, not every repo under $OWNER.
+          # Resolve the fleet roster from the committed manifest (fleet/repos.txt),
+          # resolved via scripts/fleet-repos.sh (ADR-0051), so the candidate search
+          # is SCOPED TO THE FLEET, not every repo under $OWNER.
           # FAIL CLOSED: if the roster can't be resolved (fleet-repos.sh exits
           # non-zero / prints nothing), skip this poll cleanly rather than search
           # an unbounded owner-wide set or treat the fleet as empty.
           mapfile -t FLEET < <(bash "$GITHUB_WORKSPACE/scripts/fleet-repos.sh" | tr ' ' '\n')
           if [[ "${#FLEET[@]}" -eq 0 ]]; then
-            echo "::warning::urgent-poll: empty fleet roster (topic:fleet unresolved) — skipping this poll (fail closed)."
+            echo "::warning::urgent-poll: empty fleet roster (manifest unresolved) — skipping this poll (fail closed)."
             exit 0
           fi
           # Build the `repo:jaetill/<name>` qualifiers that scope the search to
