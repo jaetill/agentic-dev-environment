@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.4.0](https://github.com/jaetill/agentic-dev-environment/compare/v0.3.2...v0.4.0) (2026-06-23)
+
+
+### Features
+
+* **iam:** optional data-plane-read Deny overlay for drift roles ([#297](https://github.com/jaetill/agentic-dev-environment/issues/297)) ([#567](https://github.com/jaetill/agentic-dev-environment/issues/567)) ([ca1a77b](https://github.com/jaetill/agentic-dev-environment/commit/ca1a77b71d9cc62b00f7f27d2a92893a6286dc67))
+
+
+### Bug Fixes
+
+* **agents:** add oscillation awareness to code-reviewer and security-reviewer ([#78](https://github.com/jaetill/agentic-dev-environment/issues/78)) ([#558](https://github.com/jaetill/agentic-dev-environment/issues/558)) ([8c93bd0](https://github.com/jaetill/agentic-dev-environment/commit/8c93bd00affb489e6b33f5d989313d7c8f5b21e3))
+* **ci:** add mutual exclusion guard to manual-dispatch job ([#546](https://github.com/jaetill/agentic-dev-environment/issues/546)) ([#562](https://github.com/jaetill/agentic-dev-environment/issues/562)) ([4f36d18](https://github.com/jaetill/agentic-dev-environment/commit/4f36d183dac14c935d2d8100bc1d75bddea4355d))
+
 ## [0.3.2](https://github.com/jaetill/agentic-dev-environment/compare/v0.3.1...v0.3.2) (2026-06-22)
 
 
