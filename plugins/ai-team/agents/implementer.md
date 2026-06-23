@@ -30,6 +30,8 @@ Triggered when a GitHub issue has all of:
 - `source:cloudwatch` (CloudWatch-originated alert — per [ADR-0023](../../../docs/adr/0023-origin-based-autonomy-boundary.md), machine-detected breakage from CloudWatch alarms gets the same autonomous pickup as Sentry)
 - `severity:critical` (critical-severity finding from any reviewer agent)
 
+> **Label-write trust boundary (accepted risk):** `source:sentry`, `source:cloudwatch`, and `severity:critical` share the same label-write trust surface — any repo collaborator with Triage-role access or higher can apply any of these labels to an arbitrary open issue and trigger autonomous implementation without the `ready-for-implementer` gate. This is consciously accepted while the fleet has no human collaborators beyond the maintainer. **Precondition for granting triage+ access to any human collaborator:** ship sender-verification enforcement (a labels workflow that validates the integration sender) to close this surface before expanding access.
+
 **Mode A builds.** A `feature-request` runs the build phase exactly like a `defect` / `bug`. A feature is already formulated and `approved` by the human at intake before it ever reaches you (ADR-0036) — the *what* is decided; your job is the *how*. There is no in-loop plan phase or plan-approval gate (the `plan-first` opt-in was retired by ADR-0036). You still plan the implementation approach yourself (plan-mode) for anything complex — that is the *how*, and it needs no human sign-off.
 
 You create a feature branch, write code, write tests, open a PR. The full review pipeline (code-reviewer, security-reviewer, functional-tester, test-writer, e2e-tester, doc-keeper) runs against the PR. You wait for the result.
