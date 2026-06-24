@@ -181,7 +181,7 @@ jobs:
             For each new finding, file via:
               gh issue create \
                 --title "[code-review] <file>:<line> — <one-line description>" \
-                --label "defect,severity:critical|high|medium,origin:internal-review" \
+                --label "type:defect,severity:critical|high|medium,origin:internal-review" \
                 --body "$(cat <<EOF
                 **From PR:** #${{ github.event.pull_request.number }}
                 **File:** <file>:<line>
@@ -432,7 +432,7 @@ jobs:
             4. For HIGH-priority coverage gaps (security-sensitive paths,
                new public functions, modified API contracts), file each
                as a defect issue with labels
-               `defect,severity:medium,origin:internal-review` using the
+               `type:defect,severity:medium,origin:internal-review` using the
                same dedup discipline as code-reviewer — BUT only when this
                repo's filing floor (`${{ vars.REVIEW_FILE_MIN_SEVERITY || 'medium' }}`,
                ADR-0049) is `medium`; when the floor is `high`, note coverage
@@ -728,7 +728,7 @@ jobs:
             File new findings:
               gh issue create \
                 --title "[security-review] <file>:<line> — <one-line description>" \
-                --label "defect,severity:critical|high|medium,origin:internal-review" \
+                --label "type:defect,severity:critical|high|medium,origin:internal-review" \
                 --body "$(cat <<EOF
                 **From PR:** #${{ github.event.pull_request.number }}
                 **File:** <file>:<line>
@@ -961,14 +961,18 @@ jobs:
           gh --repo "${{ github.repository }}" label create severity:medium      --color FBCA04 --description "Medium-severity issue — should fix soon" 2>/dev/null || true
           gh --repo "${{ github.repository }}" label create severity:low         --color 0E8A16 --description "Low-severity issue — nice to fix" 2>/dev/null || true
           gh --repo "${{ github.repository }}" label create severity:nit         --color BFD4F2 --description "Stylistic nit — author's discretion" 2>/dev/null || true
-          # Origin labels (per ADR-0026 trust tiers)
+          # Origin labels (ADR-0044 axis; per ADR-0026 trust tiers)
           gh --repo "${{ github.repository }}" label create origin:internal-review  --color 5319E7 --description "Filed by an internal-review agent (code-reviewer / security-reviewer / test-writer / doc-keeper)" 2>/dev/null || true
-          gh --repo "${{ github.repository }}" label create origin:production-signal --color 1D76DB --description "Filed from a production signal (Sentry / drift / dep advisory)" 2>/dev/null || true
+          gh --repo "${{ github.repository }}" label create origin:sentry           --color 1D76DB --description "Sentry-originated production signal (ADR-0044 origin axis)" 2>/dev/null || true
+          gh --repo "${{ github.repository }}" label create origin:cloudwatch       --color 1D76DB --description "CloudWatch-originated production signal (ADR-0044 origin axis)" 2>/dev/null || true
+          gh --repo "${{ github.repository }}" label create origin:production-signal --color 1D76DB --description "Filed from a production signal (drift / dep advisory)" 2>/dev/null || true
           gh --repo "${{ github.repository }}" label create origin:external-request --color C5DEF5 --description "Filed from an external request (feedback widget / human prompt)" 2>/dev/null || true
+          # Type axis (ADR-0044) — reviewer agents file type:defect
+          gh --repo "${{ github.repository }}" label create type:defect            --color 0052CC --description "Work type axis: defect (ADR-0044)" 2>/dev/null || true
+          gh --repo "${{ github.repository }}" label create type:feature           --color 0052CC --description "Work type axis: feature (ADR-0044)" 2>/dev/null || true
+          gh --repo "${{ github.repository }}" label create type:process-flaw      --color 0052CC --description "Work type axis: process-flaw (ADR-0044)" 2>/dev/null || true
           # Lifecycle labels
-          gh --repo "${{ github.repository }}" label create defect                 --color D73A4A --description "A defect awaiting fix" 2>/dev/null || true
           gh --repo "${{ github.repository }}" label create ready-for-implementer  --color 0E8A16 --description "Cleared for implementer agent to engage" 2>/dev/null || true
-          gh --repo "${{ github.repository }}" label create awaiting-dispatch      --color FBCA04 --description "Triaged but awaiting human dispatch decision (Tier 3)" 2>/dev/null || true
           gh --repo "${{ github.repository }}" label create wontfix                --color FFFFFF --description "Triaged but not actionable" 2>/dev/null || true
 
   invoke-architect-if-gated:
