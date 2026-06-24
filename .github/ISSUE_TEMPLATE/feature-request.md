@@ -1,7 +1,7 @@
 ---
 name: Feature request
 about: Propose a new feature or enhancement
-labels: feature-request, needs-formulation
+labels: type:feature, needs-formulation
 ---
 
 ## What

@@ -1,7 +1,7 @@
 ---
 name: Bug report
 about: Report something broken
-labels: bug
+labels: type:defect
 ---
 
 ## What's broken
