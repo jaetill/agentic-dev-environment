@@ -29,5 +29,5 @@ Do not reintroduce these in new operational files (workflows, scripts, agent pro
 
 **Notes on still-present legacy uses:**
 
-- `IMPLEMENTER_PAT` — still appears in reusable workflows as a legacy fallback (`${{ secrets.IMPLEMENTER_PAT || github.token }}`). The fallback is intentional for backwards compatibility until all app repos migrate. Do not use it as the *primary* auth route in new workflows.
+- `IMPLEMENTER_PAT` — fully retired (#363). All usages were removed (PR #526), and the reusable's `workflow_call` secret declaration plus every fleet caller's forwarding were removed in #363 phase B. `terminology-check` now enforces it as a hard error. The remaining step is deleting the secret from each repo's settings (maintainer action).
 - `claude[bot]` — the Claude GitHub App (`claude[bot]`) remains active as the *reviewer* identity (code-reviewer, security-reviewer, etc. via `CLAUDE_CODE_OAUTH_TOKEN`). Only its role as the *implementer's write identity* is deprecated. `claude[bot]` in a review workflow is not stale usage.
