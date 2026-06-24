@@ -44,8 +44,6 @@ on:
     secrets:
       CLAUDE_CODE_OAUTH_TOKEN:
         required: false
-      IMPLEMENTER_PAT:
-        required: false
       FLEET_APP_ID:
         required: false
       FLEET_APP_PRIVATE_KEY:
@@ -111,7 +109,7 @@ jobs:
         # same pattern as manual-dispatch. The trigger surface is narrow (OWNER-
         # opened bug/defect, or a non-Bot applying ready-for-implementer), so the
         # single-write-identity App token is the right credential, not the legacy
-        # IMPLEMENTER_PAT. Pinned to SHA — it receives FLEET_APP_PRIVATE_KEY.
+        # human-owned PAT (retired, #363). Pinned to SHA — it receives FLEET_APP_PRIVATE_KEY.
         uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1
         with:
           app-id: ${{ secrets.FLEET_APP_ID }}
@@ -361,7 +359,7 @@ jobs:
     # PRs created with this token are authored by `jaetill-ai-triage-team[bot]` —
     # a platform-enforced identity the auto-merger filter can trust (replacing
     # the prior commit-author-name approach that security-review #58/#349
-    # flagged as spoofable). The legacy `IMPLEMENTER_PAT` path created PRs
+    # flagged as spoofable). The legacy human-owned PAT path created PRs
     # authored by the PAT's owner (jaetill, a human), which both broke the
     # filter and required keeping the human-owned secret in rotation.
     permissions:
