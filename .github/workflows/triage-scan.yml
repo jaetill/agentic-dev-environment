@@ -244,11 +244,13 @@ jobs:
 
             An issue is eligible for promotion when ALL hold:
               - It is EITHER (a) AGENT-discovered — the author is a bot, OR it
-                carries one of the non-human origin labels (`origin:internal-review`
-                or `origin:production-signal`) or a `severity:*` label — OR
+                carries `origin:internal-review` or a `severity:*` label — OR
                 (b) a human feature carrying the `approved` label (ADR-0036).
                 `origin:external-request` and `origin:human` are human-sourced
-                and must NOT be promoted here regardless of other labels. Other
+                and must NOT be promoted here regardless of other labels.
+                (`origin:production-signal` — drift / dep-advisory — is promoted
+                only when it also carries a `severity:*`; with no severity it has
+                no auto-dispatch path and awaits explicit dispatch.) Other
                 human-authored issues are NOT promoted here: a raw `type:feature`
                 is still in formulation (the human owns the `what`); only
                 `approved` signals intake is done.
@@ -259,8 +261,9 @@ jobs:
                 BUG carries its real `severity:*`, NOT `approved`.
               - For an AGENT finding the tier must be `severity:medium` or
                 `severity:high`. ADR-0020 folds
-                `severity:high` in. Do NOT promote `severity:critical` or
-                `origin:production-signal`: those auto-pick-up at the implementer already.
+                `severity:high` in. Do NOT promote `severity:critical`,
+                `origin:sentry`, or `origin:cloudwatch`: those auto-pick-up at
+                the implementer (event-dispatch) already.
               - It does NOT already carry `ready-for-implementer`.
               - It has survived at least one full triage-scan cycle — do NOT
                 promote an issue created in the last ~35 minutes.
