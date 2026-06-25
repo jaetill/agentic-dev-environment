@@ -1,8 +1,8 @@
 # ADR-0053: Review findings — resolve on the PR, don't bloom into issues
 
-- **Status:** Proposed
+- **Status:** Ratified
 - **Date:** 2026-06-25
-- **Implementation:** Pending — reviewer-prompt + gate changes in `claude-pr-review.yml` (and a note in `implementer.md`), behind human ratification.
+- **Implementation:** Pending behind reviewer-prompt + gate changes in `claude-pr-review.yml` (and a note in `implementer.md`) plus the standards doc — not yet implemented. Ratified by Jason 2026-06-25.
 - **Deciders:** Jason Tilley
 - **Tags:** ai-workflows, governance, code-review, orchestration, backlog-hygiene
 
@@ -86,7 +86,7 @@ The bundle is internally consistent because once on-diff findings stop becoming 
 - **`implementer.md`**: note that Mode B is now the primary resolution path for on-diff findings (it already is for BLOCKs); no behavioral change, just doc alignment.
 - **Standards doc:** add `docs/standards/NN-review-finding-routing.md` capturing the on-/off-diff rule and the escalate-to-block convention (write with this ADR per the platform's "standard + ADR together" rule).
 - **Amends:** [ADR-0016](0016-finding-lifecycle-calibration-deferral.md) (finding lifecycle — on-diff findings no longer enter the issue lifecycle), [ADR-0026](0026-agentic-implementer.md) (reviewer/implementer division — reviewers request-changes on-PR for on-diff), [ADR-0049](0049-review-filing-severity-floor.md) (the floor now governs the on-diff BLOCK threshold, not issue-filing).
-- **Open question for ratification:** should off-diff findings filed from a PR default to `needs-formulation` (human triage) rather than straight to the promoter queue, to keep even legitimate off-diff findings from auto-dispatching? Flagged for Jason.
+- **Resolved at ratification (Jason, 2026-06-25):** off-diff findings **continue to auto-dispatch** — they enter the promoter queue as today, NOT `needs-formulation`. The loop stays aggressive on genuinely separate findings; the bloom fix is purely about not creating issues for on-diff findings, not about throttling the legitimate off-diff ones.
 
 ## Links
 
