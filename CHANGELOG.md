@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.4.1](https://github.com/jaetill/agentic-dev-environment/compare/v0.4.0...v0.4.1) (2026-06-25)
+
+
+### Bug Fixes
+
+* **ci:** complete IMPLEMENTER_PAT retirement — reusable + caller + enforce (closes [#363](https://github.com/jaetill/agentic-dev-environment/issues/363) steps 1-3) ([#577](https://github.com/jaetill/agentic-dev-environment/issues/577)) ([ee84182](https://github.com/jaetill/agentic-dev-environment/commit/ee8418206ed9a5997f4bc55f2aaf3071a4a41bbe))
+* **ci:** let dependabot PRs pass the review gate so safe bumps can auto-merge ([#569](https://github.com/jaetill/agentic-dev-environment/issues/569)) ([0940a46](https://github.com/jaetill/agentic-dev-environment/commit/0940a460d90438bf6ce57c8e18dc48163f0eb4e4))
+* **triage:** explicit non-human origin allowlist — closes [#572](https://github.com/jaetill/agentic-dev-environment/issues/572) ([#578](https://github.com/jaetill/agentic-dev-environment/issues/578)) ([65c844c](https://github.com/jaetill/agentic-dev-environment/commit/65c844c0eb877f99e11374a781eae8f7637104bf))
+* **triage:** repoint urgent-poll source:* -&gt; origin:sentry/cloudwatch (refs [#227](https://github.com/jaetill/agentic-dev-environment/issues/227)) ([#580](https://github.com/jaetill/agentic-dev-environment/issues/580)) ([149c796](https://github.com/jaetill/agentic-dev-environment/commit/149c796273264f7d89c2071ef1dffd692eb3bdb8))
+
 ## [0.4.0](https://github.com/jaetill/agentic-dev-environment/compare/v0.3.2...v0.4.0) (2026-06-23)
 
 
