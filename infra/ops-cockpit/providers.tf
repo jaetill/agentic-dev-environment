@@ -10,6 +10,13 @@ terraform {
       source  = "grafana/grafana"
       version = "~> 3.0"
     }
+    # AWS provider for the Secrets Manager containers + reads (secrets.tf, #91).
+    # A module may declare required_providers only once, so both providers are
+    # consolidated here; secrets.tf keeps only its `provider "aws"` config block.
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
   }
 }
 

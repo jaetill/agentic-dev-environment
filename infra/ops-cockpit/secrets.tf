@@ -33,14 +33,9 @@ provider "aws" {
   region = "us-east-2"
 }
 
-terraform {
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0"
-    }
-  }
-}
+# NOTE: the aws required_providers declaration lives in providers.tf — a module
+# may declare required_providers only once (this previously duplicated it here
+# and broke `tofu`/`terraform` with "Duplicate required providers configuration").
 
 # ---------------------------------------------------------------------------
 # Secret CONTAINERS only. No *_secret_version here on purpose (see header).
