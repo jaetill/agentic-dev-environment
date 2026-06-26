@@ -40,6 +40,8 @@ The step 3 implementation PR must carry the following preflight checklist in its
 - [ ] #128 merged
 - [ ] #138 merged
 
+**Hard gate — capability-delta guard:** Any PR that wires, re-wires, or reverts the fleet-token `github_token` line in `claude-implementer-reusable.yml` is automatically held for human ratification. `additive-self-change-guard.sh` classifies `claude-implementer*.yml` as gate machinery ([ADR-0047](0047-firewall-gates-on-capability-delta.md)) and applies `hold:compositional`; the auto-merger will not merge a held PR. Only the repo owner can remove the hold, and doing so is the act of ratifying that the preflight checklist above is satisfied. Hold gate (blocks autonomous merge until the owner acts) + reviewer sign-off (preflight checklist confirmed) = the two-factor hard gate on this write-path. Soft prose alone is no longer the only enforcement.
+
 **Migration order:**
 
 1. Fix #126/#128 (+#138) — injection hardening lands first. (**Done** — #126, #128, and #138 all closed before step 3 was dispatched.)

@@ -192,3 +192,14 @@ When you file a finding as a GitHub issue:
   > **Deferral policy:** defer until the next feature work, Sentry-reported bug, or higher-severity fix touches this file/area. The `implementer` will bundle this opportunistically (per ADR-0016 finding lifecycle). Do not implement in isolation.
 
 Pre-existing issues from outside the PR's diff: file as separate issues with the same deferral logic — do not surface them in the current PR's review verdict.
+
+## Oscillation awareness ([ADR-0023](../../../docs/adr/0023-origin-based-autonomy-boundary.md) / [ADR-0016](../../../docs/adr/0016-finding-lifecycle-calibration-deferral.md) Rule 4)
+
+A security finding you file may describe the same vulnerability a prior implementer already patched — and then watched get reverted. Re-filing without flagging the history creates a churn loop. ADR-0023 places loop-churn detection in agent logic; this is your part of it.
+
+You cannot run `gh` or `git` commands, so your oscillation check is pattern-based rather than command-based:
+
+1. **Look for prior-fix signals in the PR context.** Scan the PR description, linked issues, and existing review comments for references to prior attempts at the same vulnerability fix (e.g., "re-applies", "reverts", "previously patched in #NNN", branch names like `impl/retry-*`). If present, add a notice to the finding before filing:
+   > ⚠️ Prior-fix signal: this security finding may have been addressed before and reverted. The triage-bot oscillation guard checks this automatically at promotion time, but flag here so the reviewer is aware.
+
+2. **File findings with enough specificity to enable automated matching.** Include the exact file path, relevant line range, and a concise one-phrase description of the vulnerability. The triage-bot uses these fields to match against closed issues and detect reoccurring security findings before re-promoting them for another implementer run.

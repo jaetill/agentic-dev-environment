@@ -244,20 +244,26 @@ jobs:
 
             An issue is eligible for promotion when ALL hold:
               - It is EITHER (a) AGENT-discovered — the author is a bot, OR it
-                carries a `source:*` or `triage:*` label — OR (b) a human
-                feature carrying the `approved` label (ADR-0036). Other
-                human-authored issues are NOT promoted here: a raw
-                `feature-request` is still in formulation (the human owns the
-                `what`); only `approved` signals intake is done.
-              - TIER: an agent finding ranks by its `severity:*` / `triage:*`.
+                carries `origin:internal-review` or a `severity:*` label — OR
+                (b) a human feature carrying the `approved` label (ADR-0036).
+                `origin:external-request` and `origin:human` are human-sourced
+                and must NOT be promoted here regardless of other labels.
+                (`origin:production-signal` — drift / dep-advisory — is promoted
+                only when it also carries a `severity:*`; with no severity it has
+                no auto-dispatch path and awaits explicit dispatch.) Other
+                human-authored issues are NOT promoted here: a raw `type:feature`
+                is still in formulation (the human owns the `what`); only
+                `approved` signals intake is done.
+              - TIER: an agent finding ranks by its `severity:*`.
                 An `approved` feature ranks at the **medium** tier — above
                 low/nits, below `severity:high`/`critical`, equal footing with
-                `severity:medium` / `triage:medium` (ADR-0036). A human-confirmed
+                `severity:medium` (ADR-0036). A human-confirmed
                 BUG carries its real `severity:*`, NOT `approved`.
-              - For an AGENT finding the tier must be `severity:medium`,
-                `severity:high`, or `triage:medium`. ADR-0020 folds
-                `severity:high` in. Do NOT promote `severity:critical` or
-                `source:sentry`: those auto-pick-up at the implementer already.
+              - For an AGENT finding the tier must be `severity:medium` or
+                `severity:high`. ADR-0020 folds
+                `severity:high` in. Do NOT promote `severity:critical`,
+                `origin:sentry`, or `origin:cloudwatch`: those auto-pick-up at
+                the implementer (event-dispatch) already.
               - It does NOT already carry `ready-for-implementer`.
               - It has survived at least one full triage-scan cycle — do NOT
                 promote an issue created in the last ~35 minutes.
@@ -274,7 +280,7 @@ jobs:
             already started. If $AVAILABLE is 0, promote and dispatch NOTHING this
             pass — still run Pass 1 and Pass 3. Order by tier — every eligible
             `severity:high` before any medium, where the medium tier is
-            `severity:medium` / `triage:medium` findings AND `approved` features
+            `severity:medium` findings AND `approved` features
             together (ADR-0036). When the budget is reached, stop; the next cycle
             takes the rest.
 
@@ -341,7 +347,7 @@ jobs:
               gh issue list --state open --search "<project-issue-url>" --json number
 
             File new ones with the default token:
-              gh issue create --label "process-flaw,triage:medium" \
+              gh issue create --label "process-flaw,severity:medium" \
                 --title "[process-flaw] <project>: <short description>" \
                 --body "Reported from ONE project (jaetill/<project> issue <url>) — n=1, generality NOT established. Per Standard 12 the architect must abstract it and decide: general flaw (fix ai-team) or project-local (resolve in <project>'s knowledge layer). <body>"
 
@@ -793,7 +799,7 @@ jobs:
           fi
 
   # ── ADR-0030: deterministic, project-scoped event dispatch ──────────────
-  # Trusted-origin signals (severity:critical / source:sentry / source:cloudwatch
+  # Trusted-origin signals (severity:critical / origin:sentry / origin:cloudwatch
   # / human-applied ready-for-implementer / owner-opened) route HERE instead of
   # bypassing straight to the implementer. Deterministic — no LLM on this path:
   # apply ready-for-implementer, throttle against FLEET_MAX_DISPATCH (fleet-wide
@@ -801,10 +807,10 @@ jobs:
   # app repos forward their events via repository_dispatch; here on the platform
   # repo they fire same-repo. The LLM cycle-fill is a Phase-2 follow-up.
   # scope:iac is excluded (its path is unchanged for now — ADR-0030 §IaC path).
-  # ADR-0036: owner-`opened` auto-dispatch is bug/defect ONLY. A raw
-  # feature-request is NOT dispatched on open — it awaits human formulation →
+  # ADR-0036: owner-`opened` auto-dispatch is type:defect ONLY. A raw
+  # type:feature is NOT dispatched on open — it awaits human formulation →
   # `approved` (promoter, medium tier) or a human `ready-for-implementer`
-  # fast-track. `feature-request` was therefore dropped from the opened branch.
+  # fast-track. `type:feature` was therefore dropped from the opened branch.
   event-dispatch:
     # Per-ISSUE concurrency (#130): an urgent dispatch serializes only against
     # another dispatch for the SAME issue (idempotency) — never behind the
@@ -822,7 +828,7 @@ jobs:
           (
             github.event.action == 'labeled'
             && (
-              contains(fromJSON('["source:sentry", "source:cloudwatch", "severity:critical"]'), github.event.label.name)
+              contains(fromJSON('["origin:sentry", "origin:cloudwatch", "source:sentry", "source:cloudwatch", "severity:critical"]'), github.event.label.name)
               || (github.event.label.name == 'ready-for-implementer' && github.event.sender.type != 'Bot')
             )
           )
@@ -831,7 +837,8 @@ jobs:
             && github.event.issue.user.type != 'Bot'
             && github.event.issue.author_association == 'OWNER'
             && (
-              contains(github.event.issue.labels.*.name, 'bug')
+              contains(github.event.issue.labels.*.name, 'type:defect')
+              || contains(github.event.issue.labels.*.name, 'bug')
               || contains(github.event.issue.labels.*.name, 'defect')
             )
           )

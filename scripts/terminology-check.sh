@@ -99,13 +99,10 @@ violations=0
 # Per ADR-0041 (2026-06-10):
 check_term 'app/claude' 'app-claude' 'pre-ADR-0041 implementer PR-author login; superseded by app/jaetill-ai-triage-team' || violations=$((violations + $?))
 
-# DEFERRED — IMPLEMENTER_PAT is deprecated as the PRIMARY auth path (ADR-0041)
-# but is STILL a live, intentional fallback in the implementer reusable
-# (`${{ secrets.IMPLEMENTER_PAT || github.token }}`) until every app repo
-# finishes migrating to the FLEET_APP installation token. Enforcing it now
-# would only sprinkle exception markers across working fallback code. Re-enable
-# this line (and sweep for stray uses) once the fallback is removed:
-# check_term 'IMPLEMENTER_PAT' 'implementer-pat' 'pre-ADR-0041 implementer git-auth secret; superseded by FLEET_APP installation token' || violations=$((violations + $?))
+# IMPLEMENTER_PAT fully retired (#363): all usages removed (PR #526), the
+# reusable's workflow_call declaration and every fleet caller's forwarding
+# removed (#363 phase B). The secret can be deleted from each repo's settings.
+check_term 'IMPLEMENTER_PAT' 'implementer-pat' 'pre-ADR-0041 implementer git-auth secret; superseded by FLEET_APP installation token' || violations=$((violations + $?))
 
 if [[ "$violations" -gt 0 ]]; then
   echo "::error::terminology-check found $violations violation(s). See docs/standards/00-terminology.md for the deprecated-term policy."

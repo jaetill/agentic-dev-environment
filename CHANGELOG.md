@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.4.1](https://github.com/jaetill/agentic-dev-environment/compare/v0.4.0...v0.4.1) (2026-06-25)
+
+
+### Bug Fixes
+
+* **ci:** complete IMPLEMENTER_PAT retirement — reusable + caller + enforce (closes [#363](https://github.com/jaetill/agentic-dev-environment/issues/363) steps 1-3) ([#577](https://github.com/jaetill/agentic-dev-environment/issues/577)) ([ee84182](https://github.com/jaetill/agentic-dev-environment/commit/ee8418206ed9a5997f4bc55f2aaf3071a4a41bbe))
+* **ci:** let dependabot PRs pass the review gate so safe bumps can auto-merge ([#569](https://github.com/jaetill/agentic-dev-environment/issues/569)) ([0940a46](https://github.com/jaetill/agentic-dev-environment/commit/0940a460d90438bf6ce57c8e18dc48163f0eb4e4))
+* **ci:** release-please mints fleet App token so release PRs self-check ([#570](https://github.com/jaetill/agentic-dev-environment/issues/570)) ([#581](https://github.com/jaetill/agentic-dev-environment/issues/581)) ([dc9fb34](https://github.com/jaetill/agentic-dev-environment/commit/dc9fb34781d64417d2e3030ba55fe86e68323743))
+* **triage:** explicit non-human origin allowlist — closes [#572](https://github.com/jaetill/agentic-dev-environment/issues/572) ([#578](https://github.com/jaetill/agentic-dev-environment/issues/578)) ([65c844c](https://github.com/jaetill/agentic-dev-environment/commit/65c844c0eb877f99e11374a781eae8f7637104bf))
+* **triage:** repoint urgent-poll source:* -&gt; origin:sentry/cloudwatch (refs [#227](https://github.com/jaetill/agentic-dev-environment/issues/227)) ([#580](https://github.com/jaetill/agentic-dev-environment/issues/580)) ([149c796](https://github.com/jaetill/agentic-dev-environment/commit/149c796273264f7d89c2071ef1dffd692eb3bdb8))
+
+## [0.4.0](https://github.com/jaetill/agentic-dev-environment/compare/v0.3.2...v0.4.0) (2026-06-23)
+
+
+### Features
+
+* **iam:** optional data-plane-read Deny overlay for drift roles ([#297](https://github.com/jaetill/agentic-dev-environment/issues/297)) ([#567](https://github.com/jaetill/agentic-dev-environment/issues/567)) ([ca1a77b](https://github.com/jaetill/agentic-dev-environment/commit/ca1a77b71d9cc62b00f7f27d2a92893a6286dc67))
+
+
+### Bug Fixes
+
+* **agents:** add oscillation awareness to code-reviewer and security-reviewer ([#78](https://github.com/jaetill/agentic-dev-environment/issues/78)) ([#558](https://github.com/jaetill/agentic-dev-environment/issues/558)) ([8c93bd0](https://github.com/jaetill/agentic-dev-environment/commit/8c93bd00affb489e6b33f5d989313d7c8f5b21e3))
+* **ci:** add mutual exclusion guard to manual-dispatch job ([#546](https://github.com/jaetill/agentic-dev-environment/issues/546)) ([#562](https://github.com/jaetill/agentic-dev-environment/issues/562)) ([4f36d18](https://github.com/jaetill/agentic-dev-environment/commit/4f36d183dac14c935d2d8100bc1d75bddea4355d))
+
 ## [0.3.2](https://github.com/jaetill/agentic-dev-environment/compare/v0.3.1...v0.3.2) (2026-06-22)
 
 

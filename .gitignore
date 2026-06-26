@@ -25,7 +25,19 @@ dist/
 # Claude / AI
 .claude/audit.log
 .claude/sessions/
-.claude/settings.local.json   # per-user local config — never commit (#435)
+# per-user local config — never commit (#435)
+.claude/settings.local.json
+
+# Terraform / OpenTofu
+# Provider/module cache — can be hundreds of MB; never commit (a 686MB AWS
+# provider .exe under a module's .terraform/ once blocked a push).
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+crash.*.log
+# Keep .terraform.lock.hcl committed — it pins provider versions.
 
 # Local secrets — never commit
 .env

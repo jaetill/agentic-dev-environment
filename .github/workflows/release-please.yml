@@ -10,6 +10,9 @@ name: release-please
 on:
   push:
     branches: [main]
+  # Manual re-trigger — e.g. after deleting a stale release PR so a fresh,
+  # App-authored one is created (see token note below).
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -19,8 +22,23 @@ jobs:
   release-please:
     runs-on: ubuntu-latest
     steps:
+      # Mint the fleet App installation token and hand it to release-please so
+      # the release PR is authored by the App (jaetill-ai-triage-team[bot]),
+      # NOT the default GITHUB_TOKEN. GitHub deliberately does NOT start
+      # workflow runs for events created by the default GITHUB_TOKEN
+      # (anti-recursion), so a release PR opened with it can never satisfy the
+      # branch's required checks (validate / review:*) and stays BLOCKED forever
+      # (#570). An App installation token is a distinct identity whose PRs DO
+      # trigger the required checks, so the release PR can self-check and merge.
+      - name: Mint fleet App token
+        id: app-token
+        uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1
+        with:
+          app-id: ${{ secrets.FLEET_APP_ID }}
+          private-key: ${{ secrets.FLEET_APP_PRIVATE_KEY }}
       - uses: googleapis/release-please-action@v4
         with:
+          token: ${{ steps.app-token.outputs.token }}
           release-type: simple
           config-file: .release-please-config.json
           manifest-file: .release-please-manifest.json
