@@ -2,11 +2,13 @@
 
 - **Status:** Ratified
 - **Date:** 2026-06-25
-- **Implementation:** Pending behind reviewer-prompt + gate changes in `claude-pr-review.yml` (and a note in `implementer.md`) plus the standards doc — not yet implemented. Ratified by Jason 2026-06-25.
+- **Implementation:** Pending — implemented via the **review-lead** consolidation agent (#587, amendment below), not per-reviewer. Review-lead def + `claude-pr-review.yml` rewiring + standards doc. Ratified by Jason 2026-06-25; review-lead amendment ratified by Jason 2026-06-26.
 - **Deciders:** Jason Tilley
 - **Tags:** ai-workflows, governance, code-review, orchestration, backlog-hygiene
 
 > **Format:** MADR 4.x with the platform's three extensions. Bundled-sub-decision ADR — two coupled choices about where a review finding lives.
+
+> **Amended (2026-06-26, #587 — ratified by Jason):** the routing decided here is **implemented by a new `review-lead` consolidation agent**, not per-reviewer (the original Implementation note below). Mined from #251's agent-team "Code Review = lead + peers" pattern. The peer reviewers (`code-reviewer` / `security-reviewer` / `test-writer`) become **advisory reporters** — they no longer file issues, post individual verdicts, or self-dedup. A **`review-lead`** final job reads their findings and is the single owner of: (1) cross-reviewer **dedup**; (2) the **on/off-diff routing** this ADR specifies (on-diff → consolidated verdict + one PR comment + Mode B, not filed; off-diff → filed, auto-dispatched per #579); (3) the **one authoritative VERDICT** (the per-reviewer gates collapse into the lead's); (4) **one consolidated PR comment**. **Trust boundary:** the lead may dedup, consolidate, route, and re-rank, but may **NOT silently drop a peer's Critical/High BLOCK** — it may annotate "lead-assessed: likely false positive," but a Crit/High still blocks until the originating peer's own re-review clears it (preserves the ADR-0049 floor; no single agent can suppress a security finding). **Architecture:** lead-as-final-job reading peer outputs (incremental; the parallel reviewer jobs stay). Full dynamic-workflow review (#588) is explicitly out of scope. This amendment supersedes the per-reviewer wording in *Decision Outcome* sub-decision 1 and *Implementation notes* below.
 
 ## Context and Problem Statement
 
@@ -82,7 +84,7 @@ The bundle is internally consistent because once on-diff findings stop becoming 
 
 ## Implementation notes
 
-- **`claude-pr-review.yml`** (code-reviewer, security-reviewer, test-writer prompts): replace "file a defect issue per finding at/above the floor" with: (1) reflect all findings in the PR comment and the VERDICT (crit/high → BLOCK); (2) file an issue **only** for a finding the reviewer classifies as off-diff (pre-existing/adjacent), keeping the existing dedup block. The VERDICT gate step is unchanged.
+- **`claude-pr-review.yml`** (per the #587 amendment): the peer reviewer prompts (`code-reviewer` / `security-reviewer` / `test-writer`) stop filing issues, stop emitting individual verdicts, and stop self-deduping — they emit structured findings only. A new **`review-lead`** job runs after them and does: dedup → on/off-diff classification → consolidated VERDICT (crit/high on-diff → BLOCK) → file only off-diff issues → one consolidated PR comment. The gate step now reads the **lead's** verdict (the per-reviewer gates are removed). New agent def: `plugins/ai-team/agents/review-lead.md`.
 - **`implementer.md`**: note that Mode B is now the primary resolution path for on-diff findings (it already is for BLOCKs); no behavioral change, just doc alignment.
 - **Standards doc:** add `docs/standards/NN-review-finding-routing.md` capturing the on-/off-diff rule and the escalate-to-block convention (write with this ADR per the platform's "standard + ADR together" rule).
 - **Amends:** [ADR-0016](0016-finding-lifecycle-calibration-deferral.md) (finding lifecycle — on-diff findings no longer enter the issue lifecycle), [ADR-0026](0026-agentic-implementer.md) (reviewer/implementer division — reviewers request-changes on-PR for on-diff), [ADR-0049](0049-review-filing-severity-floor.md) (the floor now governs the on-diff BLOCK threshold, not issue-filing).
