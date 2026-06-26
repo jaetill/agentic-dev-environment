@@ -10,14 +10,24 @@ terraform {
       source  = "grafana/grafana"
       version = "~> 3.0"
     }
+    # AWS provider for the Secrets Manager containers + reads (secrets.tf, #91).
+    # A module may declare required_providers only once, so both providers are
+    # consolidated here; secrets.tf keeps only its `provider "aws"` config block.
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
   }
 }
 
-# Auth: both values are sensitive and supplied via TF_VAR_* env vars so
-# they stay out of this (public) repo and out of the state file.
-#   $env:TF_VAR_grafana_url     = "https://<stack>.grafana.net"
-#   $env:TF_VAR_grafana_api_key = "<grafana service-account token>"
+# Auth (#91): the service-account token now lives in AWS Secrets Manager
+# (ops-cockpit/grafana-api-key) and is read at plan time -- the value never
+# enters Terraform config or state via a *_secret_version. See secrets.tf
+# and SECRETS-MANAGER-MIGRATION.md for the value-never-in-state pattern and
+# the required ordered bootstrap apply.
+#   - url  still comes from TF_VAR_grafana_url (non-secret stack URL).
+#   - auth now reads local.grafana_api_key (Secrets Manager), NOT var.grafana_api_key.
 provider "grafana" {
   url  = var.grafana_url
-  auth = var.grafana_api_key
+  auth = local.grafana_api_key
 }

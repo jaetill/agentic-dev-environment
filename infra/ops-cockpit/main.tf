@@ -23,20 +23,18 @@ resource "grafana_data_source" "github" {
   })
 
   # The PAT. Grafana stores secureJsonData encrypted and never renders it
-  # back into Terraform state.
-  #
-  # SECURITY — NOT a secret-in-state exposure (re: #91, security-review of PR #90).
-  # var.github_token is never written to the state file: this data source was
-  # created in the Grafana UI and IMPORTED (not `apply`-created), and the
+  # back into Terraform state. The value now comes from AWS Secrets Manager
+  # (ops-cockpit/github-token) via local.github_token (#91/#566), not
+  # var.github_token: it is read at plan time and never written into a
+  # *_secret_version, so it stays out of state. Belt-and-suspenders, this data
+  # source was created in the Grafana UI and IMPORTED, and the
   # `ignore_changes = [secure_json_data_encoded]` below means TF never sends the
-  # token, so the attribute stays empty in state. Likewise var.grafana_api_key
-  # is only the Grafana provider `auth` (providers.tf) — provider config is not
-  # persisted to state. Verified against s3://jaetill-tfstate/ops-cockpit (serial
-  # 25): secure_json_data_encoded is empty and no token-prefixed value appears.
-  # If this ever moves to an `apply`-created data source, the token WOULD land in
-  # state — at that point switch the backend to SSE-KMS (or source via SSM) first.
+  # token either — so the attribute stays empty in state (verified against
+  # s3://jaetill-tfstate/ops-cockpit, serial 25). grafana_api_key is likewise
+  # sourced from Secrets Manager via the provider `auth` (providers.tf), which
+  # is not persisted to state. See secrets.tf and SECRETS-MANAGER-MIGRATION.md.
   secure_json_data_encoded = jsonencode({
-    accessToken = var.github_token
+    accessToken = local.github_token
   })
 
   # The Grafana Cloud free-tier service-account token lacks `datasources:write`
