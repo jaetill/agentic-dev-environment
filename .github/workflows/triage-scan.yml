@@ -342,9 +342,15 @@ jobs:
                 --state open --label process-flaw --json number,title,body,url
 
             For each, file a matching issue ON THIS platform repo so the loop
-            can act on it — unless one already exists. Dedup by searching this
-            repo for the source URL (default token):
-              gh issue list --state open --search "<project-issue-url>" --json number
+            can act on it — unless one already exists in ANY state. Dedup by
+            searching this repo for the source URL across open AND closed issues
+            (default token): a CLOSED pullthrough means this source finding was
+            already mirrored and resolved, so do NOT re-file it — that is the
+            duplicate-pullthrough bloom (platform #584/#585/#586 were three
+            mirrors of the same already-fixed ai-teacher#401). Use `--state all`,
+            never `--state open`, for this dedup:
+              gh issue list --state all --search "<project-issue-url>" --json number,state
+            If the search returns ANY issue (open or closed), skip filing.
 
             File new ones with the default token:
               gh issue create --label "process-flaw,severity:medium" \
