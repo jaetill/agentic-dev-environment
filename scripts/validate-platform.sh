@@ -81,6 +81,7 @@ done < <(
     "$PLATFORM_DIR/.github/workflows" \
     "$PLATFORM_DIR/scripts" \
     "$PLATFORM_DIR/CLAUDE.md" \
+    "$PLATFORM_DIR/.claude/rules" \
     2>/dev/null \
   | sort -u
 )

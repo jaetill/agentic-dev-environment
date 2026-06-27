@@ -6,6 +6,17 @@ Instructions that apply to AI work inside this repo and (via template propagatio
 
 This is a meta-environment that defines mature-team engineering practices for solo projects. It contains standards, AI agents, hooks, and templates — not application code.
 
+## Path-scoped rules
+
+File-type-specific guidance lives in [`.claude/rules/`](.claude/rules/) and loads only when an agent works with matching files (per the `paths:` frontmatter), keeping this file focused on always-on behaviour:
+
+| Rule file | Loads when touching | Covers |
+|---|---|---|
+| [`adr-authoring.md`](.claude/rules/adr-authoring.md) | `docs/adr/**`, `docs/standards/**` | Draft-from-template, enforced ADR sections, Implementation line, terminology glossary |
+| [`agent-authoring.md`](.claude/rules/agent-authoring.md) | `plugins/ai-team/agents/**` | Frontmatter-copy rule, probe-before-pin |
+| [`ci-workflows.md`](.claude/rules/ci-workflows.md) | `.github/workflows/**`, `scripts/**` | First-party `@main` pinning, loud-on-zero sweeps, the autonomous loop |
+| [`shared-components.md`](.claude/rules/shared-components.md) | `templates/_shared/**`, `infra/**`, `**/*.tf` | Platform-component & fleet-infra tables, template propagation |
+
 ## Working principles
 
 - **Standards live in `docs/standards/`.** When a question arises about how something should be done, check there first. If the standard doesn't exist yet, surface that to the user before guessing.
@@ -27,11 +38,7 @@ Uncommitted work is **invisible to the next session**: an agent sees committed h
 Two fleet-wide merge freezes (2026-06-02 and 2026-06-05) had the same anatomy: an ADR landed on `main` missing checker-required content, and because `validate`/`adr-format-check` run against the **whole tree**, every subsequent platform PR went red. Both times the gate had caught the problem on the offending PR — and was bypassed with `--admin`. So:
 
 - **Never `--admin`-merge before the checks finish.** The skip-and-block deadlock that justified reflexive `--admin` was fixed by ADR-0024; platform PRs now reach `mergeState: CLEAN` on their own. Wait for `validate`, `adr-format-check`, `agent-frontmatter-check`, and `link-check` to pass, then merge normally. `--admin` is for genuine emergencies and for the human ratifying a held compositional PR — never to outrun a pending check.
-- **Draft ADRs from `docs/adr/template.md`, never freehand.** The template carries the sections the checker enforces (`Considered Options`, `Pros and Cons of the Options`). A fast ADR that skips them freezes the fleet's merges hours later. ADRs with `Status: Ratified` or `Implemented` must also carry an `- **Implementation:**` line — enforced by `adr-format-check` (PR #362) because the ratification-without-implementation gap is the silent failure that produced 2026-06-10's auto-merger inconsistency.
-- **New agent files copy an existing agent's frontmatter block** (`name`/`description`/`model`/`tools`/`primary_context`) — `agent-frontmatter-check` requires it.
-- **Use the canonical glossary at `docs/standards/00-terminology.md`** as the source of truth for fleet-specific terms (Fleet App slug, implementer PR author, deprecated terms). When you retire a term, update the glossary first, then sweep operational files (workflows, scripts, agent prompts) for stale references in the same PR. (A `terminology-check` CI gate that enforces this automatically is not yet wired in — sweeps are manual until it is.)
-- **Reviewer agents must verify any SHA, version, package name, file path, or identifier before naming it specifically** (per the *Probe-before-pin* discipline in `plugins/ai-team/agents/code-reviewer.md` and `security-reviewer.md`, added in PR #361). Otherwise name it as a class: "pin to the SHA of the latest v1 tag via `git ls-remote`" beats "pin to v1.12.1 (af26ac7d…)". Today's PR #351 shipped a fabricated SHA from security-reviewer and broke every dispatch for 5 minutes.
-- **Sweep operations should log loudly on zero results.** When a fleet sweep (auto-merger, dep-watcher, etc.) processes 0 items, that may be legitimate (queue empty) or a silent failure (filter broken). Emit a `::warning::` so the next reader knows to verify. PR #360 instrumented the auto-merger's sweep; the pattern carries over to other sweeps.
+- Authoring rules that previously lived here (ADR drafting, agent frontmatter, reviewer probe-before-pin, workflow pinning, loud-on-zero sweeps) now load with their file types — see [Path-scoped rules](#path-scoped-rules) above.
 
 ## Communication style with the user
 
@@ -55,38 +62,14 @@ When proposing a standard or technical choice:
 1. The user's direct instruction (this turn)
 2. ADRs in `docs/adr/` (decisions already made)
 3. Standards docs in `docs/standards/`
-4. This `CLAUDE.md`
+4. This `CLAUDE.md` and the path-scoped rules in `.claude/rules/`
 5. Per-project `CLAUDE.md` (in scaffolded projects only)
 
 If sources conflict, escalate to the user rather than picking one silently.
 
-## Platform components
-
-Reusable components consumed by scaffolded projects. Each lives under `templates/_shared/` and is consumed via `file:` path (terraform modules) or `file:` npm dep (test-inbox) until the workspace publishes versioned releases.
-
-| Component | Purpose | ADR |
-|---|---|---|
-| [`templates/_shared/terraform-modules/`](templates/_shared/terraform-modules/) | Shared OpenTofu/Terraform modules — IAM OIDC, Lambda base, observability baseline | [ADR-0007](docs/adr/0007-iac.md) |
-| [`templates/_shared/test-inbox/`](templates/_shared/test-inbox/) | E2E-testing of email-bearing workflows (Cognito invites, magic links, notifications). Gmail-API-backed, Playwright fixture | [ADR-0014](docs/adr/0014-email-workflow-testing.md) |
-
-Updates to platform components are template-propagation work: change the component, not the downstream consumer. Per `Working principles` above.
-
-## Fleet infrastructure
-
-Standalone infrastructure living in `infra/` — fleet-level singletons, not reusable template modules.
-
-| Component | Purpose | ADR |
-|---|---|---|
-| [`infra/ops-cockpit/`](infra/ops-cockpit/) | Grafana Cloud ops cockpit — loop run health, fleet issue/PR flow, human TODOs. Terraform-managed, self-refreshing. | [ADR-0022](docs/adr/0022-ops-cockpit-dashboard-host.md) |
-
 ## The autonomous loop
 
-This repo runs an **autonomous agent loop on GitHub Actions cron** — *not* Cowork scheduled tasks. If you are asked whether the "overnight" or "0900" run fired, check GitHub Actions run history (`gh run list`), never the Cowork scheduler.
-
-- **What runs it:** `.github/workflows/triage-scan.yml` (scheduled scan + **fleet-wide promoter** that dispatches implementers across every portfolio repo, plus the **fleet auto-merger** that squash-merges qualifying implementer fix PRs per ADR-0021 — `vars.AUTONOMOUS_MERGE=off` pauses it) and `.github/workflows/claude-implementer.yml` (picks up labelled or dispatched issues). `ci-health.yml` watches every fleet repo's non-PR workflows and files platform issues on failure. All are GitHub Actions workflows.
-- **When it runs:** autonomous work *starts* only inside two America/Chicago windows — `overnight` (01:00–04:00 daily) and `work-hours` (09:00–12:00 Mon–Fri); all other time is quiet for triage, promotion, and dispatch. Exception: the **merge sweep is un-windowed** (merge-when-green, ADR-0044 §3) — a green, ungated PR merges any time; held PRs carry `hold:<reason>` labels. Windows, routing, and the fleet-orchestration design are in [ADR-0017](docs/adr/0017-async-orchestration.md) and [ADR-0020](docs/adr/0020-fleet-orchestration.md).
-- **How to check it:** `gh run list --workflow=triage-scan.yml`. A scheduled run showing `success` with its `triage` job *skipped* is the cron firing outside the window — correct behaviour, not a failure.
-- **Full detail:** [docs/runbooks/autonomous-loop.md](docs/runbooks/autonomous-loop.md) — windows, DST handling, manual triggering, routing, known gaps.
+This repo runs an **autonomous agent loop on GitHub Actions cron** — *not* Cowork scheduled tasks. If you are asked whether the "overnight" or "0900" run fired, check GitHub Actions run history (`gh run list`), never the Cowork scheduler. Mechanics, windows, and routing load with the workflow files — see [`.claude/rules/ci-workflows.md`](.claude/rules/ci-workflows.md) and [docs/runbooks/autonomous-loop.md](docs/runbooks/autonomous-loop.md).
 
 ## What NOT to do
 
@@ -94,4 +77,3 @@ This repo runs an **autonomous agent loop on GitHub Actions cron** — *not* Cow
 - Don't write standards docs without the matching ADR.
 - Don't introduce a new tool without an ADR justifying it over alternatives.
 - Don't ship a standard that hasn't been decided — placeholder pages are fine; fabricated content isn't.
-- Don't pin **first-party** reusable workflows (`jaetill/agentic-dev-environment/...`) to a SHA — they ride `@main` behind the hardened upstream so platform fixes propagate (ADR-0048/0034); pinning is for third-party actions only. Forward explicit minimal secrets to reusables, never `secrets: inherit`.
