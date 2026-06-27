@@ -125,11 +125,9 @@ jobs:
             Run `git diff origin/${{ github.base_ref }}...HEAD` to get the diff,
             then read whatever surrounding files you need for context.
 
-            ## Your outputs (TWO things to post)
+            ## Your output (ONE thing to post — the review-lead does the rest)
 
-            ### 1. A PR comment with the human-readable summary
-
-            Post a SINGLE PR comment via:
+            A PR comment with the human-readable summary. Post a SINGLE PR comment via:
               gh pr comment ${{ github.event.pull_request.number }} --body-file -
             (read the body from stdin via a heredoc).
 
@@ -143,78 +141,15 @@ jobs:
                   `VERDICT: APPROVE` if no findings at all
               - Say "No issues found." in the body if there are no findings
 
-            ### 2. A GitHub issue per finding at/above the severity floor (with dedup)
+            ### Do NOT file issues (ADR-0053 review-lead)
 
-            This repo's issue-filing floor is **${{ vars.REVIEW_FILE_MIN_SEVERITY || 'medium' }}** (ADR-0049).
-            File a defect issue for each finding whose severity is at or above that
-            floor: with the default floor `medium` that is every Critical, High, or
-            Medium finding; with floor `high`, only Critical and High. Findings BELOW
-            the floor remain in the PR comment above — do NOT file them as tracked
-            issues. A filed issue survives this PR's lifecycle and can be picked up by
-            the implementer agent (per ADR-0026).
+            You no longer file GitHub issues. The **review-lead** job runs after
+            you, reads your comment, dedups across all reviewers, classifies each
+            finding on-diff vs off-diff, and files ONLY the off-diff ones. Your
+            job is the comment above — it is the review-lead's input. Do NOT run
+            `gh issue create`, and do NOT apply `ready-for-implementer`.
 
-            Dedup (MANDATORY — run for EVERY finding BEFORE filing):
-            Pull ALL open internal-review issues in this repo, regardless of
-            which agent filed them (code-review, security-review, test-writer
-            all share the `origin:internal-review` label):
-              gh issue list --state open --label "origin:internal-review" \
-                --json number,title,body --limit 300 | jq -r '.[] | "#\(.number) \(.title)"'
-            SKIP filing if an existing open issue covers the SAME UNDERLYING
-            PROBLEM. Match on SUBSTANCE, not exact wording or exact file:line:
-              • same file/endpoint AND same concern/vuln-class = the SAME
-                finding even if worded differently and even if filed by a
-                DIFFERENT reviewer. An IDOR / missing-ownership-check on
-                `move-assessment/route.ts` is ONE finding whether code-review
-                calls it "toUnitId not ownership-checked" or security-review
-                calls it "ownership never verified" — do NOT file a second.
-              • compare by file/endpoint path + concern, NOT a literal
-                `file:line` string (paths appear short or fully-qualified;
-                line numbers drift between PRs and reviewers).
-              • a missing-test on a route is the same finding whether raised
-                by code-review, security-review, or test-writer.
-            This applies ACROSS reviewers AND ACROSS review cycles — a finding
-            already tracked by any prior review must not be re-filed. When
-            unsure whether it is the same underlying problem, treat it as a
-            DUPLICATE and SKIP: a missed dup is harmless, a manufactured
-            duplicate is the backlog leak this rule closes.
-
-            For each new finding, file via:
-              gh issue create \
-                --title "[code-review] <file>:<line> — <one-line description>" \
-                --label "type:defect,severity:critical|high|medium,origin:internal-review" \
-                --body "$(cat <<EOF
-                **From PR:** #${{ github.event.pull_request.number }}
-                **File:** <file>:<line>
-                **Severity:** <critical|high|medium>
-
-                ## What's wrong
-
-                <2–4 sentences describing the issue>
-
-                ## Suggested fix
-
-                <minimal change — should fit the implementer's scope cap
-                (400 LOC / 8 files / 3 components)>
-
-                ## Test that would catch it
-
-                <one-line test description, if applicable>
-
-                ---
-
-                *Auto-filed by code-reviewer per ADR-0026. Awaiting human
-                dispatch — add label `ready-for-implementer` to dispatch
-                to the implementer agent.*
-                EOF
-                )"
-
-            Do NOT file issues for Low or Nit findings. Those stay in the
-            PR comment only — too noisy as standalone defects.
-
-            Do NOT apply `ready-for-implementer` yourself — that's the
-            human's dispatch gate per the three-tier model.
-
-            After both outputs, exit the agent session normally.
+            After posting the comment, exit the agent session normally.
           claude_args: |
             --model claude-sonnet-4-6
             --permission-mode bypassPermissions
@@ -429,24 +364,11 @@ jobs:
                alone; verify the assertions actually exercise the new code.
             3. Identify each coverage gap (changed function/code path with
                no corresponding assertion).
-            4. For HIGH-priority coverage gaps (security-sensitive paths,
-               new public functions, modified API contracts), file each
-               as a defect issue with labels
-               `type:defect,severity:medium,origin:internal-review` using the
-               same dedup discipline as code-reviewer — BUT only when this
-               repo's filing floor (`${{ vars.REVIEW_FILE_MIN_SEVERITY || 'medium' }}`,
-               ADR-0049) is `medium`; when the floor is `high`, note coverage
-               gaps in the PR comment instead of filing severity:medium issues. Dedup is MANDATORY and
-               CROSS-AGENT: before filing, pull ALL open internal-review
-               issues —
-                 gh issue list --state open --label "origin:internal-review" \
-                   --json number,title,body --limit 300 | jq -r '.[] | "#\(.number) \(.title)"'
-               — and SKIP if code-review OR security-review has already filed a
-               finding on the SAME route/endpoint. A missing-ownership/auth fix
-               and its missing test are the SAME underlying work: the test is
-               added when that fix lands, so a separate coverage issue for an
-               already-tracked route is a duplicate. Only file a coverage-gap
-               issue when NO open issue covers that route.
+            4. Note each coverage gap in your PR comment (step 5). You no
+               longer file GitHub issues — the **review-lead** job runs after
+               you, dedups findings across all reviewers, classifies them
+               on-diff vs off-diff (ADR-0053), and files only the off-diff
+               ones. Do NOT run `gh issue create`.
             5. Post a SINGLE PR comment via:
                  gh pr comment ${{ github.event.pull_request.number }} --body-file -
 
@@ -456,7 +378,7 @@ jobs:
                 (covered / partial / uncovered)
               - For uncovered files: cite the function/path that lacks a test
               - End with `Coverage adequate.` OR
-                `Coverage gaps found — see filed defects.` OR
+                `Coverage gaps found — see findings above (review-lead routes them).` OR
                 `Manual integration test recommended:` for paths the
                 test framework can't easily exercise
 
@@ -701,58 +623,13 @@ jobs:
                   `VERDICT: APPROVE` if no findings at all
               - Say "No security issues found." in the body if there are no findings
 
-            ### 2. A GitHub issue per finding at/above the severity floor (with dedup)
+            ### Do NOT file issues (ADR-0053 review-lead)
 
-            Same pattern as the code-reviewer, including the
-            **${{ vars.REVIEW_FILE_MIN_SEVERITY || 'medium' }}** filing floor (ADR-0049):
-            file Medium findings as issues only when the floor is `medium`; when it is
-            `high`, file only Critical/High and leave Medium as PR comments.
-
-            Dedup (MANDATORY — run for EVERY finding BEFORE filing):
-            Pull ALL open internal-review issues in this repo, regardless of
-            which agent filed them (the `origin:internal-review` label is
-            shared by code-review, security-review, and test-writer):
-              gh issue list --state open --label "origin:internal-review" \
-                --json number,title,body --limit 300 | jq -r '.[] | "#\(.number) \(.title)"'
-            SKIP filing if an existing open issue covers the SAME UNDERLYING
-            PROBLEM — match on SUBSTANCE, not exact wording or file:line.
-            CRITICAL for security-review: code-review runs in parallel and
-            frequently flags the SAME authz/IDOR issue on the SAME endpoint in
-            different words. If code-review has already filed (or you would
-            expect it to file) the same ownership/IDOR/auth concern on this
-            endpoint, do NOT file a second issue — compare by file/endpoint +
-            concern, not a literal `file:line`. This applies across reviewers
-            AND across review cycles. When unsure it's the same problem, treat
-            it as a DUPLICATE and SKIP.
-
-            File new findings:
-              gh issue create \
-                --title "[security-review] <file>:<line> — <one-line description>" \
-                --label "type:defect,severity:critical|high|medium,origin:internal-review" \
-                --body "$(cat <<EOF
-                **From PR:** #${{ github.event.pull_request.number }}
-                **File:** <file>:<line>
-                **Severity:** <critical|high|medium>
-                **Class:** <e.g. injection / authz / secret leakage / IAM scope>
-
-                ## Threat model
-
-                <2–4 sentences: who can exploit, under what conditions, blast radius>
-
-                ## Suggested mitigation
-
-                <minimal fix description>
-
-                ---
-
-                *Auto-filed by security-reviewer per ADR-0026. Awaiting
-                human dispatch — add `ready-for-implementer` to dispatch
-                to the implementer agent.*
-                EOF
-                )"
-
-            Do NOT file issues for Low findings (kept in PR comment only).
-            Do NOT apply `ready-for-implementer` yourself.
+            You no longer file GitHub issues. The **review-lead** job runs after
+            you and the other peers, dedups across all of you, classifies each
+            finding on-diff vs off-diff, and files ONLY the off-diff ones. Post
+            your comment above (it is the review-lead's input); do NOT run
+            `gh issue create`, and do NOT apply `ready-for-implementer`.
           claude_args: |
             --model claude-sonnet-4-6
             --permission-mode bypassPermissions
@@ -789,6 +666,75 @@ jobs:
             exit 1
           fi
           echo "Security review: no blocking findings. Job passing."
+
+  # ── review-lead: consolidate peer findings, route, file off-diff only ────────
+  # ADR-0053 review-lead amendment (#587). The peers (code-review / security-
+  # review / test-writer) report findings as PR comments but no longer file
+  # issues. This job dedups across them, classifies each finding on-diff vs
+  # off-diff, files ONLY off-diff findings, and posts one consolidated summary.
+  # Phase 1: the peers' own gate steps still enforce the Critical/High BLOCK
+  # (the in-code guardrail that a lead can't suppress a security finding); the
+  # LEAD-VERDICT here is advisory. (Collapsing the peer gates into a single
+  # review-lead required check is Phase 2 — needs a branch-protection change.)
+  # `needs` only the always-run required reviewers; test-writer is conditional,
+  # so its comment is read opportunistically if present.
+  review-lead:
+    needs: [code-review, security-review]
+    if: ${{ github.event.pull_request.user.login != 'dependabot[bot]' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Run review-lead agent
+        uses: anthropics/claude-code-action@d5726de019ec4498aa667642bc3a80fca83aa102 # v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          show_full_output: true
+          allowed_bots: 'claude[bot],jaetill-ai-triage-team[bot],github-actions[bot],dependabot[bot]'
+          prompt: |
+            Act as the review-lead subagent defined in .claude/agents/review-lead.md.
+
+            Consolidate the peer reviewers' findings on PR #${{ github.event.pull_request.number }}.
+
+            1. Read the peer comments:
+                 gh api repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments \
+                   --jq '.[] | select(.body | test("^## (Code Review|Security Review|Test Coverage)")) | .body'
+            2. Get the diff to classify on-diff vs off-diff:
+                 git diff --name-only origin/${{ github.base_ref }}...HEAD
+                 git diff origin/${{ github.base_ref }}...HEAD
+            3. Dedup findings across reviewers — match on SUBSTANCE (same
+               file/endpoint + concern), not file:line.
+            4. Classify each deduped finding: on-diff (about a line this PR
+               changed — do NOT file; resolved on the PR) vs off-diff
+               (pre-existing/adjacent — file). When unsure, treat as on-diff.
+            5. Dedup off-diff findings against existing issues, open AND closed:
+                 gh issue list --state all --label "origin:internal-review" \
+                   --json number,title,state --limit 300
+               Respect the filing floor (${{ vars.REVIEW_FILE_MIN_SEVERITY || 'medium' }}, ADR-0049);
+               never file Low/Nit; never apply ready-for-implementer.
+            6. File ONLY surviving off-diff findings:
+                 gh issue create --title "[review-lead] <file> — <one-line>" \
+                   --label "type:defect,severity:<critical|high|medium>,origin:internal-review" \
+                   --body "<From PR / what's wrong / suggested fix>. Off-diff finding consolidated by review-lead per ADR-0053. Awaiting human dispatch."
+            7. Post ONE consolidated comment to the PR:
+                 gh pr comment ${{ github.event.pull_request.number }} --body-file -
+               Lead with `## Review Lead Summary`, list deduped findings by
+               severity, tag each `[on-diff]` or `[off-diff -> #N]`, and end with
+               `LEAD-VERDICT: BLOCK | APPROVE-WITH-COMMENTS | APPROVE`
+               (BLOCK if any on-diff Critical/High).
+
+            Trust boundary: you may NOT silently dismiss a peer Critical/High
+            finding. If you judge one a false positive, keep it in the summary
+            marked `lead-assessed: likely false positive (reasoning)` — never
+            drop it. The peers' own gate steps still independently block
+            Critical/High, so nothing you do can let one through.
+          claude_args: |
+            --model claude-sonnet-4-6
+            --permission-mode bypassPermissions
+            --allowed-tools Bash,Read,Glob,Grep
+            --append-system-prompt "Follow the platform standards in docs/standards/."
 
   destructive-change-check:
     runs-on: ubuntu-latest
