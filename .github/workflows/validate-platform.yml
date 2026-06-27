@@ -56,7 +56,7 @@ jobs:
           # not real docs, so we don't lint their links. (The ADR template
           # used to need the same treatment, but its placeholders are now
           # code-formatted plain text, not markdown links.)
-          args: --offline --no-progress 'docs/**/*.md' 'README.md' 'CLAUDE.md'
+          args: --offline --no-progress 'docs/**/*.md' 'README.md' 'CLAUDE.md' '.claude/rules/**/*.md'
           fail: true
 
   agent-frontmatter-check:
