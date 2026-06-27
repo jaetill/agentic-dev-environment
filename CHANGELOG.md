@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.2](https://github.com/jaetill/agentic-dev-environment/compare/v0.4.1...v0.4.2) (2026-06-26)
+
+
+### Bug Fixes
+
+* **triage:** Pass-3 pullthrough dedup matches closed mirrors (--state all) ([#591](https://github.com/jaetill/agentic-dev-environment/issues/591)) ([c160d4f](https://github.com/jaetill/agentic-dev-environment/commit/c160d4f6b77cc14f0288a400289537c2196b769c))
+
 ## [0.4.1](https://github.com/jaetill/agentic-dev-environment/compare/v0.4.0...v0.4.1) (2026-06-25)
 
 
