@@ -753,8 +753,14 @@ jobs:
         run: |
           lead=$(gh api "repos/${{ github.repository }}/issues/${PR_NUMBER}/comments" \
             --jq '[.[] | select(.body | startswith("## Review Lead Summary"))] | last | .body // ""')
-          peers=$(gh api "repos/${{ github.repository }}/issues/${PR_NUMBER}/comments" \
-            --jq '[.[] | select(.body | test("^## (Code Review|Security Review)"))] | .[].body')
+          # Only the LATEST comment per reviewer — mirrors the per-peer gates'
+          # `| last`. Scanning ALL historical comments would keep blocking on a
+          # Critical the PR already fixed in an earlier round (caught in #597 review).
+          cr_body=$(gh api "repos/${{ github.repository }}/issues/${PR_NUMBER}/comments" \
+            --jq '[.[] | select(.body | startswith("## Code Review"))] | last | .body // ""')
+          sec_body=$(gh api "repos/${{ github.repository }}/issues/${PR_NUMBER}/comments" \
+            --jq '[.[] | select(.body | startswith("## Security Review"))] | last | .body // ""')
+          peers="${cr_body}"$'\n'"${sec_body}"
           # Signal 1: lead verdict
           verdict_block=0
           if echo "$lead" | grep -q '^LEAD-VERDICT: BLOCK$'; then
