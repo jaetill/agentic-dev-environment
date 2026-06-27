@@ -735,6 +735,52 @@ jobs:
             --permission-mode bypassPermissions
             --allowed-tools Bash,Read,Glob,Grep
             --append-system-prompt "Follow the platform standards in docs/standards/."
+      - name: "Enforce gate (review-lead consolidated verdict)"
+        if: ${{ github.event.pull_request.user.login != 'dependabot[bot]' }}
+        # ADR-0053 / #595 Phase 2. The consolidated gate. Two signals:
+        #   1. the lead's own LEAD-VERDICT line
+        #   2. an INDEPENDENT scan of the PEER comments for Critical/High
+        #      headers — this is the trust-boundary guardrail in code: the lead
+        #      cannot suppress a peer Critical/High, because this step blocks on
+        #      a peer Crit/High regardless of what the lead's verdict says.
+        # Phase 2 keeps the per-peer gate steps too until #595 swaps branch
+        # protection to require `review / review-lead`; this step is harmless
+        # alongside them (defense in depth) and becomes the sole gate after
+        # the peer gates are removed.
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          lead=$(gh api "repos/${{ github.repository }}/issues/${PR_NUMBER}/comments" \
+            --jq '[.[] | select(.body | startswith("## Review Lead Summary"))] | last | .body // ""')
+          peers=$(gh api "repos/${{ github.repository }}/issues/${PR_NUMBER}/comments" \
+            --jq '[.[] | select(.body | test("^## (Code Review|Security Review)"))] | .[].body')
+          # Signal 1: lead verdict
+          verdict_block=0
+          if echo "$lead" | grep -q '^LEAD-VERDICT: BLOCK$'; then
+            verdict_block=1
+            echo "::notice::LEAD-VERDICT says BLOCK."
+          fi
+          # Signal 2 (guardrail): independent Critical/High scan over peer comments
+          severity_block=0
+          if echo "$peers" | awk '
+            /^### Critical/ || /^### High/ { in_section=1; next }
+            /^### / || /^---/ { in_section=0; next }
+            in_section && /^- / { print; exit 0 }
+            END { exit 1 }
+          ' >/dev/null 2>&1; then
+            severity_block=1
+            echo "::notice::Independent scan found a peer Critical/High finding."
+          fi
+          if [[ -z "$lead" && $severity_block -eq 0 ]]; then
+            echo "::warning::No review-lead comment and no peer Crit/High; treating as APPROVE (don't punish a tooling failure)."
+            exit 0
+          fi
+          if [[ $verdict_block -eq 1 || $severity_block -eq 1 ]]; then
+            echo "::error::Review-lead BLOCKED merge. (lead_verdict=$verdict_block, peer_severity=$severity_block)"
+            exit 1
+          fi
+          echo "Review-lead: no blocking findings. Job passing."
 
   destructive-change-check:
     runs-on: ubuntu-latest
