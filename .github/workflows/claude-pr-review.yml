@@ -159,7 +159,14 @@ jobs:
       # gate is the single enforcement now (it independently scans the latest peer
       # comments for Critical/High, so a code-review BLOCK still blocks via the
       # lead). code-review reports findings; it no longer gates. `review / review-lead`
-      # is the required check fleet-wide.
+      # is the gating required check fleet-wide.
+      #
+      # IMPORTANT — code-review MUST REMAIN a required status check. It is now
+      # report-only (no gate step), but its report is the review-lead's input.
+      # If it is dropped from branch-protection required checks, a skipped or
+      # timed-out review could merge and the lead would consolidate incomplete
+      # input — releasing un-reviewed code. "report-only" ≠ "optional": required
+      # guarantees the review RUNS; the lead owns the verdict. Do NOT un-require it.
 
   functional-test:
     needs: detect-node
@@ -599,6 +606,11 @@ jobs:
       # gate is the single enforcement now — it independently scans the latest
       # peer comments for Critical/High, so a security-review BLOCK still blocks
       # via the lead. security-review reports findings; it no longer gates.
+      #
+      # IMPORTANT — security-review MUST REMAIN a required status check. Report-
+      # only (no gate step) but its report drives the lead. Un-requiring it would
+      # let a skipped/timed-out security review merge un-reviewed code. Do NOT
+      # drop it from branch-protection required checks.
 
   # ── review-lead: consolidate peer findings, route, file off-diff only ────────
   # ADR-0053 review-lead amendment (#587). The peers (code-review / security-
