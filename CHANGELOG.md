@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.0](https://github.com/jaetill/agentic-dev-environment/compare/v0.6.0...v0.7.0) (2026-06-27)
+
+
+### Features
+
+* **review:** remove peer gate steps; review-lead is sole gate ([#595](https://github.com/jaetill/agentic-dev-environment/issues/595) Phase 2 step 3) ([#599](https://github.com/jaetill/agentic-dev-environment/issues/599)) ([cd3c11f](https://github.com/jaetill/agentic-dev-environment/commit/cd3c11f8993498bf4673189d924e45d5d5a4fd87))
+
 ## [0.6.0](https://github.com/jaetill/agentic-dev-environment/compare/v0.5.0...v0.6.0) (2026-06-27)
 
 
