@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/jaetill/agentic-dev-environment/compare/v0.4.2...v0.5.0) (2026-06-27)
+
+
+### Features
+
+* **review:** add review-lead consolidation agent; peers stop filing ([#587](https://github.com/jaetill/agentic-dev-environment/issues/587), ADR-0053 Phase 1) ([#594](https://github.com/jaetill/agentic-dev-environment/issues/594)) ([97a9329](https://github.com/jaetill/agentic-dev-environment/commit/97a9329db62a7332ddc86b80a21cc14c8b2961c6))
+
 ## [0.4.2](https://github.com/jaetill/agentic-dev-environment/compare/v0.4.1...v0.4.2) (2026-06-26)
 
 
