@@ -155,51 +155,11 @@ jobs:
             --permission-mode bypassPermissions
             --allowed-tools Bash,Read,Glob,Grep
             --append-system-prompt "Follow the platform standards in docs/standards/."
-      - name: "Enforce gate (hybrid VERDICT verification)"
-        if: ${{ github.event.pull_request.user.login != 'dependabot[bot]' }}
-        # Defense in depth per ADR-0026 §4 decision:
-        #   1. Parse the agent's self-declared VERDICT line
-        #   2. INDEPENDENTLY scan the comment for ### Critical or ### High
-        #      severity headers
-        # Fail the job if EITHER signals BLOCK. This catches a subverted
-        # prompt that "forgets" the VERDICT line, AND it catches an
-        # honest VERDICT: APPROVE that's inconsistent with the body.
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: |
-          body=$(gh api "repos/${{ github.repository }}/issues/${PR_NUMBER}/comments" \
-            --jq '[.[] | select(.body | startswith("## Code Review"))] | last | .body // ""')
-          if [[ -z "$body" ]]; then
-            echo "::warning::No code-review comment found; agent may have failed to post."
-            echo "Treating as APPROVE (don't punish a tooling failure)."
-            exit 0
-          fi
-          # Signal 1: explicit VERDICT line
-          verdict_block=0
-          if echo "$body" | grep -q '^VERDICT: BLOCK$'; then
-            verdict_block=1
-            echo "::notice::VERDICT line says BLOCK."
-          fi
-          # Signal 2: independent scan for Critical/High severity headers
-          # that contain at least one finding bullet
-          severity_block=0
-          if echo "$body" | awk '
-            /^### Critical/ || /^### High/ { in_section=1; next }
-            /^### / || /^---/ { in_section=0; next }
-            in_section && /^- / { print; exit 0 }
-            END { exit 1 }
-          ' >/dev/null 2>&1; then
-            severity_block=1
-            echo "::notice::Independent scan found Critical or High severity findings."
-          fi
-          if [[ $verdict_block -eq 1 || $severity_block -eq 1 ]]; then
-            echo "::error::Code review BLOCKED merge."
-            echo "(verdict_block=$verdict_block, severity_block=$severity_block)"
-            echo "See the PR comment for details."
-            exit 1
-          fi
-          echo "Code review: no blocking findings. Job passing."
+      # Gate removed (ADR-0053 / #595 Phase 2): the review-lead job's consolidated
+      # gate is the single enforcement now (it independently scans the latest peer
+      # comments for Critical/High, so a code-review BLOCK still blocks via the
+      # lead). code-review reports findings; it no longer gates. `review / review-lead`
+      # is the required check fleet-wide.
 
   functional-test:
     needs: detect-node
@@ -635,37 +595,10 @@ jobs:
             --permission-mode bypassPermissions
             --allowed-tools Bash,Read,Glob,Grep
             --append-system-prompt "Follow the platform standards in docs/standards/."
-      - name: "Enforce gate (hybrid VERDICT verification)"
-        if: ${{ github.event.pull_request.user.login != 'dependabot[bot]' }}
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: |
-          body=$(gh api "repos/${{ github.repository }}/issues/${PR_NUMBER}/comments" \
-            --jq '[.[] | select(.body | startswith("## Security Review"))] | last | .body // ""')
-          if [[ -z "$body" ]]; then
-            echo "::warning::No security-review comment found; treating as APPROVE."
-            exit 0
-          fi
-          verdict_block=0
-          if echo "$body" | grep -q '^VERDICT: BLOCK$'; then
-            verdict_block=1
-          fi
-          severity_block=0
-          if echo "$body" | awk '
-            /^### Critical/ || /^### High/ { in_section=1; next }
-            /^### / || /^---/ { in_section=0; next }
-            in_section && /^- / { print; exit 0 }
-            END { exit 1 }
-          ' >/dev/null 2>&1; then
-            severity_block=1
-          fi
-          if [[ $verdict_block -eq 1 || $severity_block -eq 1 ]]; then
-            echo "::error::Security review BLOCKED merge."
-            echo "(verdict_block=$verdict_block, severity_block=$severity_block)"
-            exit 1
-          fi
-          echo "Security review: no blocking findings. Job passing."
+      # Gate removed (ADR-0053 / #595 Phase 2): the review-lead job's consolidated
+      # gate is the single enforcement now — it independently scans the latest
+      # peer comments for Critical/High, so a security-review BLOCK still blocks
+      # via the lead. security-review reports findings; it no longer gates.
 
   # ── review-lead: consolidate peer findings, route, file off-diff only ────────
   # ADR-0053 review-lead amendment (#587). The peers (code-review / security-
