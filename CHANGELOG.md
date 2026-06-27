@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.0](https://github.com/jaetill/agentic-dev-environment/compare/v0.5.0...v0.6.0) (2026-06-27)
+
+
+### Features
+
+* **review:** add review-lead enforce gate ([#595](https://github.com/jaetill/agentic-dev-environment/issues/595) Phase 2 step 1) ([#597](https://github.com/jaetill/agentic-dev-environment/issues/597)) ([58bde33](https://github.com/jaetill/agentic-dev-environment/commit/58bde33b3634882baa7584d2123f06415797122c))
+
 ## [0.5.0](https://github.com/jaetill/agentic-dev-environment/compare/v0.4.2...v0.5.0) (2026-06-27)
 
 
