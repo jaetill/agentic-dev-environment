@@ -117,6 +117,14 @@ else
   fail "PRESENT: expected 'PRESENT' for path with '#', got '$out'"
 fi
 
+# A path containing '&' is skipped (treated as present)
+out="$(run "x" "**File:** src/absent/file.ts&evil=1:1")"
+if [[ "$out" == "PRESENT" ]]; then
+  pass "PRESENT: path with '&' treated as present (URL injection blocked)"
+else
+  fail "PRESENT: expected 'PRESENT' for path with '&', got '$out'"
+fi
+
 # ── Case-insensitive **file:** ───────────────────────────────────────────────
 
 out="$(run "x" "**file:** ${GONE}:1")"

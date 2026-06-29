@@ -80,10 +80,16 @@ if [[ ${#paths[@]} -eq 0 && -n "$TITLE" ]]; then
   fi
 fi
 
-# --- Deduplicate ---
+# --- Deduplicate and cap ---
+# Cap at 20 paths: an issue with more cited paths than this is anomalous and
+# could exhaust the GitHub API rate limit (5 000 req/hr) if many crafted issues
+# are scanned in one fleet pass.
 declare -A _seen
 unique_paths=()
 for p in "${paths[@]}"; do
+  if [[ ${#unique_paths[@]} -ge 20 ]]; then
+    break
+  fi
   if [[ -z "${_seen[$p]+x}" ]]; then
     _seen["$p"]=1
     unique_paths+=("$p")
@@ -104,9 +110,14 @@ fi
 # not checked out locally, so a -e test would always be false). When REPO is
 # unset/empty, check the local working tree (platform-repo issues, which are
 # correctly checked out in the triage runner).
+if [[ -n "$REPO" && ! "$REPO" =~ ^[a-zA-Z0-9_-]+/[a-zA-Z0-9_.+-]+$ ]]; then
+  echo "PRESENT"
+  exit 0
+fi
+
 absent=()
 for p in "${unique_paths[@]}"; do
-  if [[ "$p" == /* || "$p" == *..* || "$p" == *'?'* || "$p" == *'#'* || "$p" == *'&'* ]]; then
+  if [[ "$p" == /* || "$p" == *..* || "$p" == *'?'* || "$p" == *'#'* || "$p" == *'&'* || "$p" == *'%'* ]]; then
     continue
   fi
   if [[ -n "$REPO" ]]; then
@@ -114,7 +125,9 @@ for p in "${unique_paths[@]}"; do
     # Use the GitHub contents API; only a true HTTP 404 means absent. Other
     # non-zero exits (rate limit, network error, expired token) are treated as
     # present to avoid false stale auto-closes.
-    api_err=$(gh api "repos/$REPO/contents/$p" 2>&1 >/dev/null); api_exit=$?
+    # gh api emits "HTTP 404: Not Found (…)" on stderr for missing paths.
+    api_err=$(gh api "repos/$REPO/contents/$p" 2>&1 >/dev/null)
+    api_exit=$?
     if [[ $api_exit -ne 0 && "$api_err" == *"HTTP 404"* ]]; then
       absent+=("$p")
     fi
