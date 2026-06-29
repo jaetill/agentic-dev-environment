@@ -9,6 +9,12 @@
 # Env:
 #   ISSUE_TITLE  — the issue title string
 #   ISSUE_BODY   — the issue body text (may be multiline)
+#   REPO         — optional; when set (e.g. "jaetill/ai-teacher"), checks path
+#                  existence via the GitHub API (GET /repos/{REPO}/contents/{path})
+#                  instead of the local filesystem. Required for fleet-repo issues
+#                  whose checkout is not present locally. Omit for platform-repo
+#                  issues where the working tree is the platform checkout.
+#                  Uses GH_TOKEN from the environment for API authentication.
 #
 # Output (stdout, exit 0 always):
 #   STALE <path> [<path>...]  — all extracted paths absent from HEAD
@@ -27,6 +33,7 @@ set -uo pipefail
 
 TITLE="${ISSUE_TITLE:-}"
 BODY="${ISSUE_BODY:-}"
+REPO="${REPO:-}"
 
 # strip_line_number <raw> — strips a trailing :<digits> suffix that may be a
 # single line, a range, or a comma-separated list (#508): "src/auth/session.js:42",
@@ -88,16 +95,29 @@ if [[ ${#unique_paths[@]} -eq 0 ]]; then
   exit 0
 fi
 
-# --- Existence check against HEAD (current working tree checkout) ---
+# --- Existence check ---
+# #266: reject absolute paths and '..' traversal from attacker-influenceable
+# issue content. Suspicious paths are treated as present so they never drive
+# a stale auto-close.
+#
+# When REPO is set, check existence via the GitHub API (fleet-repo issues are
+# not checked out locally, so a -e test would always be false). When REPO is
+# unset/empty, check the local working tree (platform-repo issues, which are
+# correctly checked out in the triage runner).
 absent=()
 for p in "${unique_paths[@]}"; do
-  # #266: the path comes from attacker-influenceable issue content. Only probe
-  # repo-relative paths — reject absolute paths and `..` traversal so crafted
-  # content can't probe the CI runner filesystem. A suspicious path is treated
-  # as present (not added to absent), so it can never drive a stale auto-close.
   case "$p" in /*|*..*) continue ;; esac
-  if [[ ! -e "$p" ]]; then
-    absent+=("$p")
+  if [[ -n "$REPO" ]]; then
+    # Fleet-repo path: the platform checkout does not contain fleet-repo files.
+    # Use the GitHub contents API; a 404 exit means absent.
+    if ! gh api "repos/$REPO/contents/$p" >/dev/null 2>&1; then
+      absent+=("$p")
+    fi
+  else
+    # Platform-repo path: check the local working tree at HEAD.
+    if [[ ! -e "$p" ]]; then
+      absent+=("$p")
+    fi
   fi
 done
 

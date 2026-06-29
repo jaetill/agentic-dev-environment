@@ -151,6 +151,62 @@ else
   fail "STALE: expected 'STALE ${GONE}' for absent path with trailing period, got '$out'"
 fi
 
+# ── API mode (REPO set) ────────────────────────────────────────────────────
+# These tests require GH_TOKEN (set in CI by the Actions context). Skip when
+# running locally without credentials rather than hard-failing.
+
+echo
+if [[ -z "${GH_TOKEN:-}" ]]; then
+  echo "  ⚠️  API mode tests skipped — GH_TOKEN not set"
+else
+  echo "API mode tests (REPO=jaetill/agentic-dev-environment)"
+
+  run_api() {
+    local title="$1" body="$2"
+    REPO="jaetill/agentic-dev-environment" ISSUE_TITLE="$title" ISSUE_BODY="$body" bash "$SCRIPT"
+  }
+
+  # Path that exists in the repo → PRESENT via API
+  out="$(run_api "irrelevant" "**File:** ${REAL_FILE}:10")"
+  if [[ "$out" == "PRESENT" ]]; then
+    pass "API PRESENT: path that exists in fleet repo returns PRESENT"
+  else
+    fail "API PRESENT: expected 'PRESENT' via API for existing path, got '$out'"
+  fi
+
+  # Path that does not exist in the repo → STALE via API
+  out="$(run_api "irrelevant" "**File:** ${GONE}:42")"
+  if [[ "$out" == "STALE ${GONE}" ]]; then
+    pass "API STALE: path absent from fleet repo returns STALE"
+  else
+    fail "API STALE: expected 'STALE ${GONE}' via API for absent path, got '$out'"
+  fi
+
+  # Title convention with API mode
+  out="$(run_api "[code-reviewer] ${REAL_FILE}:10 — something" "")"
+  if [[ "$out" == "PRESENT" ]]; then
+    pass "API PRESENT: title convention path that exists in fleet repo"
+  else
+    fail "API PRESENT: expected 'PRESENT' via API for title path, got '$out'"
+  fi
+
+  # Mixed present+absent → PRESENT via API
+  out="$(run_api "x" "$(printf '**File:** %s:1\n**File:** %s:9' "$REAL_FILE" "$GONE")")"
+  if [[ "$out" == "PRESENT" ]]; then
+    pass "API PRESENT: mixed present+absent paths → PRESENT via API"
+  else
+    fail "API PRESENT: mixed paths should yield PRESENT via API, got '$out'"
+  fi
+
+  # Regression guard: REPO unset → local filesystem still works
+  out="$(run "irrelevant" "**File:** ${REAL_FILE}:10")"
+  if [[ "$out" == "PRESENT" ]]; then
+    pass "Filesystem fallback: REPO unset still checks local working tree"
+  else
+    fail "Filesystem fallback: expected 'PRESENT' from local check, got '$out'"
+  fi
+fi
+
 echo
 if [[ $failures -eq 0 ]]; then
   echo "All tests passed."
