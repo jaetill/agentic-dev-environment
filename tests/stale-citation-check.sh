@@ -99,6 +99,24 @@ else
   fail "STALE: expected STALE for two absent paths, got '$out'"
 fi
 
+# ── URL meta-character filter (security: prevents ref-injection) ─────────────
+
+# A path containing '?' is skipped (treated as present) not stale
+out="$(run "x" "**File:** .github/workflows/ci.yml?ref=evil-branch:1")"
+if [[ "$out" == "PRESENT" ]]; then
+  pass "PRESENT: path with '?' treated as present (URL injection blocked)"
+else
+  fail "PRESENT: expected 'PRESENT' for path with '?', got '$out'"
+fi
+
+# A path containing '#' is skipped (treated as present)
+out="$(run "x" "**File:** src/absent/file.ts#fragment:1")"
+if [[ "$out" == "PRESENT" ]]; then
+  pass "PRESENT: path with '#' treated as present (URL injection blocked)"
+else
+  fail "PRESENT: expected 'PRESENT' for path with '#', got '$out'"
+fi
+
 # ── Case-insensitive **file:** ───────────────────────────────────────────────
 
 out="$(run "x" "**file:** ${GONE}:1")"
@@ -159,11 +177,12 @@ echo
 if [[ -z "${GH_TOKEN:-}" ]]; then
   echo "  ⚠️  API mode tests skipped — GH_TOKEN not set"
 else
-  echo "API mode tests (REPO=jaetill/agentic-dev-environment)"
+  _TEST_REPO="${TEST_REPO:-jaetill/agentic-dev-environment}"
+  echo "API mode tests (REPO=$_TEST_REPO)"
 
   run_api() {
     local title="$1" body="$2"
-    REPO="jaetill/agentic-dev-environment" ISSUE_TITLE="$title" ISSUE_BODY="$body" bash "$SCRIPT"
+    REPO="$_TEST_REPO" ISSUE_TITLE="$title" ISSUE_BODY="$body" bash "$SCRIPT"
   }
 
   # Path that exists in the repo → PRESENT via API

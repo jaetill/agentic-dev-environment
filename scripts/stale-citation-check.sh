@@ -96,9 +96,9 @@ if [[ ${#unique_paths[@]} -eq 0 ]]; then
 fi
 
 # --- Existence check ---
-# #266: reject absolute paths and '..' traversal from attacker-influenceable
-# issue content. Suspicious paths are treated as present so they never drive
-# a stale auto-close.
+# #266: reject absolute paths, '..' traversal, and URL meta-characters from
+# attacker-influenceable issue content. Suspicious paths are treated as present
+# so they never drive a stale auto-close.
 #
 # When REPO is set, check existence via the GitHub API (fleet-repo issues are
 # not checked out locally, so a -e test would always be false). When REPO is
@@ -106,11 +106,16 @@ fi
 # correctly checked out in the triage runner).
 absent=()
 for p in "${unique_paths[@]}"; do
-  case "$p" in /*|*..*) continue ;; esac
+  if [[ "$p" == /* || "$p" == *..* || "$p" == *'?'* || "$p" == *'#'* || "$p" == *'&'* ]]; then
+    continue
+  fi
   if [[ -n "$REPO" ]]; then
     # Fleet-repo path: the platform checkout does not contain fleet-repo files.
-    # Use the GitHub contents API; a 404 exit means absent.
-    if ! gh api "repos/$REPO/contents/$p" >/dev/null 2>&1; then
+    # Use the GitHub contents API; only a true HTTP 404 means absent. Other
+    # non-zero exits (rate limit, network error, expired token) are treated as
+    # present to avoid false stale auto-closes.
+    api_err=$(gh api "repos/$REPO/contents/$p" 2>&1 >/dev/null); api_exit=$?
+    if [[ $api_exit -ne 0 && "$api_err" == *"HTTP 404"* ]]; then
       absent+=("$p")
     fi
   else
