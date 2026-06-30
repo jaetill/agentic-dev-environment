@@ -143,8 +143,10 @@ On every scheduled run, after the scan, run the promoter pass. You move *agent-d
 **Stale-citation procedure** ([ADR-0040](../../../docs/adr/0040-promoter-closes-stale-citation-findings.md)) — runs deterministically before any LLM evaluation, for each candidate that passes the agent-discovered / severity / not-promoted / survived-one-cycle gates:
 
 ```bash
-result=$(ISSUE_TITLE="<title>" ISSUE_BODY="<body>" bash scripts/stale-citation-check.sh)
+result=$(REPO="jaetill/<repo>" GH_TOKEN=$FLEET_TOKEN ISSUE_TITLE="<title>" ISSUE_BODY="<body>" bash scripts/stale-citation-check.sh)
 ```
+
+`REPO` is the fleet repo currently being evaluated (e.g. `jaetill/ai-teacher`). When set, the script checks path existence via the GitHub API instead of the local filesystem — necessary because the runner only checks out the platform repo, not the fleet repos. `GH_TOKEN=$FLEET_TOKEN` provides cross-repo read access.
 
 - **`STALE <path>...`** — all cited paths are absent from HEAD. The finding was correct when filed; the code was removed since. Auto-close the issue with a comment:
   ```
