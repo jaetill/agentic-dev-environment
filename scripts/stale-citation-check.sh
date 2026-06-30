@@ -9,6 +9,11 @@
 # Env:
 #   ISSUE_TITLE  — the issue title string
 #   ISSUE_BODY   — the issue body text (may be multiline)
+#   REPO         — (optional) "owner/repo" of the fleet repo being evaluated.
+#                  When set, path existence is checked via the GitHub API instead
+#                  of the local filesystem — necessary when the runner only checks
+#                  out the platform repo and not the fleet repo.
+#   GH_TOKEN     — GitHub token with repo read access; required when REPO is set.
 #
 # Output (stdout, exit 0 always):
 #   STALE <path> [<path>...]  — all extracted paths absent from HEAD
@@ -27,6 +32,7 @@ set -uo pipefail
 
 TITLE="${ISSUE_TITLE:-}"
 BODY="${ISSUE_BODY:-}"
+REPO="${REPO:-}"
 
 # strip_line_number <raw> — strips a trailing :<digits> suffix that may be a
 # single line, a range, or a comma-separated list (#508): "src/auth/session.js:42",
@@ -88,16 +94,30 @@ if [[ ${#unique_paths[@]} -eq 0 ]]; then
   exit 0
 fi
 
-# --- Existence check against HEAD (current working tree checkout) ---
+# --- Existence check ---
+# When REPO is set: check via GitHub API (fleet repo not checked out locally).
+# When REPO is unset: check the local working tree.
+# Both modes apply the same path sanitisation before any probe.
 absent=()
 for p in "${unique_paths[@]}"; do
-  # #266: the path comes from attacker-influenceable issue content. Only probe
-  # repo-relative paths — reject absolute paths and `..` traversal so crafted
-  # content can't probe the CI runner filesystem. A suspicious path is treated
-  # as present (not added to absent), so it can never drive a stale auto-close.
+  # #266 / security-review: reject absolute paths, `..` traversal, and any
+  # character outside the safe set [a-zA-Z0-9._/-] before constructing an API
+  # URL or a local path probe. A suspicious path is treated as present (never
+  # added to absent) so it can never drive a stale auto-close.
   case "$p" in /*|*..*) continue ;; esac
-  if [[ ! -e "$p" ]]; then
-    absent+=("$p")
+  if [[ ! "$p" =~ ^[a-zA-Z0-9._/-]+$ ]]; then continue; fi
+
+  if [[ -n "$REPO" ]]; then
+    # API mode: path existence in the fleet repo via GitHub Contents API.
+    # A 404 means absent; any other non-zero exit (network error, bad token)
+    # is treated as present to avoid false stale-closes.
+    if ! GH_TOKEN="${GH_TOKEN:-}" gh api "repos/$REPO/contents/$p" --silent 2>/dev/null; then
+      absent+=("$p")
+    fi
+  else
+    if [[ ! -e "$p" ]]; then
+      absent+=("$p")
+    fi
   fi
 done
 
