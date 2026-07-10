@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.1](https://github.com/jaetill/agentic-dev-environment/compare/v0.7.0...v0.7.1) (2026-07-10)
+
+
+### Bug Fixes
+
+* **stale-citation:** use GitHub API for fleet-repo path existence ([#608](https://github.com/jaetill/agentic-dev-environment/issues/608)) ([#609](https://github.com/jaetill/agentic-dev-environment/issues/609)) ([5571c77](https://github.com/jaetill/agentic-dev-environment/commit/5571c77db360bacbc3e2ca43e1b5ce37f6da4abe))
+
 ## [0.7.0](https://github.com/jaetill/agentic-dev-environment/compare/v0.6.0...v0.7.0) (2026-06-27)
 
 
