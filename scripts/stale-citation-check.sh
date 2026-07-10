@@ -9,6 +9,12 @@
 # Env:
 #   ISSUE_TITLE  — the issue title string
 #   ISSUE_BODY   — the issue body text (may be multiline)
+#   REPO         — optional; when set (e.g. "jaetill/ai-teacher"), checks path
+#                  existence via the GitHub API (GET /repos/{REPO}/contents/{path})
+#                  instead of the local filesystem. Required for fleet-repo issues
+#                  whose checkout is not present locally. Omit for platform-repo
+#                  issues where the working tree is the platform checkout.
+#                  Uses GH_TOKEN from the environment for API authentication.
 #
 # Output (stdout, exit 0 always):
 #   STALE <path> [<path>...]  — all extracted paths absent from HEAD
@@ -27,6 +33,7 @@ set -uo pipefail
 
 TITLE="${ISSUE_TITLE:-}"
 BODY="${ISSUE_BODY:-}"
+REPO="${REPO:-}"
 
 # strip_line_number <raw> — strips a trailing :<digits> suffix that may be a
 # single line, a range, or a comma-separated list (#508): "src/auth/session.js:42",
@@ -73,10 +80,16 @@ if [[ ${#paths[@]} -eq 0 && -n "$TITLE" ]]; then
   fi
 fi
 
-# --- Deduplicate ---
+# --- Deduplicate and cap ---
+# Cap at 20 paths: an issue with more cited paths than this is anomalous and
+# could exhaust the GitHub API rate limit (5 000 req/hr) if many crafted issues
+# are scanned in one fleet pass.
 declare -A _seen
 unique_paths=()
 for p in "${paths[@]}"; do
+  if [[ ${#unique_paths[@]} -ge 20 ]]; then
+    break
+  fi
   if [[ -z "${_seen[$p]+x}" ]]; then
     _seen["$p"]=1
     unique_paths+=("$p")
@@ -88,16 +101,41 @@ if [[ ${#unique_paths[@]} -eq 0 ]]; then
   exit 0
 fi
 
-# --- Existence check against HEAD (current working tree checkout) ---
+# --- Existence check ---
+# #266: reject absolute paths, '..' traversal, and URL meta-characters from
+# attacker-influenceable issue content. Suspicious paths are treated as present
+# so they never drive a stale auto-close.
+#
+# When REPO is set, check existence via the GitHub API (fleet-repo issues are
+# not checked out locally, so a -e test would always be false). When REPO is
+# unset/empty, check the local working tree (platform-repo issues, which are
+# correctly checked out in the triage runner).
+if [[ -n "$REPO" && ! "$REPO" =~ ^[a-zA-Z0-9_-]+/[a-zA-Z0-9_.+-]+$ ]]; then
+  echo "PRESENT"
+  exit 0
+fi
+
 absent=()
 for p in "${unique_paths[@]}"; do
-  # #266: the path comes from attacker-influenceable issue content. Only probe
-  # repo-relative paths — reject absolute paths and `..` traversal so crafted
-  # content can't probe the CI runner filesystem. A suspicious path is treated
-  # as present (not added to absent), so it can never drive a stale auto-close.
-  case "$p" in /*|*..*) continue ;; esac
-  if [[ ! -e "$p" ]]; then
-    absent+=("$p")
+  if [[ "$p" == /* || "$p" == *..* || "$p" == *'?'* || "$p" == *'#'* || "$p" == *'&'* || "$p" == *'%'* ]]; then
+    continue
+  fi
+  if [[ -n "$REPO" ]]; then
+    # Fleet-repo path: the platform checkout does not contain fleet-repo files.
+    # Use the GitHub contents API; only a true HTTP 404 means absent. Other
+    # non-zero exits (rate limit, network error, expired token) are treated as
+    # present to avoid false stale auto-closes.
+    # gh api emits "HTTP 404: Not Found (…)" on stderr for missing paths.
+    api_err=$(gh api "repos/$REPO/contents/$p" 2>&1 >/dev/null)
+    api_exit=$?
+    if [[ $api_exit -ne 0 && "$api_err" == *"HTTP 404"* ]]; then
+      absent+=("$p")
+    fi
+  else
+    # Platform-repo path: check the local working tree at HEAD.
+    if [[ ! -e "$p" ]]; then
+      absent+=("$p")
+    fi
   fi
 done
 

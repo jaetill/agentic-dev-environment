@@ -143,8 +143,10 @@ On every scheduled run, after the scan, run the promoter pass. You move *agent-d
 **Stale-citation procedure** ([ADR-0040](../../../docs/adr/0040-promoter-closes-stale-citation-findings.md)) — runs deterministically before any LLM evaluation, for each candidate that passes the agent-discovered / severity / not-promoted / survived-one-cycle gates:
 
 ```bash
-result=$(ISSUE_TITLE="<title>" ISSUE_BODY="<body>" bash scripts/stale-citation-check.sh)
+result=$(ISSUE_TITLE="<title>" ISSUE_BODY="<body>" REPO="jaetill/<repo>" bash scripts/stale-citation-check.sh)
 ```
+
+`REPO` must always be set to the fleet repo being scanned (the same `jaetill/<repo>` value used in the `gh issue list --repo` call above). Fleet-repo files are not checked out on the platform runner, so without `REPO` the script falls back to a local filesystem check where every path appears absent — every fleet-repo finding would be falsely closed as stale.
 
 - **`STALE <path>...`** — all cited paths are absent from HEAD. The finding was correct when filed; the code was removed since. Auto-close the issue with a comment:
   ```
