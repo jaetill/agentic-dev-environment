@@ -69,6 +69,8 @@ If sources conflict, escalate to the user rather than picking one silently.
 
 ## The autonomous loop
 
+> **⏸ PAUSED since 2026-07-16 (Jason's decision).** All scheduled workflows are disabled fleet-wide (`gh workflow disable`): platform `triage-scan`, `ci-health`, `urgent-poll`, `intake-steward`, `dreams-curation`, `cockpit-export`, plus every app repo's `claude-dep-watcher` and game-night's `claude-drift-detector`. Event-triggered workflows (PR review, security-scan, implementer dispatch on label) remain active. The Cowork `weekend-fleet-drain` task is deleted. Do **not** re-enable, dispatch sweeps, or drain the backlog — the queue is intentionally frozen. Rationale: the loop's throughput was ~85% self-generated maintenance and its ratification queue was consuming Jason's session time; priority is app-building and cert study. Reverse with `gh workflow enable` per workflow if/when Jason says so.
+
 This repo runs an **autonomous agent loop on GitHub Actions cron** — *not* Cowork scheduled tasks. If you are asked whether the "overnight" or "0900" run fired, check GitHub Actions run history (`gh run list`), never the Cowork scheduler. Mechanics, windows, and routing load with the workflow files — see [`.claude/rules/ci-workflows.md`](.claude/rules/ci-workflows.md) and [docs/runbooks/autonomous-loop.md](docs/runbooks/autonomous-loop.md).
 
 ## What NOT to do
