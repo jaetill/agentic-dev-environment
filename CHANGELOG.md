@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.2](https://github.com/jaetill/agentic-dev-environment/compare/v0.7.1...v0.7.2) (2026-08-19)
+
+
+### Bug Fixes
+
+* **ci:** stop a slow apt mirror wedging the required e2e-test check ([#614](https://github.com/jaetill/agentic-dev-environment/issues/614)) ([5badc7e](https://github.com/jaetill/agentic-dev-environment/commit/5badc7edec3c93f5773ef4343ba5dc0322a14129))
+
 ## [0.7.1](https://github.com/jaetill/agentic-dev-environment/compare/v0.7.0...v0.7.1) (2026-07-10)
 
 
