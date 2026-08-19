@@ -392,9 +392,42 @@ jobs:
       - name: Install dependencies
         if: needs.detect-node.outputs.node == 'true' && github.event.pull_request.user.login != 'dependabot[bot]'
         run: npm ci
-      - name: Install Playwright browser + system deps
+      # Browser binary and system libraries are installed SEPARATELY, and only
+      # the first is allowed to fail the job.
+      #
+      # `playwright install --with-deps chromium` shells out to apt-get against
+      # archive.ubuntu.com. On 2026-08-19 that mirror stalled and the step sat
+      # there until the job's 25-minute budget killed it — three times, on a
+      # REQUIRED check, which blocks merges in every repo consuming this
+      # reusable. The 592ms test suite never ran once.
+      #
+      # Deliberately NOT solved with the Playwright container image: this
+      # reusable is shared, and the image version must match each repo's own
+      # @playwright/test version or Chromium is missing. ai-teacher is on
+      # 1.60.x and game-night-pwa on 1.59.x today, so any single pinned image
+      # breaks one of them. `npx playwright install` resolves the browser build
+      # from the repo's own installed version, which is version-agnostic.
+      - name: Cache Playwright browsers
         if: needs.detect-node.outputs.node == 'true' && github.event.pull_request.user.login != 'dependabot[bot]'
-        run: npx playwright install --with-deps chromium
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: playwright-${{ runner.os }}-
+      - name: Install Playwright browser
+        if: needs.detect-node.outputs.node == 'true' && github.event.pull_request.user.login != 'dependabot[bot]'
+        timeout-minutes: 6
+        run: npx playwright install chromium
+      # System libs, best effort. GitHub's ubuntu runner images already carry
+      # nearly everything Chromium needs, so a failure here is usually a no-op
+      # — and a hung apt must cost 4 minutes, not the whole job. If a library
+      # genuinely is missing the suite fails in seconds with a clear launch
+      # error, which is a far better signal than a 25-minute silent hang.
+      - name: Install Playwright system deps (best effort)
+        if: needs.detect-node.outputs.node == 'true' && github.event.pull_request.user.login != 'dependabot[bot]'
+        timeout-minutes: 4
+        continue-on-error: true
+        run: npx playwright install-deps chromium
       - name: Run e2e suite (captures output for agent)
         id: e2e
         if: needs.detect-node.outputs.node == 'true' && github.event.pull_request.user.login != 'dependabot[bot]'
